@@ -1,0 +1,15 @@
+[profile.default]
+src = "contracts"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.26"
+ignored_error_codes = ["license", "code-size"]
+
+# Only compile CopyTradingVault and its dependencies
+include_paths = ["contracts/CopyTradingVault.sol", "script/DeployCopyTradingVault.s.sol"]
+
+[rpc_endpoints]
+bscTestnet = "https://data-seed-prebsc-1-s1.binance.org:8545"
+
+[etherscan]
+bscTestnet = { key = "${BSCSCAN_API_KEY}", url = "https://api-testnet.bscscan.com/api" }

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TruthBounty Logo Preview</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            text-align: center;
+        }
+        .logo-display {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 600px;
+            color: white;
+            text-align: left;
+            margin-top: 20px;
+        }
+        .instructions h2 {
+            margin-top: 0;
+            color: #fbbf24;
+        }
+        .instructions ol {
+            line-height: 1.8;
+        }
+        .instructions code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #fbbf24;
+        }
+        .download-buttons {
+            margin-top: 20px;
+        }
+        .download-buttons button {
+            background: linear-gradient(135deg, #dc2626 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: transform 0.2s;
+        }
+        .download-buttons button:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 TruthBounty Logo</h1>
+
+        <div class="logo-display" id="logoDisplay">
+            <img src="logo.svg" alt="TruthBounty Logo" width="800" height="800">
+        </div>
+
+        <div class="download-buttons">
+            <button onclick="downloadSVG()">Download SVG</button>
+            <button onclick="convertToJPG()">Convert to JPG</button>
+            <button onclick="convertToPNG()">Convert to PNG</button>
+        </div>
+
+        <div class="instructions">
+            <h2>📝 How to Convert to JPG:</h2>
+            <ol>
+                <li><strong>Option 1: Screenshot Method</strong>
+                    <ul>
+                        <li>Right-click the logo above</li>
+                        <li>Select "Save image as..."</li>
+                        <li>Choose JPG format</li>
+                    </ul>
+                </li>
+                <li><strong>Option 2: Online Converter</strong>
+                    <ul>
+                        <li>Visit: <code>cloudconvert.com/svg-to-jpg</code></li>
+                        <li>Upload <code>logo.svg</code></li>
+                        <li>Download as JPG</li>
+                    </ul>
+                </li>
+                <li><strong>Option 3: Use the Button Above</strong>
+                    <ul>
+                        <li>Click "Convert to JPG" button</li>
+                        <li>Browser will download JPG file</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <h2>🎨 Logo Features:</h2>
+            <ul>
+                <li>✅ Shield: Represents Truth & Trust</li>
+                <li>🎯 Target: Represents Prediction Accuracy</li>
+                <li>🏆 Trophy/Crown: Represents Reputation Tiers</li>
+                <li>⭐ Stars: Represents NFT Achievement System</li>
+                <li>✓ Checkmark: Represents Verification</li>
+                <li>🌐 Network Nodes: Represents Blockchain</li>
+            </ul>
+
+            <h2>📐 Available Sizes:</h2>
+            <ul>
+                <li>Original: 800x800px (Square)</li>
+                <li>Social Media: 1200x630px (Facebook/LinkedIn)</li>
+                <li>Twitter: 400x400px (Profile)</li>
+                <li>Favicon: 32x32px, 64x64px</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function downloadSVG() {
+            const link = document.createElement('a');
+            link.href = 'logo.svg';
+            link.download = 'truthbounty-logo.svg';
+            link.click();
+        }
+
+        function convertToJPG() {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 800;
+                canvas.height = 800;
+                const ctx = canvas.getContext('2d');
+
+                // White background for JPG
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, 800, 800);
+
+                // Draw image
+                ctx.drawImage(img, 0, 0);
+
+                // Convert to JPG and download
+                canvas.toBlob(function(blob) {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = 'truthbounty-logo.jpg';
+                    link.click();
+                }, 'image/jpeg', 0.95);
+            };
+            img.src = 'logo.svg';
+        }
+
+        function convertToPNG() {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 800;
+                canvas.height = 800;
+                const ctx = canvas.getContext('2d');
+
+                // Transparent background for PNG
+                ctx.drawImage(img, 0, 0);
+
+                // Convert to PNG and download
+                canvas.toBlob(function(blob) {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = 'truthbounty-logo.png';
+                    link.click();
+                }, 'image/png');
+            };
+            img.src = 'logo.svg';
+        }
+    </script>
+</body>
+</html>

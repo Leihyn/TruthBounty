@@ -1,0 +1,447 @@
+'use client';
+
+import { useTruthBounty, useUpdateScore } from '@/hooks/useTruthBounty';
+import { TruthScoreCard } from '@/components/TruthScoreCard';
+import { NFTDisplay } from '@/components/NFTDisplay';
+import { ImportPredictions } from '@/components/ImportPredictions';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAccount } from 'wagmi';
+import { useRouter } from 'next/navigation';
+import { formatEther } from 'viem';
+import { TIER_NAMES, TIER_COLORS } from '@/lib/contracts';
+import {
+  RefreshCw,
+  ExternalLink,
+  TrendingUp,
+  Activity,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Award,
+  Users,
+  Target,
+  Wallet as WalletIcon,
+} from 'lucide-react';
+
+export default function DashboardPage() {
+  const router = useRouter();
+  const { isConnected, address } = useAccount();
+  const {
+    isRegistered,
+    userProfile,
+    nftMetadata,
+    tokenURI,
+    registerUser,
+    isRegistering,
+  } = useTruthBounty();
+
+  const { updateState, startUpdate, isUpdating } = useUpdateScore();
+
+  if (!isConnected) {
+    return (
+      <div className="container px-4 py-12 md:py-24">
+        <Alert>
+          <WalletIcon className="w-4 h-4" />
+          <AlertDescription>
+            Please connect your wallet to view your dashboard
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (!isRegistered) {
+    return (
+      <div className="container px-4 py-12 md:py-24">
+        <div className="max-w-2xl mx-auto text-center space-y-6">
+          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mx-auto">
+            <Award className="w-8 h-8 md:w-10 md:h-10 text-white" />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold">Get Started with TruthBounty</h1>
+          <p className="text-lg md:text-xl text-muted-foreground">
+            Register to create your on-chain reputation profile and mint your soulbound NFT
+          </p>
+          <Button
+            size="lg"
+            onClick={() => registerUser()}
+            disabled={isRegistering}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 min-h-[44px]"
+          >
+            {isRegistering ? 'Registering...' : 'Register Now'}
+            <Award className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!userProfile || !nftMetadata) {
+    return (
+      <div className="container px-4 py-6 md:py-12">
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <Skeleton className="h-[400px]" />
+            </div>
+            <Skeleton className="h-[400px]" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+            <Skeleton className="h-[300px]" />
+            <Skeleton className="h-[300px]" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const winRate = nftMetadata.totalPredictions > 0n
+    ? (nftMetadata.correctPredictions * 10000n) / nftMetadata.totalPredictions
+    : 0n;
+
+  const totalVolumeBNB = parseFloat(formatEther(nftMetadata.totalVolume));
+
+  return (
+    <div className="container px-4 py-6 md:py-12 space-y-6 md:space-y-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Dashboard</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm md:text-base text-muted-foreground">
+              {address?.slice(0, 6)}...{address?.slice(-4)}
+            </p>
+            <Badge className={`${TIER_COLORS[nftMetadata.tier]} text-white`}>
+              {TIER_NAMES[nftMetadata.tier]}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            onClick={() => startUpdate()}
+            disabled={isUpdating}
+            className="min-h-[44px] w-full sm:w-auto"
+          >
+            {isUpdating ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Updating...
+              </>
+            ) : updateState.status === 'success' ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" />
+                Updated!
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Update Score
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/profile/${address}`)}
+            className="min-h-[44px] w-full sm:w-auto"
+          >
+            View Profile
+            <ExternalLink className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Update Success/Error Alert */}
+      {updateState.status === 'error' && (
+        <Alert variant="destructive">
+          <XCircle className="w-4 h-4" />
+          <AlertDescription>{updateState.error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Main Grid Layout */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Left Column - TruthScore Card (larger) */}
+        <div className="lg:col-span-2">
+          <TruthScoreCard
+            score={nftMetadata.truthScore}
+            tier={nftMetadata.tier}
+            winRate={winRate}
+            totalPredictions={nftMetadata.totalPredictions}
+            correctPredictions={nftMetadata.correctPredictions}
+            totalVolume={nftMetadata.totalVolume}
+            showDetails={true}
+          />
+        </div>
+
+        {/* Right Column - NFT Display */}
+        <NFTDisplay
+          tokenURI={tokenURI as string}
+          tier={nftMetadata.tier}
+          truthScore={nftMetadata.truthScore}
+          tokenId={userProfile.nftTokenId}
+          isLoading={!tokenURI}
+        />
+      </div>
+
+      {/* Stats Overview Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <Card className="border-2">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-2 text-muted-foreground mb-2">
+              <TrendingUp className="w-3 h-3 md:w-4 md:h-4" />
+              <p className="text-xs md:text-sm font-medium">Win Rate</p>
+            </div>
+            <p className="text-2xl md:text-3xl font-bold">
+              {(Number(winRate) / 100).toFixed(1)}%
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-2 text-muted-foreground mb-2">
+              <Target className="w-3 h-3 md:w-4 md:h-4" />
+              <p className="text-xs md:text-sm font-medium">Predictions</p>
+            </div>
+            <p className="text-2xl md:text-3xl font-bold">
+              {Number(nftMetadata.totalPredictions)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-2 text-muted-foreground mb-2">
+              <WalletIcon className="w-3 h-3 md:w-4 md:h-4" />
+              <p className="text-xs md:text-sm font-medium">Volume</p>
+            </div>
+            <p className="text-2xl md:text-3xl font-bold">
+              {totalVolumeBNB.toFixed(2)}
+            </p>
+            <p className="text-xs text-muted-foreground">BNB</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-2 text-muted-foreground mb-2">
+              <Users className="w-3 h-3 md:w-4 md:h-4" />
+              <p className="text-xs md:text-sm font-medium">Platforms</p>
+            </div>
+            <p className="text-2xl md:text-3xl font-bold">
+              {nftMetadata.platformNames.length}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Connected Platforms & Recent Activity */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        {/* Connected Platforms */}
+        <Card className="border-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Connected Platforms
+            </CardTitle>
+            <CardDescription>
+              Platforms you've imported predictions from
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {nftMetadata.platformNames.length > 0 ? (
+              <div className="space-y-3">
+                {nftMetadata.platformNames.map((platform, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                        <Activity className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{platform}</p>
+                        <p className="text-xs text-muted-foreground">Connected</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline">
+                      <CheckCircle2 className="w-3 h-3 mr-1 text-green-500" />
+                      Active
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Activity className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                <p>No platforms connected yet</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Activity */}
+        <Card className="border-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Recent Activity
+            </CardTitle>
+            <CardDescription>Your latest on-chain actions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-3 border rounded-lg">
+                <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="w-4 h-4 text-purple-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium">NFT Minted</p>
+                  <p className="text-sm text-muted-foreground">
+                    Token #{userProfile.nftTokenId.toString()}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date(Number(userProfile.lastUpdate) * 1000).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 border rounded-lg">
+                <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                  <RefreshCw className="w-4 h-4 text-blue-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium">Score Updated</p>
+                  <p className="text-sm text-muted-foreground">
+                    TruthScore: {Number(nftMetadata.truthScore)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date(Number(nftMetadata.lastUpdated) * 1000).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              {nftMetadata.totalPredictions > 0n && (
+                <div className="flex items-start gap-3 p-3 border rounded-lg">
+                  <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                    <Target className="w-4 h-4 text-green-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium">Predictions Imported</p>
+                    <p className="text-sm text-muted-foreground">
+                      {Number(nftMetadata.totalPredictions)} total predictions
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {Number(nftMetadata.correctPredictions)} correct ({(Number(winRate) / 100).toFixed(1)}% win rate)
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Achievement Badges */}
+      <Card className="border-2 border-purple-500/30 bg-gradient-to-br from-purple-950/10 to-blue-950/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Award className="w-5 h-5" />
+            Achievements
+          </CardTitle>
+          <CardDescription>Milestones you've unlocked</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
+            {/* First Registration Badge */}
+            <div className="text-center p-3 md:p-4 border rounded-lg bg-background">
+              <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mx-auto mb-2 md:mb-3">
+                <CheckCircle2 className="w-8 h-8 text-white" />
+              </div>
+              <p className="font-semibold text-sm">Early Adopter</p>
+              <p className="text-xs text-muted-foreground mt-1">Registered user</p>
+            </div>
+
+            {/* Tier Achievement */}
+            {nftMetadata.tier > 0 && (
+              <div className="text-center p-3 md:p-4 border rounded-lg bg-background">
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center mx-auto mb-2 md:mb-3">
+                  <Award className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                </div>
+                <p className="font-semibold text-sm">{TIER_NAMES[nftMetadata.tier]}</p>
+                <p className="text-xs text-muted-foreground mt-1">Tier achieved</p>
+              </div>
+            )}
+
+            {/* Volume Milestone */}
+            {totalVolumeBNB >= 10 && (
+              <div className="text-center p-3 md:p-4 border rounded-lg bg-background">
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-green-500 to-cyan-500 flex items-center justify-center mx-auto mb-2 md:mb-3">
+                  <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                </div>
+                <p className="font-semibold text-sm">High Roller</p>
+                <p className="text-xs text-muted-foreground mt-1">10+ BNB volume</p>
+              </div>
+            )}
+
+            {/* Prediction Milestone */}
+            {nftMetadata.totalPredictions >= 100n && (
+              <div className="text-center p-3 md:p-4 border rounded-lg bg-background">
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-2 md:mb-3">
+                  <Target className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                </div>
+                <p className="font-semibold text-sm">Veteran</p>
+                <p className="text-xs text-muted-foreground mt-1">100+ predictions</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Import Section */}
+      <div>
+        <h2 className="text-xl md:text-2xl font-bold mb-4">Import More Predictions</h2>
+        <ImportPredictions />
+      </div>
+
+      {/* Actions Footer */}
+      <Card className="border-2 bg-muted/30">
+        <CardContent className="p-4 md:p-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-center md:text-left">
+              <h3 className="font-semibold mb-1">Share Your Reputation</h3>
+              <p className="text-sm text-muted-foreground">
+                Show others your TruthScore and achievements
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/profile/${address}`)}
+                className="min-h-[44px] w-full sm:w-auto"
+              >
+                View Public Profile
+              </Button>
+              <Button
+                onClick={() => router.push('/leaderboard')}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 min-h-[44px] w-full sm:w-auto"
+              >
+                See Leaderboard
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

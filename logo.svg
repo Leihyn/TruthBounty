@@ -1,0 +1,110 @@
+<svg width="800" height="800" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="800" height="800" fill="#0f172a"/>
+
+  <!-- Gradient Definitions -->
+  <defs>
+    <!-- Red to Blue Gradient -->
+    <linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#dc2626;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Gold Gradient for accents -->
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Glow Effect -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Outer Shield (Trust/Truth) -->
+  <path d="M 400 100 L 600 200 L 600 450 Q 600 550 400 650 Q 200 550 200 450 L 200 200 Z"
+        fill="none"
+        stroke="url(#mainGradient)"
+        stroke-width="8"
+        filter="url(#glow)"/>
+
+  <!-- Inner Shield Fill -->
+  <path d="M 400 120 L 580 210 L 580 445 Q 580 535 400 625 Q 220 535 220 445 L 220 210 Z"
+        fill="url(#mainGradient)"
+        opacity="0.1"/>
+
+  <!-- Target/Bullseye (Prediction Accuracy) -->
+  <circle cx="400" cy="370" r="120" fill="none" stroke="url(#goldGradient)" stroke-width="6" opacity="0.8"/>
+  <circle cx="400" cy="370" r="90" fill="none" stroke="url(#goldGradient)" stroke-width="5" opacity="0.6"/>
+  <circle cx="400" cy="370" r="60" fill="none" stroke="url(#goldGradient)" stroke-width="4" opacity="0.4"/>
+  <circle cx="400" cy="370" r="30" fill="url(#goldGradient)" opacity="0.9"/>
+
+  <!-- Trophy/Crown (Reputation) -->
+  <path d="M 350 320 L 350 300 L 370 280 L 400 290 L 430 280 L 450 300 L 450 320 Z"
+        fill="url(#goldGradient)"
+        filter="url(#glow)"/>
+
+  <!-- Stars (NFT Tiers) -->
+  <g fill="url(#goldGradient)" opacity="0.7">
+    <!-- Left Star -->
+    <path d="M 280 250 L 290 280 L 320 280 L 295 300 L 305 330 L 280 310 L 255 330 L 265 300 L 240 280 L 270 280 Z"/>
+    <!-- Right Star -->
+    <path d="M 520 250 L 530 280 L 560 280 L 535 300 L 545 330 L 520 310 L 495 330 L 505 300 L 480 280 L 510 280 Z"/>
+  </g>
+
+  <!-- Checkmark (Verification) -->
+  <path d="M 370 380 L 390 405 L 440 340"
+        fill="none"
+        stroke="#10b981"
+        stroke-width="10"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        filter="url(#glow)"/>
+
+  <!-- Text: TRUTH -->
+  <text x="400" y="520"
+        font-family="Arial, sans-serif"
+        font-size="72"
+        font-weight="900"
+        fill="url(#mainGradient)"
+        text-anchor="middle"
+        letter-spacing="8"
+        filter="url(#glow)">TRUTH</text>
+
+  <!-- Text: BOUNTY -->
+  <text x="400" y="590"
+        font-family="Arial, sans-serif"
+        font-size="72"
+        font-weight="900"
+        fill="url(#goldGradient)"
+        text-anchor="middle"
+        letter-spacing="8"
+        filter="url(#glow)">BOUNTY</text>
+
+  <!-- Subtitle -->
+  <text x="400" y="640"
+        font-family="Arial, sans-serif"
+        font-size="24"
+        font-weight="400"
+        fill="#94a3b8"
+        text-anchor="middle"
+        letter-spacing="4">REPUTATION PROTOCOL</text>
+
+  <!-- Blockchain nodes (decorative) -->
+  <g opacity="0.3">
+    <circle cx="150" cy="150" r="6" fill="#3b82f6"/>
+    <circle cx="650" cy="150" r="6" fill="#3b82f6"/>
+    <circle cx="150" cy="600" r="6" fill="#ef4444"/>
+    <circle cx="650" cy="600" r="6" fill="#ef4444"/>
+    <line x1="150" y1="150" x2="400" y2="200" stroke="#3b82f6" stroke-width="1"/>
+    <line x1="650" y1="150" x2="400" y2="200" stroke="#3b82f6" stroke-width="1"/>
+    <line x1="150" y1="600" x2="400" y2="520" stroke="#ef4444" stroke-width="1"/>
+    <line x1="650" y1="600" x2="400" y2="520" stroke="#ef4444" stroke-width="1"/>
+  </g>
+</svg>

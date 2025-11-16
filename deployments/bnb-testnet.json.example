@@ -1,0 +1,53 @@
+{
+  "network": "BNB Chain Testnet",
+  "chainId": 97,
+  "timestamp": 1234567890,
+  "deployer": "0x0000000000000000000000000000000000000000",
+  "contracts": {
+    "ReputationNFT": "0x0000000000000000000000000000000000000000",
+    "ScoreCalculator": "0x0000000000000000000000000000000000000000",
+    "PlatformRegistry": "0x0000000000000000000000000000000000000000",
+    "TruthBountyCore": "0x0000000000000000000000000000000000000000",
+    "PancakePredictionAdapter": "0x0000000000000000000000000000000000000000"
+  },
+  "external": {
+    "PancakePredictionV2": "0x18B2A687610328590Bc8F2e5fEdDe3b582A49cdA"
+  },
+  "verification": {
+    "explorerUrl": "https://testnet.bscscan.com",
+    "verified": true
+  },
+  "configuration": {
+    "platformRegistry": {
+      "registeredPlatforms": [
+        {
+          "id": 1,
+          "name": "PancakePrediction V2",
+          "adapter": "0x0000000000000000000000000000000000000000",
+          "type": "BINARY_PREDICTION",
+          "isActive": true
+        }
+      ]
+    },
+    "reputationNFT": {
+      "coreContract": "0x0000000000000000000000000000000000000000",
+      "name": "TruthBounty Reputation",
+      "symbol": "TRUTH"
+    }
+  },
+  "gasUsed": {
+    "ReputationNFT": "~2,500,000",
+    "ScoreCalculator": "~500,000",
+    "PlatformRegistry": "~1,000,000",
+    "TruthBountyCore": "~1,500,000",
+    "PancakePredictionAdapter": "~800,000",
+    "total": "~6,300,000"
+  },
+  "notes": [
+    "All contracts deployed and verified on BscScan",
+    "TruthBountyCore set as minter for ReputationNFT",
+    "PancakePrediction platform registered with ID 1",
+    "Platform type: BINARY_PREDICTION",
+    "Ready for production use"
+  ]
+}

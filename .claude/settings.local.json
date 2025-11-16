@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nConnect to real PancakeSwap Prediction data via The Graph API\n\n- Updated PANCAKESWAP_CONFIG with The Graph gateway endpoint\n- Using subgraph ID: 5ZQGSZ74JUeSQdCjqALFEhYjWsiFJAsqJpuLhWvJ9fkP\n- Fixed GraphQL query to match actual schema (removed non-existent closeAt field)\n- Added data transformation to add missing fields for compatibility\n- Now fetching REAL live prediction rounds from BSC\n- Fallback to mock data still available if API fails\n- Real data includes actual bet amounts, bull/bear ratios, and prices\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nMerge remote repository with TruthBounty MVP project\n\n- Keeping comprehensive README.md from TruthBounty\n- Resolved merge conflict by keeping local README\n- All project files ready for GitHub\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

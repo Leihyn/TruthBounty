@@ -1,0 +1,83 @@
+'use client';
+
+import { useState } from 'react';
+import { MarketList } from '@/components/polymarket/MarketList';
+import { MarketDetailModal } from '@/components/polymarket/MarketDetailModal';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PolymarketMarket } from '@/lib/polymarket';
+import { TrendingUp, Info } from 'lucide-react';
+
+export default function MarketsPage() {
+  const [selectedMarket, setSelectedMarket] = useState<PolymarketMarket | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleSelectMarket = (market: PolymarketMarket) => {
+    setSelectedMarket(market);
+    setIsModalOpen(true);
+  };
+
+  return (
+    <div className="container px-4 py-6 md:py-12 space-y-8">
+      {/* Header */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+            <TrendingUp className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold">Polymarket Markets</h1>
+            <p className="text-muted-foreground">
+              Discover and track prediction markets from Polymarket
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Info Card */}
+      <Card className="border-2 border-purple-500/30 bg-gradient-to-br from-purple-950/20 to-blue-950/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Info className="w-5 h-5" />
+            About Polymarket Integration
+          </CardTitle>
+          <CardDescription>
+            Browse live prediction markets from Polymarket and import your trading history to build your TruthScore
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <span className="text-purple-400 mt-0.5">•</span>
+              <span>Real-time market data powered by Polymarket Gamma API</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-purple-400 mt-0.5">•</span>
+              <span>Track trending and active prediction markets</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-purple-400 mt-0.5">•</span>
+              <span>Import your trading history to increase your TruthScore reputation</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-purple-400 mt-0.5">•</span>
+              <span>Monitor market probabilities and volumes in real-time</span>
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
+
+      {/* Markets List */}
+      <div>
+        <h2 className="text-2xl font-bold mb-6">Browse Markets</h2>
+        <MarketList onSelectMarket={handleSelectMarket} limit={12} />
+      </div>
+
+      {/* Market Detail Modal */}
+      <MarketDetailModal
+        market={selectedMarket}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </div>
+  );
+}

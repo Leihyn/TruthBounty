@@ -1,0 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Archivo+Black&family=Teko:wght@600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Charlie Sexton Rock Style Utilities */
+  .rock-text {
+    @apply font-black uppercase italic tracking-widest;
+    transform: skewY(-2deg);
+  }
+
+  .rock-text-sm {
+    @apply font-black uppercase italic tracking-wider;
+    transform: skewY(-1deg);
+  }
+
+  .rock-shadow {
+    text-shadow: 4px 4px 0px rgba(0, 0, 0, 0.5), -1px -1px 0px rgba(255, 255, 255, 0.1);
+  }
+
+  .rock-border {
+    @apply border-2 border-amber-400/50;
+  }
+
+  .rock-card {
+    @apply transform -skew-y-1 border-2 border-amber-400/50;
+  }
+
+  .rock-button {
+    @apply font-black uppercase italic tracking-widest transform -skew-y-1 border-2 border-amber-400/50;
+  }
+}
+
+
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 84% 60%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 43 96% 56%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 221 83% 53%;
+    --chart-1: 0 84% 60%;
+    --chart-2: 221 83% 53%;
+    --chart-3: 43 96% 56%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --radius: 0.75rem;
+  }
+  .dark {
+    --background: 222 47% 5%;
+    --foreground: 0 0% 98%;
+    --card: 222 47% 8%;
+    --card-foreground: 0 0% 98%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 84% 60%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 43 96% 56%;
+    --accent-foreground: 222 47% 5%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 221 83% 53%;
+    --chart-1: 0 84% 60%;
+    --chart-2: 221 83% 53%;
+    --chart-3: 43 96% 56%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply text-foreground;
+    position: relative;
+    overflow-x: hidden;
+    background: #000000;
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  h1, h2, h3, h4, h5, h6, p, span, a, button, label, div {
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+  }
+}

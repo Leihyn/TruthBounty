@@ -1,0 +1,231 @@
+{
+  "lastIndexed": 1704067200000,
+  "totalUsers": 10,
+  "platforms": ["PancakeSwap Prediction", "Polymarket"],
+  "indexingSummary": [
+    {
+      "platform": "PancakeSwap Prediction",
+      "chain": "bsc",
+      "users": 1234,
+      "bets": 45678,
+      "blockRange": "34552891-34652891"
+    },
+    {
+      "platform": "Polymarket",
+      "chain": "polygon",
+      "users": 567,
+      "bets": 12345,
+      "blockRange": "51000000-51100000"
+    }
+  ],
+  "users": [
+    {
+      "address": "0x1234567890123456789012345678901234567890",
+      "totalBets": 350,
+      "totalVolume": "35453200000000000000",
+      "wins": 245,
+      "losses": 105,
+      "winRate": 70.0,
+      "truthScore": 2150,
+      "rank": 1,
+      "platforms": ["PancakeSwap Prediction", "Polymarket"],
+      "platformBreakdown": [
+        {
+          "platform": "PancakeSwap Prediction",
+          "bets": 250,
+          "winRate": 68.0,
+          "score": 1850
+        },
+        {
+          "platform": "Polymarket",
+          "bets": 100,
+          "winRate": 75.0,
+          "score": 950
+        }
+      ]
+    },
+    {
+      "address": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      "totalBets": 198,
+      "totalVolume": "18923400000000000000",
+      "wins": 141,
+      "losses": 57,
+      "winRate": 71.2,
+      "truthScore": 1773,
+      "rank": 2,
+      "platforms": ["PancakeSwap Prediction"],
+      "platformBreakdown": [
+        {
+          "platform": "PancakeSwap Prediction",
+          "bets": 198,
+          "winRate": 71.2,
+          "score": 1773
+        }
+      ]
+    },
+    {
+      "address": "0x9876543210987654321098765432109876543210",
+      "totalBets": 225,
+      "totalVolume": "22678900000000000000",
+      "wins": 149,
+      "losses": 76,
+      "winRate": 66.2,
+      "truthScore": 1762,
+      "rank": 3,
+      "platforms": ["PancakeSwap Prediction", "Polymarket"],
+      "platformBreakdown": [
+        {
+          "platform": "PancakeSwap Prediction",
+          "bets": 175,
+          "winRate": 64.0,
+          "score": 1200
+        },
+        {
+          "platform": "Polymarket",
+          "bets": 50,
+          "winRate": 72.0,
+          "score": 562
+        }
+      ]
+    },
+    {
+      "address": "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+      "totalBets": 156,
+      "totalVolume": "12345600000000000000",
+      "wins": 99,
+      "losses": 57,
+      "winRate": 63.5,
+      "truthScore": 1458,
+      "rank": 4,
+      "platforms": ["PancakeSwap Prediction"],
+      "platformBreakdown": [
+        {
+          "platform": "PancakeSwap Prediction",
+          "bets": 156,
+          "winRate": 63.5,
+          "score": 1458
+        }
+      ]
+    },
+    {
+      "address": "0x1111111111111111111111111111111111111111",
+      "totalBets": 142,
+      "totalVolume": "10987600000000000000",
+      "wins": 91,
+      "losses": 51,
+      "winRate": 64.1,
+      "truthScore": 1385,
+      "rank": 5,
+      "platforms": ["PancakeSwap Prediction"],
+      "platformBreakdown": [
+        {
+          "platform": "PancakeSwap Prediction",
+          "bets": 142,
+          "winRate": 64.1,
+          "score": 1385
+        }
+      ]
+    },
+    {
+      "address": "0x2222222222222222222222222222222222222222",
+      "totalBets": 180,
+      "totalVolume": "15876540000000000000",
+      "wins": 118,
+      "losses": 62,
+      "winRate": 65.6,
+      "truthScore": 1674,
+      "rank": 6,
+      "platforms": ["Polymarket", "PancakeSwap Prediction"],
+      "platformBreakdown": [
+        {
+          "platform": "Polymarket",
+          "bets": 120,
+          "winRate": 67.0,
+          "score": 1150
+        },
+        {
+          "platform": "PancakeSwap Prediction",
+          "bets": 60,
+          "winRate": 62.0,
+          "score": 524
+        }
+      ]
+    },
+    {
+      "address": "0x3333333333333333333333333333333333333333",
+      "totalBets": 115,
+      "totalVolume": "8765430000000000000",
+      "wins": 72,
+      "losses": 43,
+      "winRate": 62.6,
+      "truthScore": 1187,
+      "rank": 7,
+      "platforms": ["PancakeSwap Prediction"],
+      "platformBreakdown": [
+        {
+          "platform": "PancakeSwap Prediction",
+          "bets": 115,
+          "winRate": 62.6,
+          "score": 1187
+        }
+      ]
+    },
+    {
+      "address": "0x4444444444444444444444444444444444444444",
+      "totalBets": 103,
+      "totalVolume": "7654320000000000000",
+      "wins": 64,
+      "losses": 39,
+      "winRate": 62.1,
+      "truthScore": 1094,
+      "rank": 8,
+      "platforms": ["PancakeSwap Prediction"],
+      "platformBreakdown": [
+        {
+          "platform": "PancakeSwap Prediction",
+          "bets": 103,
+          "winRate": 62.1,
+          "score": 1094
+        }
+      ]
+    },
+    {
+      "address": "0x5555555555555555555555555555555555555555",
+      "totalBets": 95,
+      "totalVolume": "6543210000000000000",
+      "wins": 59,
+      "losses": 36,
+      "winRate": 62.1,
+      "truthScore": 1006,
+      "rank": 9,
+      "platforms": ["PancakeSwap Prediction"],
+      "platformBreakdown": [
+        {
+          "platform": "PancakeSwap Prediction",
+          "bets": 95,
+          "winRate": 62.1,
+          "score": 1006
+        }
+      ]
+    },
+    {
+      "address": "0x6666666666666666666666666666666666666666",
+      "totalBets": 87,
+      "totalVolume": "5432100000000000000",
+      "wins": 54,
+      "losses": 33,
+      "winRate": 62.1,
+      "truthScore": 918,
+      "rank": 10,
+      "platforms": ["PancakeSwap Prediction"],
+      "platformBreakdown": [
+        {
+          "platform": "PancakeSwap Prediction",
+          "bets": 87,
+          "winRate": 62.1,
+          "score": 918
+        }
+      ]
+    }
+  ]
+}
