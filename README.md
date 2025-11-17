@@ -570,6 +570,7 @@ npm run build
 - [x] Trader search functionality
 
 ### 🚧 Phase 2: Enhanced Features
+- [ ] Telegram bot integration for notifications and trading
 - [ ] More platforms (Azuro, Thales, Augur)
 - [ ] Advanced analytics dashboard
 - [ ] Social features
