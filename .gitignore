@@ -13,6 +13,7 @@ docs/
 # Dotenv file
 .env
 .env.local
+.claude
 
 # Deployment files (keep examples only)
 deployments/*.json
