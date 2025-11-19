@@ -631,7 +631,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**Built with ❤️ for the Seedify Prediction Markets Hackathon**
+**Built for the Seedify Prediction Markets Hackathon**
 
 ⭐ Star us on GitHub if you find this project interesting!
 
