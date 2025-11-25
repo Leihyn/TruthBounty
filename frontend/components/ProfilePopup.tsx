@@ -89,8 +89,8 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
+        <DialogHeader className="sticky top-0 bg-background z-10 pb-4">
           <DialogTitle className="flex items-center gap-2 font-bebas tracking-wider uppercase text-2xl">
             <User className="w-5 h-5" />
             Your Profile
@@ -100,7 +100,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 pb-4">
           {/* Wallet Info */}
           <Card className="bg-gradient-to-br from-red-500/10 to-blue-500/10 border-red-500/30">
             <CardContent className="p-4">
@@ -127,30 +127,30 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
           {isRegistered && nftMetadata ? (
             <Card className="border-2 border-red-500/30">
               <CardContent className="p-0">
-                {/* NFT Image */}
-                <div className="relative aspect-square w-full bg-gradient-to-br from-slate-900 to-slate-800 rounded-t-lg overflow-hidden">
+                {/* NFT Image - Compact Version */}
+                <div className="relative h-48 w-full bg-gradient-to-br from-slate-900 to-slate-800 rounded-t-lg overflow-hidden">
                   <div className="absolute inset-0 flex items-center justify-center">
                     {/* Dynamic NFT Preview */}
-                    <div className="text-center space-y-4 p-6">
-                      <div className={`w-24 h-24 rounded-full mx-auto bg-gradient-to-br ${TIER_COLORS[nftMetadata.tier]} flex items-center justify-center`}>
-                        <Trophy className="w-12 h-12 text-white" />
+                    <div className="text-center space-y-2 p-4">
+                      <div className={`w-16 h-16 rounded-full mx-auto bg-gradient-to-br ${TIER_COLORS[nftMetadata.tier]} flex items-center justify-center`}>
+                        <Trophy className="w-8 h-8 text-white" />
                       </div>
                       <div>
-                        <h3 className="text-2xl font-bebas tracking-wider uppercase text-white">TruthBounty</h3>
-                        <Badge className={`${TIER_COLORS[nftMetadata.tier]} text-white mt-2`}>
+                        <h3 className="text-xl font-bebas tracking-wider uppercase text-white">TruthBounty</h3>
+                        <Badge className={`${TIER_COLORS[nftMetadata.tier]} text-white mt-1 text-xs`}>
                           {TIER_NAMES[nftMetadata.tier]} Tier
                         </Badge>
                       </div>
                       <div className="text-white">
-                        <p className="text-sm text-slate-400">TruthScore</p>
-                        <p className="text-4xl font-teko">{Number(nftMetadata.truthScore)}</p>
+                        <p className="text-xs text-slate-400">TruthScore</p>
+                        <p className="text-3xl font-teko">{Number(nftMetadata.truthScore)}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Verification Badge */}
-                  <div className="absolute top-4 right-4">
-                    <Badge className="bg-green-500 text-white">
+                  <div className="absolute top-2 right-2">
+                    <Badge className="bg-green-500 text-white text-xs">
                       <Check className="w-3 h-3 mr-1" />
                       Verified
                     </Badge>
@@ -260,36 +260,16 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
             </Button>
           </div>
 
-          {/* User Stats Summary */}
-          {isRegistered && userProfile && (
-            <>
-              <Separator />
-              <div className="grid grid-cols-3 gap-4 text-center text-sm">
-                <div>
-                  <p className="text-3xl font-teko">{userProfile.rank || '-'}</p>
-                  <p className="text-muted-foreground">Rank</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-teko">{userProfile.totalBets || 0}</p>
-                  <p className="text-muted-foreground">Total Bets</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-teko">{userProfile.wins || 0}</p>
-                  <p className="text-muted-foreground">Wins</p>
-                </div>
-              </div>
-            </>
-          )}
-
           <Separator />
 
           {/* Disconnect Button */}
           <Button
             variant="destructive"
             onClick={handleDisconnect}
-            className="w-full"
+            size="lg"
+            className="w-full font-bold"
           >
-            <LogOut className="w-4 h-4 mr-2" />
+            <LogOut className="w-5 h-5 mr-2" />
             Disconnect Wallet
           </Button>
         </div>
