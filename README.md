@@ -6,40 +6,43 @@ TruthBounty is a decentralized reputation protocol that tracks prediction market
 
 Built for the **Seedify Prediction Markets Hackathon** on BNB Chain.
 
----
-
-## 🎯 Table of Contents
-
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Getting Started](#-getting-started)
-- [Smart Contracts](#-smart-contracts)
-- [Frontend Application](#-frontend-application)
-- [How It Works](#-how-it-works)
-- [TruthScore System](#-truthscore-system)
-- [Copy Trading](#-copy-trading)
-- [Supported Platforms](#-supported-platforms)
-- [Deployment](#-deployment)
-- [License](#-license)
+**Live Demo:** https://truth-bounty-4r9b.vercel.app/
 
 ---
 
-## ✨ Features
+## Table of Contents
 
-### 🏆 Core Features
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Smart Contracts](#smart-contracts)
+- [Frontend Application](#frontend-application)
+- [Services](#services)
+- [How It Works](#how-it-works)
+- [TruthScore System](#truthscore-system)
+- [Copy Trading](#copy-trading)
+- [Supported Platforms](#supported-platforms)
+- [Deployment](#deployment)
+- [License](#license)
+
+---
+
+## Features
+
+### Core Features
 
 - **Soulbound Reputation NFTs** - Non-transferable NFTs that track your prediction market performance
 - **Multi-Platform Integration** - Import predictions from PancakeSwap Prediction and Polymarket
-- **TruthScore Algorithm** - Proprietary scoring system: `(WinRate × 100) × √(Volume) / 100`
-- **Dynamic Tier System** - Bronze → Silver → Gold → Platinum → Diamond based on performance
+- **TruthScore Algorithm** - Proprietary scoring system: `(WinRate x 100) x sqrt(Volume) / 100`
+- **Dynamic Tier System** - Bronze, Silver, Gold, Platinum, Diamond based on performance
 - **Global Leaderboard** - Compete with other prediction market traders worldwide
 - **Trader Search** - Look up any address to view their complete betting history
-- **Copy Trading** - Follow successful traders and automatically copy their bets
+- **Copy Trading** - Follow successful traders and automatically copy their bets (simulation mode available)
 - **Direct Betting** - Place bets on PancakeSwap directly from the app
 - **Public Profiles** - Shareable profiles showing stats, wins/losses, and bet history
 
-### 🎨 User Experience
+### User Experience
 
 - **Responsive Design** - Works seamlessly on desktop and mobile
 - **Real-time Updates** - Live market data with automatic refreshing
@@ -49,9 +52,9 @@ Built for the **Seedify Prediction Markets Hackathon** on BNB Chain.
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
-### **Frontend**
+### Frontend
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
@@ -60,28 +63,29 @@ Built for the **Seedify Prediction Markets Hackathon** on BNB Chain.
 - **State Management**: React Hooks
 - **Animations**: Framer Motion
 
-### **Smart Contracts**
+### Smart Contracts
 - **Language**: Solidity 0.8.28
 - **Framework**: Foundry
 - **Network**: BNB Smart Chain (Testnet & Mainnet)
 - **Standards**: ERC-721 (Soulbound), ERC-165
 
-### **Backend/APIs**
-- **Runtime**: Next.js API Routes
+### Backend/Services
+- **Runtime**: Node.js, Next.js API Routes
+- **Database**: Supabase (PostgreSQL)
 - **External APIs**:
   - The Graph (PancakeSwap data)
   - Polymarket REST API
   - BSCScan API
 
-### **Development Tools**
-- **Package Manager**: npm/yarn
+### Development Tools
+- **Package Manager**: npm
 - **Version Control**: Git
 - **Testing**: Foundry Test Suite
 - **Linting**: ESLint, Prettier
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 truthbounty-mvp/
@@ -91,7 +95,8 @@ truthbounty-mvp/
 │   │   │   ├── TruthBountyCore.sol      # Main protocol contract
 │   │   │   ├── ReputationNFT.sol        # Soulbound NFT implementation
 │   │   │   ├── ScoreCalculator.sol      # TruthScore algorithm
-│   │   │   └── PlatformRegistry.sol     # Platform management
+│   │   │   ├── PlatformRegistry.sol     # Platform management
+│   │   │   └── CopyTradingVault.sol     # Copy trading vault
 │   │   ├── interfaces/                   # Contract interfaces
 │   │   └── libraries/                    # Shared libraries
 │   ├── script/                           # Deployment scripts
@@ -107,35 +112,37 @@ truthbounty-mvp/
 │   │   ├── profile/[address]/            # Public profiles
 │   │   ├── traders/                      # Trader search
 │   │   ├── copy-trading/                 # Copy trading dashboard
-│   │   └── analytics/                    # Analytics & insights
+│   │   ├── monitor/                      # Live monitoring
+│   │   └── api/                          # API routes
+│   │       ├── copy-trading/             # Copy trading APIs
+│   │       ├── leaderboard/              # Leaderboard APIs
+│   │       ├── pancakeswap/              # PancakeSwap APIs
+│   │       └── polymarket-leaderboard/   # Polymarket APIs
 │   ├── components/                       # React components
-│   │   ├── ui/                           # shadcn/ui components
-│   │   ├── polymarket/                   # Polymarket integrations
-│   │   ├── pancakeswap/                  # PancakeSwap integrations
-│   │   ├── ConnectWallet.tsx             # Wallet connection
-│   │   ├── TruthScoreCard.tsx            # Score display
-│   │   └── NFTDisplay.tsx                # NFT renderer
 │   ├── hooks/                            # Custom React hooks
-│   │   ├── useTruthBounty.ts             # Main contract hook
-│   │   └── use-toast.ts                  # Toast notifications
 │   ├── lib/                              # Utilities & config
-│   │   ├── contracts.ts                  # Contract ABIs & addresses
-│   │   ├── wagmi.ts                      # wagmi configuration
-│   │   ├── polymarket.ts                 # Polymarket service
-│   │   └── pancakeswap.ts                # PancakeSwap service
-│   ├── public/                           # Static assets
-│   └── styles/                           # Global styles
+│   └── public/                           # Static assets
+│
+├── services/                  # Backend services
+│   ├── copy-trading/                     # Copy trading service
+│   │   ├── index.ts                      # On-chain executor
+│   │   ├── simulator.ts                  # Simulation mode
+│   │   └── package.json
+│   └── indexer/                          # Bet indexer service
+│       ├── index.js                      # Main indexer
+│       ├── backfill.js                   # Historical data backfill
+│       └── package.json
 │
 └── README.md
 ```
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm/yarn
+- Node.js 18+ and npm
 - Foundry (for smart contracts)
 - MetaMask or compatible Web3 wallet
 - Git
@@ -145,7 +152,7 @@ truthbounty-mvp/
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/truthbounty-mvp.git
+git clone https://github.com/Leihyn/TruthBounty.git
 cd truthbounty-mvp
 ```
 
@@ -163,11 +170,32 @@ cd contracts
 forge install
 ```
 
+**Services:**
+```bash
+cd services/copy-trading
+npm install
+
+cd ../indexer
+npm install
+```
+
 #### 3. Environment Setup
 
-Create `.env.local` in the `frontend` directory with the required environment variables.
+Create `.env.local` in the `frontend` directory:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_KEY=your_service_key
+```
 
-**Note:** Environment variable details are documented separately for security.
+Create `.env` in `services/copy-trading`:
+```env
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_KEY=your_service_key
+BSC_RPC_URL=https://bsc.publicnode.com
+BSC_TESTNET_RPC=https://bsc-testnet.publicnode.com
+EXECUTOR_PRIVATE_KEY=your_executor_private_key
+```
 
 #### 4. Run Development Server
 
@@ -179,6 +207,12 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
+**Copy Trading Simulator:**
+```bash
+cd services/copy-trading
+npx ts-node simulator.ts
+```
+
 **Smart Contracts (Testing):**
 ```bash
 cd contracts
@@ -187,11 +221,11 @@ forge test
 
 ---
 
-## 📜 Smart Contracts
+## Smart Contracts
 
 ### Core Contracts
 
-#### **TruthBountyCore.sol**
+#### TruthBountyCore.sol
 Main protocol contract managing user registration and reputation.
 
 **Key Functions:**
@@ -200,7 +234,7 @@ Main protocol contract managing user registration and reputation.
 - `updateScore(address, TruthScore memory)` - Update reputation
 - `hasRegistered(address)` - Check registration status
 
-#### **ReputationNFT.sol**
+#### ReputationNFT.sol
 ERC-721 soulbound NFT with dynamic metadata.
 
 **Features:**
@@ -209,33 +243,27 @@ ERC-721 soulbound NFT with dynamic metadata.
 - Tier-based visual design
 - On-chain metadata
 
-#### **ScoreCalculator.sol**
+#### ScoreCalculator.sol
 Calculates TruthScore based on performance metrics.
 
 **Formula:**
 ```solidity
-score = (winRate × volumeSqrt) / 100
+score = (winRate x volumeSqrt) / 100
 where:
-  winRate = (correctPredictions / totalPredictions) × 10000
+  winRate = (correctPredictions / totalPredictions) x 10000
   volumeSqrt = sqrt(totalVolume / 1e16)
 ```
 
-#### **PlatformRegistry.sol**
-Manages supported prediction platforms.
-
-**Supported Platforms:**
-- PancakeSwap Prediction (ID: 1)
-- Polymarket (ID: 2)
-
-#### **CopyTradingVault.sol**
+#### CopyTradingVault.sol
 Manages copy trading funds and automated bet execution.
+
+**Deployed Address (BSC Testnet):** `0xBf5341E79bc0507a16807C244b5267Ad8333a6ed`
 
 **Features:**
 - User balance management
 - Copy follow settings per trader
 - Automated bet execution
 - Reward claiming
-- Platform whitelisting
 
 ### Contract Deployment
 
@@ -243,82 +271,41 @@ Manages copy trading funds and automated bet execution.
 cd contracts
 
 # Deploy to BSC Testnet
-forge script script/DeployAll.s.sol:DeployAll \
-  --rpc-url https://data-seed-prebsc-1-s1.binance.org:8545 \
-  --broadcast \
-  --verify
-
-# Deploy to BSC Mainnet
-forge script script/DeployAll.s.sol:DeployAll \
-  --rpc-url https://bsc-dataseed1.binance.org \
+forge script script/Deploy.s.sol:Deploy \
+  --rpc-url https://bsc-testnet.publicnode.com \
   --broadcast \
   --verify
 ```
 
 ---
 
-## 🎨 Frontend Application
+## Services
 
-### Pages
+### Copy Trading Service
 
-#### **Home (`/`)**
-- Hero section with wallet connection
-- Feature overview
-- How it works guide
-- Tier system showcase
-- Platform integrations
+Two modes of operation:
 
-#### **Dashboard (`/dashboard`)**
-- Personal TruthScore card
-- NFT display with dynamic rendering
-- Import predictions from platforms
-- Recent activity feed
-- Performance statistics
+**1. Simulator Mode (simulator.ts)**
+- Monitors mainnet PancakeSwap leader bets
+- Logs virtual trades to Supabase
+- Calculates PnL when rounds resolve
+- No on-chain execution, no gas fees
 
-#### **Markets (`/markets`)**
-- Live PancakeSwap Prediction rounds
-- **Direct betting** on PancakeSwap
-- Polymarket event predictions
-- **Deep linking** to Polymarket with wallet info
-- Real-time market data
+**2. Executor Mode (index.ts)**
+- Executes real on-chain copy trades
+- Uses CopyTradingVault funds
+- Requires executor wallet with gas
 
-#### **Leaderboard (`/leaderboard`)**
-- Global rankings by TruthScore
-- Filter by tier and platform
-- Search by address
-- Top 3 spotlight
-- Platform-specific leaderboards
+### Indexer Service
 
-#### **Trader Search (`/traders`)**
-- Search any wallet address
-- View complete bet history
-- See wins/losses breakdown
-- Filter by outcome (wins, losses, pending)
-- Copy trading integration
-
-#### **Public Profile (`/profile/[address]`)**
-- Shareable profile pages
-- Comprehensive statistics
-- Recent predictions timeline
-- Performance breakdown
-- Copy trade button
-
-#### **Copy Trading (`/copy-trading`)**
-- Active follows management
-- Copy trade history
-- Performance metrics
-- Pause/resume/delete follows
-- Allocation and risk controls
-
-#### **Analytics (`/analytics`)**
-- Performance insights
-- Win rate trends
-- Volume analysis
-- Platform comparison
+Tracks and indexes prediction bets:
+- Backfills historical data
+- Calculates user statistics
+- Updates leaderboard rankings
 
 ---
 
-## 🔄 How It Works
+## How It Works
 
 ### 1. User Registration
 
@@ -342,78 +329,67 @@ forge script script/DeployAll.s.sol:DeployAll \
 ### 3. TruthScore Calculation
 
 ```typescript
-// Simplified calculation
-const winRate = (correctPredictions / totalPredictions) × 10000;
+const winRate = (correctPredictions / totalPredictions) * 10000;
 const volumePoints = totalVolume / 1e16; // 1 BNB = 100 points
 const volumeSqrt = Math.sqrt(volumePoints);
-const truthScore = (winRate × volumeSqrt) / 100;
+const truthScore = (winRate * volumeSqrt) / 100;
 ```
 
-**Example:**
-- 100 predictions, 70 correct
-- 50 BNB total volume
-- Win rate: 70% (7000)
-- Volume: √5000 ≈ 70.71
-- **TruthScore: 4,950** (Platinum tier)
-
-### 4. Tier Advancement
+### 4. Tier System
 
 | Tier | Threshold | Color |
 |------|-----------|-------|
-| 🥉 Bronze | 0 - 499 | Orange |
-| 🥈 Silver | 500 - 999 | Silver |
-| 🥇 Gold | 1,000 - 1,999 | Gold |
-| 💎 Platinum | 2,000 - 4,999 | Cyan |
-| 💠 Diamond | 5,000+ | Blue |
-
-NFT metadata updates automatically when crossing thresholds.
+| Bronze | 0 - 499 | Orange |
+| Silver | 500 - 999 | Silver |
+| Gold | 1,000 - 1,999 | Gold |
+| Platinum | 2,000 - 4,999 | Cyan |
+| Diamond | 5,000+ | Blue |
 
 ---
 
-## 📊 TruthScore System
+## TruthScore System
 
 ### Components
 
-#### **1. Base Score (Win Rate)**
+**1. Base Score (Win Rate)**
 - Percentage of correct predictions
 - Precision: 2 decimals (7550 = 75.50%)
 - Range: 0 - 10000
 
-#### **2. Volume Multiplier**
+**2. Volume Multiplier**
 - Rewards trading activity
 - Square root scaling prevents whale dominance
 - 1 BNB = 100 volume points
 
-#### **3. Final Score**
+**3. Final Score**
 - Combines accuracy and volume
 - No hard upper limit
 - Typical range: 0 - 20,000
 
 ### Score Examples
 
-| Win Rate | Volume | Calculation | TruthScore | Tier |
-|----------|--------|-------------|------------|------|
-| 50% | 1 BNB | (5000 × √100) / 100 | 500 | Silver |
-| 70% | 10 BNB | (7000 × √1000) / 100 | 2,213 | Platinum |
-| 75% | 50 BNB | (7500 × √5000) / 100 | 5,303 | Diamond |
-| 80% | 100 BNB | (8000 × √10000) / 100 | 8,000 | Diamond |
+| Win Rate | Volume | TruthScore | Tier |
+|----------|--------|------------|------|
+| 50% | 1 BNB | 500 | Silver |
+| 70% | 10 BNB | 2,213 | Platinum |
+| 75% | 50 BNB | 5,303 | Diamond |
+| 80% | 100 BNB | 8,000 | Diamond |
 
 ### Why Square Root?
 
-**Without √:** 100 BNB trader has 100× advantage over 1 BNB trader
-**With √:** 100 BNB trader has 10× advantage (√100 vs √1)
+**Without sqrt:** 100 BNB trader has 100x advantage over 1 BNB trader
+**With sqrt:** 100 BNB trader has 10x advantage (sqrt(100) vs sqrt(1))
 
 This ensures **skill matters more than bankroll** while still rewarding volume.
 
 ---
 
-## 🔁 Copy Trading
+## Copy Trading
 
-### How Copy Trading Works
+### How It Works
 
-#### **1. Follow a Trader**
+**1. Follow a Trader**
 ```typescript
-// Set copy trading parameters
 {
   trader: "0x...",
   allocationPercentage: 25,  // Copy 25% of their bet size
@@ -422,25 +398,22 @@ This ensures **skill matters more than bankroll** while still rewarding volume.
 }
 ```
 
-#### **2. Automated Execution**
-When the trader places a bet:
-1. Backend detects the bet event
-2. Calculates your copy amount: `traderBet × 25% = yourBet`
-3. Checks max bet limit
-4. Executes bet from your vault balance
-5. Records the copy trade
+**2. Simulation Mode**
+- Monitors mainnet leader bets via WebSocket
+- Logs virtual trades to database
+- Calculates what PnL would have been
+- No real funds at risk
 
-#### **3. Vault Management**
-- Deposit BNB to `CopyTradingVault`
-- Funds used for automated copy trades
-- Withdraw unused balance anytime
+**3. Execution Mode**
+- Deposit BNB to CopyTradingVault
+- Automated copy trades on-chain
 - Claim winnings back to vault
 
 ---
 
-## 🌐 Supported Platforms
+## Supported Platforms
 
-### **PancakeSwap Prediction**
+### PancakeSwap Prediction
 
 **Network:** BNB Smart Chain
 **Asset:** BNB/USD price predictions
@@ -451,9 +424,9 @@ When the trader places a bet:
 - Live round data
 - Bull/Bear betting
 - Historical round results
-- **Place bets directly from TruthBounty**
+- Place bets directly from TruthBounty
 
-### **Polymarket**
+### Polymarket
 
 **Network:** Polygon
 **Asset:** Event-based predictions
@@ -464,66 +437,38 @@ When the trader places a bet:
 - Event outcome probabilities
 - Volume and liquidity data
 - Market descriptions and tags
-- **Direct deep linking to Polymarket**
+- Direct deep linking to Polymarket
 
 ---
 
-## 📱 Key Features
-
-### **Direct PancakeSwap Betting**
-
-1. Navigate to Markets page
-2. Find a LIVE PancakeSwap round
-3. Click "Place Bet" button
-4. Select Bull (UP) or Bear (DOWN)
-5. Enter bet amount
-6. Review potential payout
-7. Confirm transaction
-8. Bet is placed on-chain!
-
-### **Polymarket Deep Linking**
-
-1. Navigate to Markets page
-2. Click on any Polymarket market
-3. View market details
-4. Click "Trade on Polymarket"
-5. Opens Polymarket at exact market
-6. Connect wallet and trade
-
----
-
-## 🚢 Deployment
+## Deployment
 
 ### Smart Contracts
 
 ```bash
 cd contracts
 
-# Deploy all contracts
-forge script script/DeployAll.s.sol:DeployAll \
+forge script script/Deploy.s.sol:Deploy \
   --rpc-url $RPC_URL \
   --broadcast \
   --verify \
   -vvvv
 ```
 
-### Frontend
+### Frontend (Vercel)
 
-#### Vercel Deployment
+The frontend auto-deploys from GitHub to Vercel.
 
+Manual deployment:
 ```bash
 cd frontend
-
-# Install Vercel CLI
 npm i -g vercel
-
-# Deploy
 vercel --prod
 ```
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Smart Contract Tests
 
@@ -540,7 +485,7 @@ forge test -vvv
 forge coverage
 ```
 
-### Frontend Testing
+### Frontend
 
 ```bash
 cd frontend
@@ -557,35 +502,7 @@ npm run build
 
 ---
 
-## 🗺️ Roadmap
-
-### ✅ Phase 1: MVP (Current)
-- [x] Soulbound NFT implementation
-- [x] TruthScore algorithm
-- [x] PancakeSwap integration
-- [x] Polymarket integration
-- [x] Copy trading system
-- [x] Leaderboard
-- [x] Direct betting on PancakeSwap
-- [x] Trader search functionality
-
-### 🚧 Phase 2: Enhanced Features
-- [ ] Telegram bot integration for notifications and trading
-- [ ] More platforms (Azuro, Thales, Augur)
-- [ ] Advanced analytics dashboard
-- [ ] Social features
-- [ ] Tournament system
-- [ ] Mobile app
-
-### 🔮 Phase 3: Decentralization
-- [ ] DAO governance
-- [ ] Token launch
-- [ ] Community-driven features
-- [ ] Cross-chain expansion
-
----
-
-## 💡 FAQ
+## FAQ
 
 **Q: Is my NFT transferable?**
 A: No, it's a soulbound (non-transferable) NFT tied to your wallet address forever.
@@ -600,7 +517,7 @@ A: One profile per wallet address. Each wallet can register once.
 A: Your TruthScore will decrease as your win rate drops.
 
 **Q: Is copy trading automated?**
-A: Yes, once you deposit to the vault and follow a trader, bets are copied automatically.
+A: Yes. In simulation mode, trades are logged virtually. In execution mode, bets are copied on-chain automatically.
 
 **Q: Which network should I use?**
 A: BNB Smart Chain for TruthBounty and PancakeSwap. Polygon for Polymarket.
@@ -610,13 +527,13 @@ A: Only blockchain gas fees. No platform fees.
 
 ---
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **PancakeSwap** - For the prediction market platform
 - **Polymarket** - For decentralized prediction markets
@@ -629,10 +546,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-<div align="center">
-
 **Built for the Seedify Prediction Markets Hackathon**
 
-⭐ Star us on GitHub if you find this project interesting!
-
-</div>
+Star us on GitHub if you find this project interesting!
