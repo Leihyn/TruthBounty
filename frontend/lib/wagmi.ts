@@ -4,8 +4,8 @@ import { http } from 'wagmi';
 
 // Custom RPC endpoints for better reliability
 const transports = {
-  [bscTestnet.id]: http('https://data-seed-prebsc-1-s1.binance.org:8545'),
-  [bsc.id]: http('https://bsc-dataseed1.binance.org'),
+  [bscTestnet.id]: http('https://bsc-testnet.publicnode.com'),
+  [bsc.id]: http('https://bsc.publicnode.com'),
 };
 
 export const config = getDefaultConfig({

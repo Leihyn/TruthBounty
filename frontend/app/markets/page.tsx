@@ -8,13 +8,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PolymarketMarket } from '@/lib/polymarket';
 import { PancakePredictionMarket, fetchPancakeMarkets } from '@/lib/pancakeswap';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function MarketsPage() {
   const [selectedMarket, setSelectedMarket] = useState<PolymarketMarket | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pancakeMarkets, setPancakeMarkets] = useState<PancakePredictionMarket[]>([]);
   const [pancakeLoading, setPancakeLoading] = useState(true);
+  const [isMockData, setIsMockData] = useState(false);
 
   useEffect(() => {
     loadPancakeMarkets();
@@ -25,8 +27,9 @@ export default function MarketsPage() {
 
   async function loadPancakeMarkets() {
     try {
-      const markets = await fetchPancakeMarkets();
+      const { markets, isMock } = await fetchPancakeMarkets();
       setPancakeMarkets(markets);
+      setIsMockData(isMock);
     } catch (error) {
       console.error('Error loading PancakeSwap markets:', error);
     } finally {
@@ -55,6 +58,15 @@ export default function MarketsPage() {
           </div>
         </div>
       </div>
+      {/* Mock Data Warning */}
+      {isMockData && (
+        <Alert className="border-amber-500/50 bg-amber-500/10">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertDescription className="text-amber-200">
+            Live data unavailable. Showing simulated PancakeSwap markets for demonstration purposes.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* PancakeSwap Prediction Markets */}
       <div>

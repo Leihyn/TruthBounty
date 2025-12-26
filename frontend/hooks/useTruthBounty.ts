@@ -11,13 +11,13 @@ import {
   NFTMetadata,
   Platform,
   ReputationTier,
+  MINT_FEE,
 } from '@/lib/contracts';
 import { Address } from 'viem';
 
 export function useTruthBounty() {
   const { address, chainId } = useAccount();
-  const [isRegistered, setIsRegistered] = useState(false);
-
+  
   // Get contract addresses based on chain
   const contracts = chainId === 97 ? CONTRACTS.bscTestnet : CONTRACTS.bsc;
 
@@ -73,19 +73,29 @@ export function useTruthBounty() {
 
   // Get all platforms
   const [platforms, setPlatforms] = useState<Platform[]>([]);
+  const [platformError, setPlatformError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!platformCount || Number(platformCount) === 0) return;
 
     const fetchPlatforms = async () => {
-      const platformPromises = [];
-      for (let i = 1; i <= Number(platformCount); i++) {
-        platformPromises.push(
-          fetch(`/api/platform/${i}`).then(res => res.json()).catch(() => null)
-        );
+      try {
+        setPlatformError(null);
+        const platformPromises = [];
+        for (let i = 1; i <= Number(platformCount); i++) {
+          platformPromises.push(
+            fetch(`/api/platform/${i}`).then(res => {
+              if (!res.ok) throw new Error('Platform fetch failed');
+              return res.json();
+            })
+          );
+        }
+        const results = await Promise.all(platformPromises);
+        setPlatforms(results.filter(Boolean));
+      } catch (error) {
+        console.error('Failed to fetch platforms:', error);
+        setPlatformError('Failed to load platforms. Please refresh the page.');
       }
-      const results = await Promise.all(platformPromises);
-      setPlatforms(results.filter(Boolean));
     };
 
     fetchPlatforms();
@@ -109,7 +119,7 @@ export function useTruthBounty() {
       address: contracts.TruthBountyCore,
       abi: TRUTH_BOUNTY_CORE_ABI,
       functionName: 'registerUser',
-      value: BigInt('500000000000000'), // 0.0005 BNB in wei
+      value: MINT_FEE,
     });
   };
 
@@ -179,6 +189,7 @@ export function useTruthBounty() {
     nftMetadata,
     tokenURI,
     platforms,
+    platformError,
 
     // Actions
     registerUser,

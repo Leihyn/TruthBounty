@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Copy,
   TrendingUp,
@@ -21,9 +21,15 @@ import {
   DollarSign,
   CheckCircle2,
   AlertCircle,
+  Wallet,
+  Shield,
+  ExternalLink,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAccount } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { parseEther, formatEther } from 'viem';
+import { COPY_TRADING_VAULT_ABI, COPY_VAULT_ADDRESS } from '@/lib/contracts';
+import Link from 'next/link';
 
 interface TraderStats {
   winRate: number;
@@ -47,17 +53,59 @@ export function CopyTradeButton({
   variant = 'default',
 }: CopyTradeButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [allocation, setAllocation] = useState('10');
+  const [allocation, setAllocation] = useState('20');
   const [maxBet, setMaxBet] = useState('0.5');
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(
-    traderStats.platforms || []
-  );
-  const [isLoading, setIsLoading] = useState(false);
 
   const { address, isConnected } = useAccount();
   const { toast } = useToast();
 
-  const handleCopyTrade = async () => {
+  // Check if vault is deployed
+  const vaultNotDeployed = COPY_VAULT_ADDRESS === '0x0000000000000000000000000000000000000000';
+
+  // Read user's vault balance
+  const { data: userBalance, refetch: refetchBalance } = useReadContract({
+    address: COPY_VAULT_ADDRESS,
+    abi: COPY_TRADING_VAULT_ABI,
+    functionName: 'balances',
+    args: address ? [address] : undefined,
+  });
+
+  // Check if already following this leader (getUserFollows returns Follow[] structs)
+  const { data: userFollowsData, refetch: refetchFollowed } = useReadContract({
+    address: COPY_VAULT_ADDRESS,
+    abi: COPY_TRADING_VAULT_ABI,
+    functionName: 'getUserFollows',
+    args: address ? [address] : undefined,
+  });
+
+  // Extract leader addresses from the Follow structs
+  const followedLeaders = userFollowsData?.map((f: any) => f.leader) || [];
+
+  // Write function to follow leader
+  const { writeContract: followLeader, data: followHash, isPending: isFollowing } = useWriteContract();
+
+  // Wait for transaction
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: followHash });
+
+  // Refetch on success
+  useEffect(() => {
+    if (isSuccess) {
+      refetchBalance();
+      refetchFollowed();
+      toast({
+        title: 'Copy Trading Activated!',
+        description: `You're now following ${traderAddress.slice(0, 6)}...${traderAddress.slice(-4)}`,
+      });
+      setIsOpen(false);
+    }
+  }, [isSuccess, traderAddress, toast, refetchBalance, refetchFollowed]);
+
+  const balance = userBalance ? formatEther(userBalance) : '0';
+  const isAlreadyFollowing = followedLeaders?.some(
+    (leader: string) => leader.toLowerCase() === traderAddress.toLowerCase()
+  );
+
+  const handleFollow = () => {
     if (!isConnected) {
       toast({
         title: 'Wallet Not Connected',
@@ -76,53 +124,28 @@ export function CopyTradeButton({
       return;
     }
 
-    if (selectedPlatforms.length === 0) {
+    if (Number(balance) < 0.01) {
       toast({
-        title: 'Select Platforms',
-        description: 'Please select at least one platform to copy',
+        title: 'Insufficient Balance',
+        description: 'Please deposit at least 0.01 BNB to the vault first',
         variant: 'destructive',
       });
       return;
     }
 
-    setIsLoading(true);
+    // Allocation in basis points (100 = 1%)
+    const allocationBps = Math.min(parseInt(allocation) * 100, 5000); // Max 50%
+    const maxBetWei = parseEther(maxBet);
 
-    try {
-      const response = await fetch('/api/copy-trade/follow', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          followerAddress: address,
-          traderAddress,
-          allocationPercentage: parseInt(allocation),
-          maxBetAmount: maxBet,
-          platforms: selectedPlatforms,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast({
-          title: 'Copy Trading Activated! 🎉',
-          description: `You're now copying ${traderAddress.slice(0, 6)}...${traderAddress.slice(-4)}`,
-        });
-        setIsOpen(false);
-      } else {
-        throw new Error(data.error || 'Failed to activate copy trading');
-      }
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to activate copy trading',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    followLeader({
+      address: COPY_VAULT_ADDRESS,
+      abi: COPY_TRADING_VAULT_ABI,
+      functionName: 'follow',
+      args: [traderAddress as `0x${string}`, BigInt(allocationBps), maxBetWei],
+    });
   };
 
-  const estimatedCopyAmount = (parseFloat(maxBet) * parseInt(allocation)) / 100;
+  const estimatedCopyAmount = (parseFloat(balance) * parseInt(allocation)) / 100;
 
   return (
     <>
@@ -131,28 +154,52 @@ export function CopyTradeButton({
         size={size}
         variant={variant}
         className="gap-2"
+        disabled={vaultNotDeployed}
       >
         <Copy className="w-4 h-4" />
-        Copy Trade
+        {isAlreadyFollowing ? 'Following' : 'Copy Trade'}
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-2xl">
-              <Copy className="w-6 h-6 text-purple-500" />
+              <Copy className="w-6 h-6 text-blue-500" />
               Copy This Trader
             </DialogTitle>
             <DialogDescription>
               Automatically copy predictions from{' '}
-              <code className="font-mono text-sm bg-purple-500/10 px-2 py-1 rounded">
+              <code className="font-mono text-sm bg-blue-500/10 px-2 py-1 rounded">
                 {traderAddress.slice(0, 10)}...{traderAddress.slice(-8)}
               </code>
             </DialogDescription>
           </DialogHeader>
 
+          {/* Already Following Alert */}
+          {isAlreadyFollowing && (
+            <Alert className="border-blue-500/50 bg-blue-500/10">
+              <CheckCircle2 className="h-4 w-4 text-blue-500" />
+              <AlertDescription className="text-blue-200">
+                You are already following this trader. Changes will update your settings.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Vault Balance Check */}
+          {Number(balance) < 0.01 && (
+            <Alert className="border-amber-500/50 bg-amber-500/10">
+              <Wallet className="h-4 w-4 text-amber-500" />
+              <AlertDescription className="text-amber-200">
+                <span className="font-semibold">No vault balance.</span> You need to deposit BNB to the Copy Trading Vault first.
+                <Link href="/copy-trading" className="ml-2 inline-flex items-center gap-1 text-blue-400 hover:text-blue-300">
+                  Go to Vault <ExternalLink className="h-3 w-3" />
+                </Link>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Trader Stats */}
-          <Card className="border-purple-500/30 bg-purple-500/5">
+          <Card className="border-blue-500/30 bg-blue-500/5">
             <CardContent className="p-4">
               <h3 className="font-semibold mb-3">Trader Performance</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -177,7 +224,7 @@ export function CopyTradeButton({
                     <DollarSign className="w-3 h-3" />
                     Volume
                   </div>
-                  <p className="text-xl font-bold text-yellow-400">
+                  <p className="text-xl font-bold text-amber-400">
                     {parseFloat(traderStats.totalVolume).toFixed(2)}
                   </p>
                 </div>
@@ -186,7 +233,7 @@ export function CopyTradeButton({
                     <CheckCircle2 className="w-3 h-3" />
                     Score
                   </div>
-                  <p className="text-xl font-bold text-purple-400">
+                  <p className="text-xl font-bold text-blue-400">
                     {traderStats.truthScore}
                   </p>
                 </div>
@@ -201,7 +248,7 @@ export function CopyTradeButton({
                       <Badge
                         key={platform}
                         variant="outline"
-                        className="text-xs bg-purple-500/10 text-purple-400"
+                        className="text-xs bg-blue-500/10 text-blue-400"
                       >
                         {platform}
                       </Badge>
@@ -212,28 +259,49 @@ export function CopyTradeButton({
             </CardContent>
           </Card>
 
+          {/* Your Vault Balance */}
+          <Card className="border-slate-500/30 bg-slate-500/5">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-400">Your Vault Balance</p>
+                  <p className="text-2xl font-bold text-blue-400">{Number(balance).toFixed(4)} BNB</p>
+                </div>
+                <Link href="/copy-trading">
+                  <Button variant="outline" size="sm">
+                    <Wallet className="w-4 h-4 mr-2" />
+                    Manage Vault
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Configuration */}
-          <div className="space-y-6 mt-6">
+          <div className="space-y-6 mt-4">
             {/* Allocation */}
             <div className="space-y-2">
               <Label htmlFor="allocation" className="text-base font-semibold">
                 Allocation Percentage
               </Label>
               <p className="text-sm text-muted-foreground">
-                What percentage of your balance to allocate for copying this trader
+                What percentage of your vault balance to use per copy trade (max 50%)
               </p>
               <div className="flex gap-4 items-center">
                 <Input
                   id="allocation"
                   type="number"
                   min="1"
-                  max="100"
+                  max="50"
                   value={allocation}
-                  onChange={(e) => setAllocation(e.target.value)}
+                  onChange={(e) => setAllocation(Math.min(50, parseInt(e.target.value) || 1).toString())}
                   className="text-lg"
                 />
-                <span className="text-2xl font-bold text-purple-400">{allocation}%</span>
+                <span className="text-2xl font-bold text-blue-400">{Math.min(50, parseInt(allocation) || 0)}%</span>
               </div>
+              <p className="text-xs text-blue-400">
+                Estimated per trade: ~{estimatedCopyAmount.toFixed(4)} BNB
+              </p>
             </div>
 
             {/* Max Bet */}
@@ -249,7 +317,7 @@ export function CopyTradeButton({
                   id="maxBet"
                   type="number"
                   step="0.01"
-                  min="0"
+                  min="0.01"
                   value={maxBet}
                   onChange={(e) => setMaxBet(e.target.value)}
                   className="text-lg"
@@ -257,61 +325,37 @@ export function CopyTradeButton({
                 />
                 <span className="text-sm font-medium whitespace-nowrap">BNB</span>
               </div>
-              <p className="text-xs text-purple-400">
-                Estimated copy amount per bet: ~{estimatedCopyAmount.toFixed(4)} BNB
-              </p>
             </div>
 
-            {/* Platform Selection */}
-            {traderStats.platforms && traderStats.platforms.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-base font-semibold">Select Platforms</Label>
-                <p className="text-sm text-muted-foreground">
-                  Choose which platforms to copy trades from
-                </p>
-                <div className="space-y-2 mt-3">
-                  {traderStats.platforms.map((platform) => (
-                    <div
-                      key={platform}
-                      className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <Checkbox
-                        id={platform}
-                        checked={selectedPlatforms.includes(platform)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedPlatforms([...selectedPlatforms, platform]);
-                          } else {
-                            setSelectedPlatforms(
-                              selectedPlatforms.filter((p) => p !== platform)
-                            );
-                          }
-                        }}
-                      />
-                      <label
-                        htmlFor={platform}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-                      >
-                        {platform}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Warning */}
-            <Card className="border-yellow-500/30 bg-yellow-500/5">
+            {/* Security Info */}
+            <Card className="border-blue-500/30 bg-blue-500/5">
               <CardContent className="p-4">
                 <div className="flex gap-3">
-                  <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                  <Shield className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                   <div className="text-sm space-y-1">
-                    <p className="font-semibold text-yellow-500">Important Notice</p>
+                    <p className="font-semibold text-blue-400">On-Chain Copy Trading</p>
+                    <ul className="space-y-1 text-gray-400">
+                      <li>• Your funds stay in the vault contract until copy trades execute</li>
+                      <li>• Withdrawals have a 1-hour time lock for security</li>
+                      <li>• All trades are executed on-chain with full transparency</li>
+                      <li>• You can unfollow any leader at any time</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Warning */}
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardContent className="p-4">
+                <div className="flex gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm space-y-1">
+                    <p className="font-semibold text-amber-500">Risk Warning</p>
                     <ul className="space-y-1 text-gray-400">
                       <li>• Copy trading involves risk. Past performance doesn't guarantee future results.</li>
-                      <li>• Your wallet will need to approve each copied transaction.</li>
-                      <li>• You can stop copy trading at any time from your dashboard.</li>
-                      <li>• Platform fees may apply to each copied trade.</li>
+                      <li>• Only deposit what you can afford to lose.</li>
+                      <li>• Platform fees (3%) apply to each copied trade.</li>
                     </ul>
                   </div>
                 </div>
@@ -322,22 +366,24 @@ export function CopyTradeButton({
           {/* Action Button */}
           <div className="flex gap-3 mt-6">
             <Button
-              onClick={handleCopyTrade}
-              disabled={isLoading || !isConnected}
-              className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              onClick={handleFollow}
+              disabled={isFollowing || isConfirming || !isConnected || Number(balance) < 0.01}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-700 hover:to-red-700"
               size="lg"
             >
-              {isLoading ? (
+              {isFollowing || isConfirming ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Activating...
+                  {isFollowing ? 'Confirming...' : 'Processing...'}
                 </>
               ) : !isConnected ? (
                 'Connect Wallet First'
+              ) : Number(balance) < 0.01 ? (
+                'Deposit to Vault First'
               ) : (
                 <>
                   <Copy className="w-4 h-4 mr-2" />
-                  Start Copy Trading
+                  {isAlreadyFollowing ? 'Update Settings' : 'Start Copy Trading'}
                 </>
               )}
             </Button>
@@ -345,7 +391,7 @@ export function CopyTradeButton({
               onClick={() => setIsOpen(false)}
               variant="outline"
               size="lg"
-              disabled={isLoading}
+              disabled={isFollowing || isConfirming}
             >
               Cancel
             </Button>

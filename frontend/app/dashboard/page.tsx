@@ -91,36 +91,51 @@ export default function DashboardPage() {
     );
   }
 
-  // Show demo dashboard if not registered (for testing/demo purposes)
-  // In production, you would require registration
-  const showDemoDashboard = !isRegistered;
+  // If not registered, show registration prompt (no more demo data)
+  if (!isRegistered) {
+    return (
+      <div className="container px-4 py-12 md:py-24">
+        <Card className="max-w-lg mx-auto border-2 border-amber-500/30">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bebas tracking-wider uppercase bg-gradient-to-r from-red-600 via-amber-500 to-blue-600 bg-clip-text text-transparent">
+              Get Started with TruthBounty
+            </CardTitle>
+            <CardDescription>
+              Register to create your on-chain reputation profile and start tracking your prediction accuracy.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-center text-muted-foreground text-sm">
+              <p>By registering, you will:</p>
+              <ul className="mt-2 space-y-1">
+                <li>✅ Mint your Soulbound Reputation NFT</li>
+                <li>✅ Start building your TruthScore</li>
+                <li>✅ Import predictions from PancakeSwap & more</li>
+                <li>✅ Appear on the global leaderboard</li>
+              </ul>
+            </div>
+            <Button
+              onClick={() => registerUser?.()}
+              disabled={isRegistering}
+              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-bebas tracking-wider uppercase"
+            >
+              {isRegistering ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Registering...
+                </>
+              ) : (
+                'Register Now'
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-  // Create mock data for demo
-  const demoProfile = {
-    truthScore: 750n,
-    totalPredictions: 45n,
-    correctPredictions: 32n,
-    streak: 5n,
-    tier: 2, // Number, not BigInt - matches ReputationTier enum
-    lastUpdate: BigInt(Math.floor(Date.now() / 1000)),
-  };
-
-  const demoMetadata = {
-    name: 'TruthBounty Genesis',
-    description: 'Your on-chain reputation NFT',
-    image: '',
-    attributes: [
-      { trait_type: 'TruthScore', value: '750' },
-      { trait_type: 'Tier', value: 'Silver' },
-      { trait_type: 'Win Rate', value: '71%' },
-    ],
-  };
-
-  // Use real data if available, otherwise use demo data
-  const displayProfile = showDemoDashboard ? demoProfile : userProfile;
-  const displayMetadata = showDemoDashboard ? demoMetadata : nftMetadata;
-
-  if (!showDemoDashboard && (!userProfile || !nftMetadata)) {
+  // Use real data only - no more demo/mock data
+  if (!userProfile || !nftMetadata) {
     return (
       <div className="container px-4 py-6 md:py-12">
         <div className="space-y-6">
@@ -143,11 +158,17 @@ export default function DashboardPage() {
     );
   }
 
-  const winRate = displayProfile.totalPredictions > 0n
-    ? (displayProfile.correctPredictions * 10000n) / displayProfile.totalPredictions
+  const winRate = userProfile.totalPredictions > 0n
+    ? (userProfile.correctPredictions * 10000n) / userProfile.totalPredictions
     : 0n;
 
-  const totalVolumeBNB = 125.5; // Mock value for demo
+  // Calculate real volume from profile (convert from wei if available)
+  const totalVolumeBNB = userProfile.totalVolume
+    ? Number(userProfile.totalVolume) / 1e18
+    : 0;
+
+  // Get tier from NFT metadata
+  const tier = nftMetadata.tier;
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -176,8 +197,8 @@ export default function DashboardPage() {
               <p className="text-sm md:text-base text-muted-foreground">
                 {address?.slice(0, 6)}...{address?.slice(-4)}
               </p>
-              <Badge className={`${TIER_COLORS[displayProfile.tier]} text-white`}>
-                {TIER_NAMES[displayProfile.tier]}
+              <Badge className={`${TIER_COLORS[tier]} text-white`}>
+                {TIER_NAMES[tier]}
               </Badge>
             </div>
           </div>
@@ -282,12 +303,12 @@ export default function DashboardPage() {
           {/* Left Column - TruthScore Card (larger) */}
           <div className="lg:col-span-2">
             <TruthScoreCard
-              score={displayProfile.truthScore}
-              tier={displayProfile.tier}
+              score={userProfile.truthScore}
+              tier={tier}
               winRate={winRate}
-              totalPredictions={displayProfile.totalPredictions}
-              correctPredictions={displayProfile.correctPredictions}
-              totalVolume={displayProfile.totalVolume}
+              totalPredictions={userProfile.totalPredictions}
+              correctPredictions={userProfile.correctPredictions}
+              totalVolume={userProfile.totalVolume}
               showDetails={true}
             />
           </div>
@@ -295,10 +316,10 @@ export default function DashboardPage() {
           {/* Right Column - NFT Display */}
           <NFTDisplay
             tokenURI={tokenURI as string}
-            tier={displayProfile.tier}
-            truthScore={displayProfile.truthScore}
+            tier={tier}
+            truthScore={userProfile.truthScore}
             tokenId={userProfile?.reputationNFTId || 1n}
-            isLoading={!tokenURI && !showDemoDashboard}
+            isLoading={!tokenURI}
           />
         </div>
 
@@ -323,7 +344,7 @@ export default function DashboardPage() {
                 <p className="text-xs md:text-sm font-medium">Predictions</p>
               </div>
               <p className="text-2xl md:text-3xl font-teko text-white">
-                {Number(displayProfile.totalPredictions)}
+                {Number(userProfile.totalPredictions)}
               </p>
             </CardContent>
           </Card>
@@ -428,7 +449,7 @@ export default function DashboardPage() {
                       Token #{1n.toString()}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {new Date(Number(displayProfile.lastUpdate) * 1000).toLocaleDateString()}
+                      {new Date(Number(userProfile.lastUpdate) * 1000).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -440,15 +461,15 @@ export default function DashboardPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium">Score Updated</p>
                     <p className="text-sm text-muted-foreground">
-                      TruthScore: {Number(displayProfile.truthScore)}
+                      TruthScore: {Number(userProfile.truthScore)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {new Date(Number(displayProfile.lastUpdate) * 1000).toLocaleString()}
+                      {new Date(Number(userProfile.lastUpdate) * 1000).toLocaleString()}
                     </p>
                   </div>
                 </div>
 
-                {displayProfile.totalPredictions > 0n && (
+                {userProfile.totalPredictions > 0n && (
                   <div className="flex items-start gap-3 p-3 border border-blue-500/20 rounded-lg">
                     <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
                       <Target className="w-4 h-4 text-blue-500" />
@@ -456,10 +477,10 @@ export default function DashboardPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium">Predictions Imported</p>
                       <p className="text-sm text-muted-foreground">
-                        {Number(displayProfile.totalPredictions)} total predictions
+                        {Number(userProfile.totalPredictions)} total predictions
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {Number(displayProfile.correctPredictions)} correct ({(Number(winRate) / 100).toFixed(1)}% win rate)
+                        {Number(userProfile.correctPredictions)} correct ({(Number(winRate) / 100).toFixed(1)}% win rate)
                       </p>
                     </div>
                   </div>
@@ -490,12 +511,12 @@ export default function DashboardPage() {
               </div>
 
               {/* Tier Achievement */}
-              {displayProfile.tier > 0 && (
+              {tier > 0 && (
                 <div className="text-center p-3 md:p-4 border border-red-500/20 rounded-lg bg-background/50">
                   <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-red-600 to-red-500 flex items-center justify-center shadow-2xl shadow-red-500/50 mx-auto mb-2 md:mb-3">
                     <Award className="w-6 h-6 md:w-8 md:h-8 text-white" />
                   </div>
-                  <p className="font-bebas tracking-wider uppercase text-sm">{TIER_NAMES[displayProfile.tier]}</p>
+                  <p className="font-bebas tracking-wider uppercase text-sm">{TIER_NAMES[tier]}</p>
                   <p className="text-xs text-muted-foreground mt-1">Tier achieved</p>
                 </div>
               )}
@@ -512,7 +533,7 @@ export default function DashboardPage() {
               )}
 
               {/* Prediction Milestone */}
-              {displayProfile.totalPredictions >= 100n && (
+              {userProfile.totalPredictions >= 100n && (
                 <div className="text-center p-3 md:p-4 border border-red-500/20 rounded-lg bg-background/50">
                   <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-red-600 to-red-500 flex items-center justify-center shadow-2xl shadow-red-500/50 mx-auto mb-2 md:mb-3">
                     <Target className="w-6 h-6 md:w-8 md:h-8 text-white" />

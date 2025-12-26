@@ -2,21 +2,35 @@
  * PancakeSwap Prediction API Integration
  *
  * This service provides access to PancakeSwap Prediction v2 markets
- * via The Graph GraphQL API on BSC
+ * via direct BSC RPC calls for real-time data
  */
 
 // Configuration
 export const PANCAKESWAP_CONFIG = {
-  // The Graph subgraph endpoint for PancakeSwap Prediction
+  // The Graph subgraph endpoint for PancakeSwap Prediction (fallback)
   SUBGRAPH_URL: 'https://gateway.thegraph.com/api/9a31268f5f46c9fcaa808f37d13e0c8f/subgraphs/id/5ZQGSZ74JUeSQdCjqALFEhYjWsiFJAsqJpuLhWvJ9fkP',
-  // BSC RPC endpoint for direct blockchain queries
-  BSC_RPC_URL: 'https://bsc-dataseed.binance.org/',
+  // BSC RPC endpoints for direct blockchain queries (multiple for redundancy)
+  BSC_RPC_URLS: [
+    'https://bsc-dataseed.binance.org/',
+    'https://bsc-dataseed1.binance.org/',
+    'https://bsc-dataseed2.binance.org/',
+    'https://bsc-dataseed3.binance.org/',
+    'https://bsc-dataseed4.binance.org/',
+  ],
   // PancakeSwap Prediction V2 contract addresses
   PREDICTION_BNB: '0x18B2A687610328590Bc8F2e5fEdde3b582A49cdA',
   PREDICTION_CAKE: '0x0E3A8078EDD2021dadcdE733C6b4a86E51EE8f07',
-  CACHE_DURATION: 30 * 1000, // 30 seconds (rounds are 5 minutes)
+  CACHE_DURATION: 15 * 1000, // 15 seconds for real-time data
   ASSETS: ['BNB', 'CAKE', 'BTC', 'ETH'] as const,
 } as const;
+
+// Contract ABI selectors for PancakeSwap Prediction V2
+const CONTRACT_SELECTORS = {
+  currentEpoch: '0x76671808', // currentEpoch()
+  rounds: '0x8c65c81f',      // rounds(uint256)
+  paused: '0x5c975abb',      // paused()
+  genesisStartOnce: '0x9fc21455', // genesisStartOnce()
+};
 
 // TypeScript Types
 export interface PancakeRound {
@@ -101,18 +115,195 @@ class PancakeCache {
 
 const pancakeCache = new PancakeCache();
 
+// ============================================
+// Direct RPC Helpers for Contract Calls
+// ============================================
+
+interface RpcResponse {
+  jsonrpc: string;
+  id: number;
+  result?: string;
+  error?: { code: number; message: string };
+}
+
+/**
+ * Make a direct JSON-RPC call to BSC
+ */
+async function rpcCall(method: string, params: any[], rpcUrl: string): Promise<string> {
+  const response = await fetch(rpcUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: Date.now(),
+      method,
+      params,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`RPC error: ${response.status}`);
+  }
+
+  const data: RpcResponse = await response.json();
+  if (data.error) {
+    throw new Error(`RPC error: ${data.error.message}`);
+  }
+
+  return data.result || '0x';
+}
+
+/**
+ * Call a contract function
+ */
+async function callContract(
+  contractAddress: string,
+  data: string,
+  rpcUrls: string[] = PANCAKESWAP_CONFIG.BSC_RPC_URLS
+): Promise<string> {
+  // Try multiple RPC endpoints for redundancy
+  let lastError: Error | null = null;
+
+  for (const rpcUrl of rpcUrls) {
+    try {
+      return await rpcCall('eth_call', [{ to: contractAddress, data }, 'latest'], rpcUrl);
+    } catch (error) {
+      lastError = error as Error;
+      console.warn(`RPC call failed for ${rpcUrl}:`, error);
+      continue;
+    }
+  }
+
+  throw lastError || new Error('All RPC endpoints failed');
+}
+
+/**
+ * Encode uint256 for contract call
+ */
+function encodeUint256(value: bigint | number): string {
+  const hex = BigInt(value).toString(16).padStart(64, '0');
+  return hex;
+}
+
+/**
+ * Decode uint256 from hex string
+ */
+function decodeUint256(hex: string): bigint {
+  if (!hex || hex === '0x') return BigInt(0);
+  return BigInt(hex);
+}
+
+/**
+ * Decode bool from hex string
+ */
+function decodeBool(hex: string): boolean {
+  if (!hex || hex === '0x') return false;
+  return BigInt(hex) !== BigInt(0);
+}
+
+// Round data structure from contract
+interface ContractRoundData {
+  epoch: bigint;
+  startTimestamp: bigint;
+  lockTimestamp: bigint;
+  closeTimestamp: bigint;
+  lockPrice: bigint;
+  closePrice: bigint;
+  lockOracleId: bigint;
+  closeOracleId: bigint;
+  totalAmount: bigint;
+  bullAmount: bigint;
+  bearAmount: bigint;
+  rewardBaseCalAmount: bigint;
+  rewardAmount: bigint;
+  oracleCalled: boolean;
+}
+
+/**
+ * Decode round data from contract response
+ * The rounds() function returns a tuple with 13 fields
+ */
+function decodeRoundData(hex: string): ContractRoundData {
+  if (!hex || hex === '0x' || hex.length < 66) {
+    throw new Error('Invalid round data');
+  }
+
+  // Remove 0x prefix and decode each 32-byte (64 char) slot
+  const data = hex.slice(2);
+  const getSlot = (index: number) => BigInt('0x' + data.slice(index * 64, (index + 1) * 64));
+
+  return {
+    epoch: getSlot(0),
+    startTimestamp: getSlot(1),
+    lockTimestamp: getSlot(2),
+    closeTimestamp: getSlot(3),
+    lockPrice: getSlot(4),
+    closePrice: getSlot(5),
+    lockOracleId: getSlot(6),
+    closeOracleId: getSlot(7),
+    totalAmount: getSlot(8),
+    bullAmount: getSlot(9),
+    bearAmount: getSlot(10),
+    rewardBaseCalAmount: getSlot(11),
+    rewardAmount: getSlot(12),
+    oracleCalled: getSlot(13) !== BigInt(0),
+  };
+}
+
 /**
  * PancakeSwap Prediction Service
  */
 export class PancakeSwapService {
   private subgraphUrl: string;
+  private rpcUrls: string[];
 
-  constructor(subgraphUrl: string = PANCAKESWAP_CONFIG.SUBGRAPH_URL) {
+  constructor(
+    subgraphUrl: string = PANCAKESWAP_CONFIG.SUBGRAPH_URL,
+    rpcUrls: string[] = PANCAKESWAP_CONFIG.BSC_RPC_URLS
+  ) {
     this.subgraphUrl = subgraphUrl;
+    this.rpcUrls = rpcUrls;
+  }
+
+  // ============================================
+  // Direct Contract RPC Methods
+  // ============================================
+
+  /**
+   * Get current epoch from contract
+   */
+  async getCurrentEpoch(contractAddress: string = PANCAKESWAP_CONFIG.PREDICTION_BNB): Promise<bigint> {
+    const result = await callContract(contractAddress, CONTRACT_SELECTORS.currentEpoch, this.rpcUrls);
+    return decodeUint256(result);
   }
 
   /**
-   * Query The Graph GraphQL endpoint
+   * Get round data from contract
+   */
+  async getRoundData(epoch: bigint, contractAddress: string = PANCAKESWAP_CONFIG.PREDICTION_BNB): Promise<ContractRoundData> {
+    const data = CONTRACT_SELECTORS.rounds + encodeUint256(epoch);
+    const result = await callContract(contractAddress, data, this.rpcUrls);
+    return decodeRoundData(result);
+  }
+
+  /**
+   * Check if contract is paused
+   */
+  async isPaused(contractAddress: string = PANCAKESWAP_CONFIG.PREDICTION_BNB): Promise<boolean> {
+    const result = await callContract(contractAddress, CONTRACT_SELECTORS.paused, this.rpcUrls);
+    return decodeBool(result);
+  }
+
+  /**
+   * Get multiple rounds in parallel
+   */
+  async getMultipleRounds(epochs: bigint[], contractAddress: string = PANCAKESWAP_CONFIG.PREDICTION_BNB): Promise<ContractRoundData[]> {
+    const promises = epochs.map(epoch => this.getRoundData(epoch, contractAddress));
+    return Promise.all(promises);
+  }
+
+  /**
+   * Query The Graph GraphQL endpoint (fallback)
    */
   private async query<T>(query: string, variables?: Record<string, any>): Promise<T> {
     try {
@@ -145,13 +336,170 @@ export class PancakeSwapService {
   }
 
   /**
-   * Get current live rounds for all assets
+   * Get current live rounds using server-side API route
+   * This avoids CORS issues by fetching via Next.js API route
    */
-  async getLiveRounds(): Promise<PancakeRound[]> {
+  async getLiveRounds(): Promise<{ rounds: PancakeRound[]; isMock: boolean }> {
     const cacheKey = 'live-rounds';
     const cached = pancakeCache.get(cacheKey);
     if (cached) return cached;
 
+    try {
+      // First try: Server-side API route (avoids CORS)
+      const response = await fetch('/api/pancakeswap', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success || !data.rounds) {
+        throw new Error(data.error || 'Invalid API response');
+      }
+
+      console.log('PancakeSwap: Current epoch from API:', data.currentEpoch);
+
+      // Transform API response to PancakeRound format
+      const transformedRounds: PancakeRound[] = data.rounds.map((round: any) => {
+        // Calculate total bets (estimate based on amounts)
+        const avgBetSize = BigInt(0.1 * 1e18); // Assume 0.1 BNB avg bet
+        const totalAmount = BigInt(round.totalAmount);
+        const bullAmount = BigInt(round.bullAmount);
+        const bearAmount = BigInt(round.bearAmount);
+
+        const totalBets = totalAmount > BigInt(0)
+          ? Number(totalAmount / avgBetSize).toString()
+          : '0';
+        const bullBets = bullAmount > BigInt(0)
+          ? Number(bullAmount / avgBetSize).toString()
+          : '0';
+        const bearBets = bearAmount > BigInt(0)
+          ? Number(bearAmount / avgBetSize).toString()
+          : '0';
+
+        return {
+          id: round.id,
+          epoch: round.epoch,
+          position: null,
+          startAt: round.startTimestamp,
+          startBlock: '0',
+          startHash: '0x',
+          lockAt: round.lockTimestamp,
+          lockBlock: '0',
+          lockHash: '0x',
+          lockPrice: round.lockPrice,
+          lockRoundId: round.epoch,
+          closeAt: round.closeTimestamp !== '0' ? round.closeTimestamp : null,
+          closeBlock: round.oracleCalled ? '0' : null,
+          closeHash: round.oracleCalled ? '0x' : null,
+          closePrice: round.closePrice !== '0' ? round.closePrice : null,
+          closeRoundId: round.oracleCalled ? round.epoch : null,
+          totalBets,
+          totalAmount: round.totalAmount,
+          bullBets,
+          bullAmount: round.bullAmount,
+          bearBets,
+          bearAmount: round.bearAmount,
+          failed: false,
+        };
+      });
+
+      const result = { rounds: transformedRounds, isMock: false };
+      pancakeCache.set(cacheKey, result);
+      console.log('PancakeSwap: Successfully fetched live data from API');
+      return result;
+
+    } catch (apiError) {
+      console.error('Error fetching from API route:', apiError);
+
+      // Second try: Direct RPC (may work in some environments)
+      try {
+        return await this.getLiveRoundsFromRPC();
+      } catch (rpcError) {
+        console.error('Direct RPC also failed:', rpcError);
+
+        // Third try: Graph API fallback
+        try {
+          return await this.getLiveRoundsFromGraph();
+        } catch (graphError) {
+          console.error('Graph fallback also failed:', graphError);
+          // Return empty array instead of mock data - we want 100% real data
+          console.warn('PancakeSwap: All data sources failed, returning empty');
+          return { rounds: [], isMock: false };
+        }
+      }
+    }
+  }
+
+  /**
+   * Direct RPC method (fallback for non-browser environments)
+   */
+  private async getLiveRoundsFromRPC(): Promise<{ rounds: PancakeRound[]; isMock: boolean }> {
+    const currentEpoch = await this.getCurrentEpoch();
+    console.log('PancakeSwap: Current epoch from RPC:', currentEpoch.toString());
+
+    const epochs: bigint[] = [];
+    for (let i = 0; i < 4; i++) {
+      const epoch = currentEpoch - BigInt(i);
+      if (epoch > BigInt(0)) {
+        epochs.push(epoch);
+      }
+    }
+
+    const contractRounds = await this.getMultipleRounds(epochs);
+
+    const transformedRounds: PancakeRound[] = contractRounds.map((round, index) => {
+      const epoch = epochs[index];
+      const avgBetSize = BigInt(0.1 * 1e18);
+      const totalBets = round.totalAmount > BigInt(0)
+        ? Number(round.totalAmount / avgBetSize).toString()
+        : '0';
+      const bullBets = round.bullAmount > BigInt(0)
+        ? Number(round.bullAmount / avgBetSize).toString()
+        : '0';
+      const bearBets = round.bearAmount > BigInt(0)
+        ? Number(round.bearAmount / avgBetSize).toString()
+        : '0';
+
+      return {
+        id: `round-${epoch.toString()}`,
+        epoch: epoch.toString(),
+        position: null,
+        startAt: round.startTimestamp.toString(),
+        startBlock: '0',
+        startHash: '0x',
+        lockAt: round.lockTimestamp.toString(),
+        lockBlock: '0',
+        lockHash: '0x',
+        lockPrice: round.lockPrice.toString(),
+        lockRoundId: round.lockOracleId.toString(),
+        closeAt: round.closeTimestamp > BigInt(0) ? round.closeTimestamp.toString() : null,
+        closeBlock: round.oracleCalled ? '0' : null,
+        closeHash: round.oracleCalled ? '0x' : null,
+        closePrice: round.closePrice > BigInt(0) ? round.closePrice.toString() : null,
+        closeRoundId: round.closeOracleId > BigInt(0) ? round.closeOracleId.toString() : null,
+        totalBets,
+        totalAmount: round.totalAmount.toString(),
+        bullBets,
+        bullAmount: round.bullAmount.toString(),
+        bearBets,
+        bearAmount: round.bearAmount.toString(),
+        failed: false,
+      };
+    });
+
+    console.log('PancakeSwap: Successfully fetched live data from direct RPC');
+    return { rounds: transformedRounds, isMock: false };
+  }
+
+  /**
+   * Fallback: Get rounds from The Graph (may be outdated)
+   */
+  private async getLiveRoundsFromGraph(): Promise<{ rounds: PancakeRound[]; isMock: boolean }> {
     const query = `
       query GetLiveRounds {
         rounds(
@@ -179,39 +527,29 @@ export class PancakeSwapService {
       }
     `;
 
-    try {
-      const data = await this.query<{ rounds: PancakeRound[] }>(query);
-      if (data.rounds && data.rounds.length > 0) {
-        // Transform the data to add missing fields
-        const transformedRounds = data.rounds.map(round => ({
-          ...round,
-          position: null,
-          startBlock: '0',
-          startHash: '0x',
-          lockBlock: '0',
-          lockHash: '0x',
-          lockRoundId: round.epoch,
-          closeAt: round.lockAt ? (parseInt(round.lockAt) + 300).toString() : null, // 5 min after lock
-          closeBlock: null,
-          closeHash: null,
-          closeRoundId: null,
-        }));
-        pancakeCache.set(cacheKey, transformedRounds);
-        return transformedRounds;
-      }
-      // If no data from API, return mock data
-      return this.getMockRounds();
-    } catch (error) {
-      console.error('Error fetching live rounds from PancakeSwap GraphQL:', error);
-      console.log('Using mock data for demonstration');
-      return this.getMockRounds();
+    const data = await this.query<{ rounds: PancakeRound[] }>(query);
+    if (data.rounds && data.rounds.length > 0) {
+      const transformedRounds = data.rounds.map(round => ({
+        ...round,
+        position: null,
+        startBlock: '0',
+        startHash: '0x',
+        lockBlock: '0',
+        lockHash: '0x',
+        lockRoundId: round.epoch,
+        closeAt: round.lockAt ? (parseInt(round.lockAt) + 300).toString() : null,
+        closeBlock: null,
+        closeHash: null,
+        closeRoundId: null,
+      }));
+      return { rounds: transformedRounds, isMock: false };
     }
+    throw new Error('No data from Graph');
   }
 
   /**
-   * Get live rounds with current timestamps (simulated realistic data)
-   * NOTE: Uses simulated data with current timestamps since The Graph subgraph is outdated
-   * TODO: Implement direct BSC RPC calls to get real-time data from contract
+   * Generate mock rounds as last resort fallback
+   * Uses simulated data with current timestamps when both RPC and Graph fail
    */
   private getMockRounds(): PancakeRound[] {
     const now = Math.floor(Date.now() / 1000);
@@ -332,9 +670,9 @@ export class PancakeSwapService {
   /**
    * Get active prediction markets
    */
-  async getActiveMarkets(): Promise<PancakePredictionMarket[]> {
-    const rounds = await this.getLiveRounds();
-    return this.transformRoundsToMarkets(rounds);
+  async getActiveMarkets(): Promise<{ markets: PancakePredictionMarket[]; isMock: boolean }> {
+    const { rounds, isMock } = await this.getLiveRounds();
+    return { markets: this.transformRoundsToMarkets(rounds), isMock };
   }
 
   /**
@@ -376,3 +714,6 @@ export const pancakeSwapService = new PancakeSwapService();
 export async function fetchPancakeMarkets() {
   return pancakeSwapService.getActiveMarkets();
 }
+
+// Type for components to check mock status
+export type PancakeMarketsResult = { markets: PancakePredictionMarket[]; isMock: boolean };

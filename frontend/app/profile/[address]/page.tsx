@@ -53,18 +53,86 @@ export default function ProfilePage() {
 
 // Separate component for the actual profile content
 function ProfileContent({ address, copied, setCopied }: { address: string; copied: boolean; setCopied: (v: boolean) => void }) {
-  // For now, use demo data - in production you'd fetch user's on-chain data
-  const demoProfile = {
-    truthScore: 750n,
-    totalPredictions: 45n,
-    correctPredictions: 32n,
-    streak: 5n,
-    tier: 2, // Silver tier
-    lastUpdate: BigInt(Math.floor(Date.now() / 1000)),
-  };
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [recentBets, setRecentBets] = useState<any[]>([]);
 
-  const winRate = demoProfile.totalPredictions > 0n
-    ? (demoProfile.correctPredictions * 10000n) / demoProfile.totalPredictions
+  // Fetch real profile data from API
+  useEffect(() => {
+    async function fetchProfile() {
+      setLoading(true);
+      try {
+        // Fetch trader stats from API
+        const statsRes = await fetch(`/api/traders/stats?address=${address}`);
+        if (statsRes.ok) {
+          const data = await statsRes.json();
+          if (data.stats) {
+            setProfile({
+              truthScore: BigInt(data.stats.total_score || 0),
+              totalPredictions: BigInt(data.stats.total_bets || 0),
+              correctPredictions: BigInt(data.stats.wins || 0),
+              streak: 0n,
+              tier: calculateTier(data.stats.total_score || 0),
+              lastUpdate: BigInt(Math.floor(Date.now() / 1000)),
+            });
+          }
+        }
+
+        // Fetch bet history
+        const betsRes = await fetch(`/api/traders/bets?address=${address}&limit=5`);
+        if (betsRes.ok) {
+          const betsData = await betsRes.json();
+          setRecentBets(betsData.bets || []);
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProfile();
+  }, [address]);
+
+  // Calculate tier based on score
+  function calculateTier(score: number): number {
+    if (score >= 2000) return 4; // Diamond
+    if (score >= 1500) return 3; // Platinum
+    if (score >= 1000) return 2; // Gold
+    if (score >= 500) return 1; // Silver
+    return 0; // Bronze
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="container px-4 py-12 text-center">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-muted rounded w-1/3 mx-auto"></div>
+          <div className="h-4 bg-muted rounded w-1/2 mx-auto"></div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 bg-muted rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state if no profile found
+  if (!profile) {
+    return (
+      <div className="container px-4 py-12 text-center">
+        <h2 className="text-xl font-bebas tracking-wider uppercase mb-2">No Profile Found</h2>
+        <p className="text-muted-foreground">
+          This address hasn't registered on TruthBounty yet or has no prediction history.
+        </p>
+      </div>
+    );
+  }
+
+  const winRate = profile.totalPredictions > 0n
+    ? (profile.correctPredictions * 10000n) / profile.totalPredictions
     : 0n;
 
   const handleCopyAddress = () => {
@@ -84,11 +152,11 @@ function ProfileContent({ address, copied, setCopied }: { address: string; copie
   };
 
   // Calculate next tier progress
-  const currentTierThreshold = TIER_THRESHOLDS[demoProfile.tier];
-  const nextTier = demoProfile.tier < ReputationTier.DIAMOND ? (demoProfile.tier + 1) as ReputationTier : demoProfile.tier;
+  const currentTierThreshold = TIER_THRESHOLDS[profile.tier];
+  const nextTier = profile.tier < ReputationTier.DIAMOND ? (profile.tier + 1) as ReputationTier : profile.tier;
   const nextTierThreshold = TIER_THRESHOLDS[nextTier];
-  const progressToNextTier = demoProfile.tier < ReputationTier.DIAMOND
-    ? Number(((demoProfile.truthScore - BigInt(currentTierThreshold)) * 100n) / BigInt(nextTierThreshold - currentTierThreshold))
+  const progressToNextTier = profile.tier < ReputationTier.DIAMOND
+    ? Number(((profile.truthScore - BigInt(currentTierThreshold)) * 100n) / BigInt(nextTierThreshold - currentTierThreshold))
     : 100;
 
   return (
@@ -120,12 +188,12 @@ function ProfileContent({ address, copied, setCopied }: { address: string; copie
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge className={`${TIER_COLORS[demoProfile.tier]} text-white text-sm px-3 py-1`}>
+            <Badge className={`${TIER_COLORS[profile.tier]} text-white text-sm px-3 py-1`}>
               <Award className="w-3 h-3 mr-1" />
-              {TIER_NAMES[demoProfile.tier]}
+              {TIER_NAMES[profile.tier]}
             </Badge>
             <Badge variant="outline" className="font-teko text-sm">
-              TruthScore: {demoProfile.truthScore.toString()}
+              TruthScore: {profile.truthScore.toString()}
             </Badge>
             <Badge variant="outline" className="font-teko text-sm">
               {Number(winRate) / 100}% Win Rate
@@ -171,7 +239,7 @@ function ProfileContent({ address, copied, setCopied }: { address: string; copie
               </div>
               <p className="text-xs text-muted-foreground">TruthScore</p>
             </div>
-            <p className="text-2xl font-bebas tracking-wider">{demoProfile.truthScore.toString()}</p>
+            <p className="text-2xl font-bebas tracking-wider">{profile.truthScore.toString()}</p>
           </CardContent>
         </Card>
 
@@ -183,7 +251,7 @@ function ProfileContent({ address, copied, setCopied }: { address: string; copie
               </div>
               <p className="text-xs text-muted-foreground">Correct</p>
             </div>
-            <p className="text-2xl font-bebas tracking-wider">{demoProfile.correctPredictions.toString()}</p>
+            <p className="text-2xl font-bebas tracking-wider">{profile.correctPredictions.toString()}</p>
             <p className="text-xs text-green-400 font-teko">
               {Number(winRate) / 100}% Win Rate
             </p>
@@ -198,7 +266,7 @@ function ProfileContent({ address, copied, setCopied }: { address: string; copie
               </div>
               <p className="text-xs text-muted-foreground">Total Predictions</p>
             </div>
-            <p className="text-2xl font-bebas tracking-wider">{demoProfile.totalPredictions.toString()}</p>
+            <p className="text-2xl font-bebas tracking-wider">{profile.totalPredictions.toString()}</p>
           </CardContent>
         </Card>
 
@@ -210,7 +278,7 @@ function ProfileContent({ address, copied, setCopied }: { address: string; copie
               </div>
               <p className="text-xs text-muted-foreground">Current Streak</p>
             </div>
-            <p className="text-2xl font-bebas tracking-wider">{demoProfile.streak.toString()}</p>
+            <p className="text-2xl font-bebas tracking-wider">{profile.streak.toString()}</p>
             <p className="text-xs text-amber-400 font-teko">Predictions</p>
           </CardContent>
         </Card>
@@ -227,25 +295,25 @@ function ProfileContent({ address, copied, setCopied }: { address: string; copie
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Badge className={`${TIER_COLORS[demoProfile.tier]} text-white`}>
-                {TIER_NAMES[demoProfile.tier]}
+              <Badge className={`${TIER_COLORS[profile.tier]} text-white`}>
+                {TIER_NAMES[profile.tier]}
               </Badge>
               <span className="text-sm text-muted-foreground">
-                {demoProfile.truthScore.toString()} / {nextTierThreshold} points
+                {profile.truthScore.toString()} / {nextTierThreshold} points
               </span>
             </div>
-            {demoProfile.tier < ReputationTier.DIAMOND && (
+            {profile.tier < ReputationTier.DIAMOND && (
               <Badge variant="outline" className="font-teko">
                 Next: {TIER_NAMES[nextTier]}
               </Badge>
             )}
           </div>
 
-          {demoProfile.tier < ReputationTier.DIAMOND ? (
+          {profile.tier < ReputationTier.DIAMOND ? (
             <>
               <Progress value={progressToNextTier} className="h-3" />
               <p className="text-sm text-muted-foreground">
-                {nextTierThreshold - Number(demoProfile.truthScore)} points to {TIER_NAMES[nextTier]}
+                {nextTierThreshold - Number(profile.truthScore)} points to {TIER_NAMES[nextTier]}
               </p>
             </>
           ) : (
@@ -268,41 +336,49 @@ function ProfileContent({ address, copied, setCopied }: { address: string; copie
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {/* Mock recent predictions - replace with real data */}
-            {[
-              { market: 'BTC/USD Price Movement', outcome: 'UP', result: 'Won', time: '2 hours ago', correct: true },
-              { market: 'ETH/USD Price Movement', outcome: 'DOWN', result: 'Won', time: '5 hours ago', correct: true },
-              { market: 'BNB/USD Price Movement', outcome: 'UP', result: 'Lost', time: '1 day ago', correct: false },
-              { market: 'CAKE/USD Price Movement', outcome: 'DOWN', result: 'Won', time: '1 day ago', correct: true },
-            ].map((prediction, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-3 rounded-lg border border-slate-800 bg-slate-950/50"
-              >
-                <div className="flex-1">
-                  <p className="font-medium text-sm">{prediction.market}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="text-xs">
-                      {prediction.outcome}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">{prediction.time}</span>
+            {recentBets.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Activity className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                <p>No recent predictions found</p>
+              </div>
+            ) : (
+              recentBets.map((bet, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 rounded-lg border border-slate-800 bg-slate-950/50"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{bet.market_name || `Market #${bet.market_id}`}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="text-xs">
+                        {bet.position}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(bet.placed_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {bet.won === true ? (
+                      <>
+                        <CheckCircle2 className="w-5 h-5 text-green-400" />
+                        <span className="text-sm font-semibold text-green-400">Won</span>
+                      </>
+                    ) : bet.won === false ? (
+                      <>
+                        <XCircle className="w-5 h-5 text-red-400" />
+                        <span className="text-sm font-semibold text-red-400">Lost</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-5 h-5 text-yellow-400" />
+                        <span className="text-sm font-semibold text-yellow-400">Pending</span>
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {prediction.correct ? (
-                    <>
-                      <CheckCircle2 className="w-5 h-5 text-green-400" />
-                      <span className="text-sm font-semibold text-green-400">{prediction.result}</span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="w-5 h-5 text-red-400" />
-                      <span className="text-sm font-semibold text-red-400">{prediction.result}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

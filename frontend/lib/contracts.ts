@@ -26,6 +26,233 @@ export const CONTRACTS = {
   },
 } as const;
 
+// Contract constants
+export const MINT_FEE = BigInt('500000000000000'); // 0.0005 BNB in wei
+
+// Copy Trading Vault address (set via env or after deployment)
+export const COPY_VAULT_ADDRESS = (process.env.NEXT_PUBLIC_COPY_VAULT_ADDRESS || process.env.NEXT_PUBLIC_COPY_TRADING_VAULT || '0x0000000000000000000000000000000000000000') as `0x${string}`;
+
+// Copy Trading Vault ABI
+export const COPY_TRADING_VAULT_ABI = [
+  // View functions
+  {
+    inputs: [],
+    name: 'getVaultStats',
+    outputs: [
+      { name: 'totalValueLocked', type: 'uint256' },
+      { name: 'totalCopyTrades', type: 'uint256' },
+      { name: 'totalVolumeExecuted', type: 'uint256' },
+      { name: 'totalFeesCollected', type: 'uint256' },
+      { name: 'executor', type: 'address' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'MAX_VAULT_SIZE',
+    outputs: [{ type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'MIN_DEPOSIT',
+    outputs: [{ type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'WITHDRAWAL_DELAY',
+    outputs: [{ type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }],
+    name: 'balances',
+    outputs: [{ type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }],
+    name: 'getPendingWithdrawal',
+    outputs: [
+      { name: 'amount', type: 'uint256' },
+      { name: 'unlockTime', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }],
+    name: 'getUserFollows',
+    outputs: [
+      {
+        type: 'tuple[]',
+        components: [
+          { name: 'leader', type: 'address' },
+          { name: 'allocationBps', type: 'uint256' },
+          { name: 'maxBetSize', type: 'uint256' },
+          { name: 'active', type: 'bool' },
+          { name: 'createdAt', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'leader', type: 'address' }],
+    name: 'getLeaderFollowers',
+    outputs: [{ type: 'address[]' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'leader', type: 'address' }],
+    name: 'getFollowerCount',
+    outputs: [{ type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'follower', type: 'address' },
+      { name: 'leader', type: 'address' },
+    ],
+    name: 'getFollowSettings',
+    outputs: [
+      { name: 'allocationBps', type: 'uint256' },
+      { name: 'maxBetAmount', type: 'uint256' },
+      { name: 'isActive', type: 'bool' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  // Write functions
+  {
+    inputs: [],
+    name: 'deposit',
+    outputs: [],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'amount', type: 'uint256' }],
+    name: 'requestWithdrawal',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'executeWithdrawal',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'cancelWithdrawal',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'leader', type: 'address' },
+      { name: 'allocationBps', type: 'uint256' },
+      { name: 'maxBetSize', type: 'uint256' },
+    ],
+    name: 'follow',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'leader', type: 'address' }],
+    name: 'unfollow',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'leader', type: 'address' },
+      { name: 'allocationBps', type: 'uint256' },
+      { name: 'maxBetAmount', type: 'uint256' },
+      { name: 'isActive', type: 'bool' },
+    ],
+    name: 'updateFollowSettings',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  // Events
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'user', type: 'address' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+    ],
+    name: 'Deposited',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'user', type: 'address' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+      { indexed: false, name: 'unlockTime', type: 'uint256' },
+    ],
+    name: 'WithdrawalRequested',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'user', type: 'address' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+    ],
+    name: 'WithdrawalExecuted',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'follower', type: 'address' },
+      { indexed: true, name: 'leader', type: 'address' },
+      { indexed: false, name: 'allocationBps', type: 'uint256' },
+    ],
+    name: 'FollowedLeader',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'follower', type: 'address' },
+      { indexed: true, name: 'leader', type: 'address' },
+    ],
+    name: 'UnfollowedLeader',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'follower', type: 'address' },
+      { indexed: true, name: 'leader', type: 'address' },
+      { indexed: false, name: 'epoch', type: 'uint256' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+      { indexed: false, name: 'isBull', type: 'bool' },
+    ],
+    name: 'CopyTradeExecuted',
+    type: 'event',
+  },
+] as const;
+
 // TruthBountyCore ABI
 export const TRUTH_BOUNTY_CORE_ABI = [
   // View functions
@@ -86,7 +313,7 @@ export const TRUTH_BOUNTY_CORE_ABI = [
     inputs: [],
     name: 'registerUser',
     outputs: [{ type: 'uint256' }],
-    stateMutability: 'nonpayable',
+    stateMutability: 'payable',
     type: 'function',
   },
   {

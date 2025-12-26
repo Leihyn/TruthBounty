@@ -93,79 +93,22 @@ export default function TraderSearchPage() {
       const statsRes = await fetch(`/api/traders/stats?address=${searchAddress}`);
       if (statsRes.ok) {
         const data = await statsRes.json();
-        setTraderStats(data.stats);
+        if (data.stats) {
+          setTraderStats(data.stats);
+        } else {
+          setSearchError('No data found for this address. The trader may not have any recorded activity.');
+        }
       } else {
-        // Use demo data if API not available
-        setTraderStats({
-          wallet_address: searchAddress,
-          total_bets: 45,
-          wins: 32,
-          losses: 13,
-          win_rate: 71.11,
-          total_score: 750,
-          total_volume: '12500000000000000000', // 12.5 BNB in wei
-          platforms: ['PancakeSwap', 'Polymarket'],
-          last_bet_at: new Date().toISOString(),
-        });
+        setSearchError('Unable to fetch trader data. Please try again later.');
       }
 
-      // Fetch bet history
+      // Fetch bet history - only set if we have real data
       const betsRes = await fetch(`/api/traders/bets?address=${searchAddress}`);
       if (betsRes.ok) {
         const data = await betsRes.json();
         setBets(data.bets || []);
-      } else {
-        // Use demo bet data
-        setBets([
-          {
-            id: '1',
-            market_id: '12345',
-            platform: 'PancakeSwap',
-            position: 'Bull',
-            amount: '500000000000000000', // 0.5 BNB
-            won: true,
-            claimed_amount: '950000000000000000', // 0.95 BNB
-            placed_at: new Date(Date.now() - 3600000).toISOString(),
-            resolved_at: new Date(Date.now() - 1800000).toISOString(),
-            market_name: 'BNB/USD Round #12345',
-          },
-          {
-            id: '2',
-            market_id: '12344',
-            platform: 'PancakeSwap',
-            position: 'Bear',
-            amount: '300000000000000000', // 0.3 BNB
-            won: false,
-            claimed_amount: '0',
-            placed_at: new Date(Date.now() - 7200000).toISOString(),
-            resolved_at: new Date(Date.now() - 5400000).toISOString(),
-            market_name: 'BNB/USD Round #12344',
-          },
-          {
-            id: '3',
-            market_id: '12343',
-            platform: 'PancakeSwap',
-            position: 'Bull',
-            amount: '800000000000000000', // 0.8 BNB
-            won: true,
-            claimed_amount: '1520000000000000000', // 1.52 BNB
-            placed_at: new Date(Date.now() - 10800000).toISOString(),
-            resolved_at: new Date(Date.now() - 9000000).toISOString(),
-            market_name: 'BNB/USD Round #12343',
-          },
-          {
-            id: '4',
-            market_id: '12342',
-            platform: 'Polymarket',
-            position: 'Yes',
-            amount: '1000000000000000000', // 1 BNB
-            won: null,
-            claimed_amount: null,
-            placed_at: new Date(Date.now() - 600000).toISOString(),
-            market_name: 'Will BTC reach $100k?',
-          },
-        ]);
       }
+      // No fallback to demo data - show empty state if no data
 
       // Check if already following
       if (isConnected && userAddress) {

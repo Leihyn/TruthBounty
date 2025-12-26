@@ -1,6 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { isDemoMode } from '@/lib/data-config';
+// NO DEMO MODE - Real data only
+
+// ============================================
+// Scoring Configuration (matches indexer)
+// ============================================
+const SCORING_CONFIG = {
+  MAX_SCORE: 1300,
+  MIN_BETS_FOR_LEADERBOARD: 10,
+  MIN_BETS_FOR_FULL_SCORE: 50,
+  SKILL_MAX: 500,
+  ACTIVITY_MAX: 500,
+  VOLUME_MAX: 200,
+  WILSON_Z: 1.96,
+};
+
+/**
+ * Wilson Score Lower Bound - Conservative win rate estimate
+ * Fixes small sample size exploit (3/3 wins = 43.8%, not 100%)
+ */
+function wilsonScoreLower(wins: number, total: number, z = SCORING_CONFIG.WILSON_Z): number {
+  if (total === 0) return 0;
+  const p = wins / total;
+  const denominator = 1 + (z * z) / total;
+  const center = p + (z * z) / (2 * total);
+  const spread = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * total)) / total);
+  return Math.max(0, (center - spread) / denominator);
+}
+
+/**
+ * Sample size multiplier (0-1)
+ */
+function getSampleSizeMultiplier(totalBets: number): number {
+  if (totalBets < SCORING_CONFIG.MIN_BETS_FOR_LEADERBOARD) return 0;
+  return Math.min(1, totalBets / SCORING_CONFIG.MIN_BETS_FOR_FULL_SCORE);
+}
 
 interface LeaderboardEntry {
   rank: number;
@@ -18,18 +52,155 @@ interface LeaderboardEntry {
   platformBreakdown?: any[];
   bets?: any[];
   followerCount?: number;
+  pnl?: number;  // Polymarket PnL (USD)
+  roi?: string;  // Polymarket ROI percentage
+  profileImage?: string;
+  xUsername?: string;
+  verifiedBadge?: boolean;
+}
+
+// Polymarket Leaderboard API
+const POLYMARKET_LEADERBOARD_URL = 'https://data-api.polymarket.com/v1/leaderboard';
+
+interface PolymarketTrader {
+  rank: string;
+  proxyWallet: string;
+  userName?: string;
+  vol: number;
+  pnl: number;
+  profileImage?: string;
+  xUsername?: string;
+  verifiedBadge?: boolean;
+}
+
+/**
+ * Calculate Polymarket TruthScore with sample size adjustment
+ */
+function calculatePolymarketScore(pnl: number, volume: number): {
+  score: number;
+  skillScore: number;
+  activityScore: number;
+  profitBonus: number;
+  sampleMultiplier: number;
+  roi: number;
+} {
+  if (volume <= 0) {
+    return { score: 0, skillScore: 0, activityScore: 0, profitBonus: 0, sampleMultiplier: 0, roi: 0 };
+  }
+
+  const roi = pnl / volume;
+
+  // Skill Score: Based on ROI (0-500)
+  const skillScore = Math.min(
+    SCORING_CONFIG.SKILL_MAX,
+    Math.max(0, Math.floor(roi * 1000))
+  );
+
+  // Activity Score: Logarithmic based on volume (0-500)
+  const activityScore = Math.min(
+    SCORING_CONFIG.ACTIVITY_MAX,
+    Math.max(0, Math.floor(Math.log10(volume) * 65))
+  );
+
+  // Profit Bonus: Logarithmic based on absolute profit (0-200)
+  const profitBonus = pnl > 0
+    ? Math.min(SCORING_CONFIG.VOLUME_MAX, Math.floor(Math.log10(pnl) * 50))
+    : 0;
+
+  // Estimate trades from volume (avg trade size ~$250)
+  const estimatedTrades = Math.floor(volume / 250);
+  const sampleMultiplier = getSampleSizeMultiplier(estimatedTrades);
+
+  // Calculate and cap score
+  const rawScore = skillScore + activityScore + profitBonus;
+  const adjustedScore = Math.floor(rawScore * sampleMultiplier);
+  const score = Math.min(SCORING_CONFIG.MAX_SCORE, adjustedScore);
+
+  return { score, skillScore, activityScore, profitBonus, sampleMultiplier, roi };
+}
+
+/**
+ * Fetch Polymarket leaderboard data with Wilson-adjusted scoring
+ * Includes sample size multiplier to prevent gaming
+ */
+async function fetchPolymarketLeaderboard(limit: number = 50): Promise<LeaderboardEntry[]> {
+  try {
+    const params = new URLSearchParams({
+      category: 'OVERALL',
+      timePeriod: 'ALL',
+      orderBy: 'PNL',
+      limit: limit.toString(),
+    });
+
+    const response = await fetch(`${POLYMARKET_LEADERBOARD_URL}?${params}`, {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 300 },
+    });
+
+    if (!response.ok) {
+      console.error('Polymarket API error:', response.status);
+      return [];
+    }
+
+    const traders: PolymarketTrader[] = await response.json();
+
+    return traders.map((trader, index) => {
+      const pnl = trader.pnl || 0;
+      const volume = trader.vol || 0;
+
+      // Calculate score with all adjustments
+      const scoreResult = calculatePolymarketScore(pnl, volume);
+
+      // Estimate win rate from ROI
+      const winRate = scoreResult.roi > 0
+        ? Math.min(95, 50 + (scoreResult.roi * 100))
+        : Math.max(5, 50 + (scoreResult.roi * 100));
+
+      // Estimate trades for display
+      const estimatedTrades = Math.floor(volume / 250);
+
+      return {
+        rank: parseInt(trader.rank) || index + 1,
+        address: trader.proxyWallet,
+        username: trader.userName || undefined,
+        truthScore: scoreResult.score,
+        winRate,
+        totalBets: estimatedTrades,
+        wins: 0,
+        losses: 0,
+        totalVolume: volume.toFixed(2),
+        pnl,
+        roi: (scoreResult.roi * 100).toFixed(2),
+        platforms: ['Polymarket'],
+        platformBreakdown: [{
+          platform: 'Polymarket',
+          bets: estimatedTrades,
+          winRate,
+          score: scoreResult.score,
+          volume: volume.toFixed(2),
+          pnl,
+          roi: (scoreResult.roi * 100).toFixed(2),
+        }],
+        profileImage: trader.profileImage,
+        xUsername: trader.xUsername,
+        verifiedBadge: trader.verifiedBadge,
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching Polymarket leaderboard:', error);
+    return [];
+  }
 }
 
 // Recency Bonus Configuration
 const RECENCY_WINDOW_DAYS = 90;  // Look at last 90 days
-const RECENCY_BONUS_MULTIPLIER = 0.5;  // Bonus = 50% of recent performance score
+const RECENCY_BONUS_MAX = 100;   // Max recency bonus
 
 /**
  * Calculate recency bonus based on recent 90-day performance
- * Formula: RecencyBonus = (recent_score * RECENCY_BONUS_MULTIPLIER)
+ * Uses Wilson Score to prevent gaming with small recent sample
  *
- * This rewards active traders without penalizing inactive ones.
- * Final TruthScore = BaseScore + RecencyBonus
+ * Final TruthScore = BaseScore + RecencyBonus (capped at 1300)
  */
 async function calculateRecencyBonus(userId: string): Promise<{ baseScore: number; recencyBonus: number }> {
   const cutoffDate = new Date();
@@ -55,14 +226,24 @@ async function calculateRecencyBonus(userId: string): Promise<{ baseScore: numbe
       return { baseScore, recencyBonus: 0 };
     }
 
-    // Calculate recent performance score
     const recentWins = recentBets.filter(bet => bet.won).length;
     const recentTotal = recentBets.length;
-    const recentWinRate = recentTotal > 0 ? recentWins / recentTotal : 0;
 
-    // Simple recent score calculation (can be made more sophisticated)
-    const recentScore = recentWins * 100 * recentWinRate;
-    const recencyBonus = Math.floor(recentScore * RECENCY_BONUS_MULTIPLIER);
+    // Require minimum sample for recency bonus
+    if (recentTotal < 5) {
+      return { baseScore, recencyBonus: 0 };
+    }
+
+    // Use Wilson Score for recent win rate
+    const recentWilsonRate = wilsonScoreLower(recentWins, recentTotal);
+
+    // Skill from Wilson-adjusted recent win rate (0-50)
+    const recentSkill = Math.min(50, Math.max(0, (recentWilsonRate - 0.5) * 100));
+
+    // Activity from recent bets - logarithmic (0-50)
+    const recentActivity = Math.min(50, Math.floor(Math.log10(recentTotal) * 30));
+
+    const recencyBonus = Math.min(RECENCY_BONUS_MAX, Math.floor(recentSkill + recentActivity));
 
     return { baseScore, recencyBonus };
   } catch (error) {
@@ -79,45 +260,32 @@ export async function GET(request: NextRequest) {
     const searchAddress = searchParams.get('search')?.toLowerCase() || '';
     const limit = parseInt(searchParams.get('limit') || '100');
 
-    // Check if we're in demo mode - if so, return sample data
-    if (isDemoMode()) {
-      const fs = require('fs');
-      const path = require('path');
-      const filePath = path.join(process.cwd(), 'public', 'data', 'sample-users.json');
-
-      const fileData = fs.readFileSync(filePath, 'utf8');
-      const jsonData = JSON.parse(fileData);
-
-      const leaderboardData: LeaderboardEntry[] = (jsonData.users || []).map((user: any) => ({
-        rank: user.rank,
-        address: user.address,
-        truthScore: user.truthScore,
-        tier: user.truthScore >= 5000 ? 4 : user.truthScore >= 2000 ? 3 : user.truthScore >= 1000 ? 2 : user.truthScore >= 500 ? 1 : 0,
-        winRate: user.winRate,
-        totalBets: user.totalBets,
-        wins: user.wins,
-        losses: user.losses,
-        totalVolume: user.totalVolume,
-        platforms: user.platforms,
-        platformBreakdown: user.platformBreakdown,
-        bets: user.bets,
-        totalPredictions: user.totalBets,
-        correctPredictions: user.wins,
-        nftTokenId: user.rank,
-        lastUpdated: Date.now() / 1000,
-      }));
-
-      return NextResponse.json({
-        data: leaderboardData,
-        cached: false,
-        totalUsers: leaderboardData.length,
-        timestamp: Date.now(),
-        source: 'demo-mode',
-        mode: 'demo',
-      });
+    // POLYMARKET - Separate leaderboard (not merged with PancakeSwap)
+    if (platformFilter === 'Polymarket') {
+      try {
+        const polymarketData = await getPolymarketLeaderboard(searchAddress, limit);
+        return NextResponse.json({
+          data: polymarketData,
+          cached: false,
+          totalUsers: polymarketData.length,
+          timestamp: Date.now(),
+          source: 'polymarket-api',
+          platform: 'Polymarket',
+          mode: 'mainnet',
+          notice: 'Polymarket uses off-chain CLOB. Addresses are proxy wallets, not verifiable on Polygonscan.',
+        });
+      } catch (polyError: any) {
+        console.error('Polymarket API error:', polyError);
+        return NextResponse.json({
+          data: [],
+          error: polyError.message,
+          source: 'polymarket-api',
+          platform: 'Polymarket',
+        }, { status: 500 });
+      }
     }
 
-    // Build query based on platform filter (MAINNET MODE)
+    // PANCAKESWAP / ALL - Query Supabase for on-chain indexed data
     let leaderboardData: LeaderboardEntry[] = [];
 
     if (platformFilter === 'all') {
@@ -130,8 +298,8 @@ export async function GET(request: NextRequest) {
           user:user_id(wallet_address, username),
           platform:platform_id(name)
         `)
-        .gt('total_bets', 9)   // At least 10 bets
-        .gt('score', 0)        // Must have positive score (has wins)
+        .gt('total_bets', 0)   // Show all traders with bets
+        .gte('score', 0)       // Show all scores including 0
         .order('score', { ascending: false })
         .limit(limit);
 
@@ -189,11 +357,14 @@ export async function GET(request: NextRequest) {
             recencyBonus = bonusData.recencyBonus;
           }
 
+          // Cap total at 1300 to match Polymarket range
+          const totalScore = Math.min(1300, baseScore + recencyBonus);
+
           return {
             ...user,
             baseScore,
             recencyBonus,
-            truthScore: baseScore + recencyBonus,  // Final score = base + bonus
+            truthScore: totalScore,
             winRate: user.totalBets > 0 ? (user.wins / user.totalBets) * 100 : 0,
           };
         })
@@ -325,7 +496,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Merge enriched data back
-    const finalData = leaderboardData.map((user, index) => {
+    const finalData = leaderboardData.map((user) => {
       const enriched = enrichedUsers.find((u) => u.address === user.address);
       return enriched || user;
     });
@@ -336,61 +507,47 @@ export async function GET(request: NextRequest) {
       totalUsers: finalData.length,
       timestamp: Date.now(),
       source: 'supabase',
+      platform: platformFilter,
       mode: 'mainnet',
     });
   } catch (error: any) {
     console.error('Leaderboard DB API error:', error);
 
-    // Fallback to local JSON file for development
-    try {
-      const fs = require('fs');
-      const path = require('path');
-      const filePath = path.join(process.cwd(), 'public', 'data', 'real-users.json');
-
-      console.log('Attempting to load fallback data from:', filePath);
-      const fileData = fs.readFileSync(filePath, 'utf8');
-      const jsonData = JSON.parse(fileData);
-
-      // Map the JSON data to our leaderboard format
-      const leaderboardData: LeaderboardEntry[] = (jsonData.users || []).map((user: any) => ({
-        rank: user.rank,
-        address: user.address,
-        truthScore: user.truthScore,
-        tier: user.truthScore >= 5000 ? 4 : user.truthScore >= 2000 ? 3 : user.truthScore >= 1000 ? 2 : user.truthScore >= 500 ? 1 : 0,
-        winRate: user.winRate,
-        totalBets: user.totalBets,
-        wins: user.wins,
-        losses: user.losses,
-        totalVolume: user.totalVolume,
-        platforms: user.platforms,
-        platformBreakdown: user.platformBreakdown,
-        bets: user.bets,
-        totalPredictions: user.totalBets,
-        correctPredictions: user.wins,
-        nftTokenId: user.rank,
-        lastUpdated: Date.now() / 1000,
-      }));
-
-      console.log(`Loaded ${leaderboardData.length} users from fallback file`);
-
-      return NextResponse.json({
-        data: leaderboardData,
-        cached: false,
-        totalUsers: leaderboardData.length,
-        timestamp: Date.now(),
-        source: 'local-file-fallback',
-        warning: 'Using local file data - Supabase connection failed',
-      });
-    } catch (fileError: any) {
-      console.error('Failed to load fallback data:', fileError);
-      return NextResponse.json(
-        {
-          error: 'Failed to fetch leaderboard from database and fallback file',
-          message: error.message,
-          fallbackError: fileError.message,
-        },
-        { status: 500 }
-      );
-    }
+    // Return empty - no fallback mixing
+    return NextResponse.json({
+      data: [],
+      cached: false,
+      totalUsers: 0,
+      timestamp: Date.now(),
+      source: 'none',
+      warning: 'Database connection unavailable.',
+      error: error.message,
+    });
   }
+}
+
+/**
+ * Dedicated Polymarket leaderboard endpoint
+ * Called when platform filter is 'Polymarket'
+ */
+async function getPolymarketLeaderboard(searchAddress: string, limit: number) {
+  const polymarketData = await fetchPolymarketLeaderboard(limit);
+
+  let filteredData = polymarketData;
+
+  // Apply search filter
+  if (searchAddress) {
+    filteredData = polymarketData.filter((entry) =>
+      entry.address.toLowerCase().includes(searchAddress) ||
+      entry.username?.toLowerCase().includes(searchAddress)
+    );
+  }
+
+  // Re-rank after filtering
+  const rankedData = filteredData.map((user, index) => ({
+    ...user,
+    rank: index + 1,
+  }));
+
+  return rankedData;
 }

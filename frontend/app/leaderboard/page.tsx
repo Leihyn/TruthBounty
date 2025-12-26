@@ -105,8 +105,10 @@ export default function LeaderboardPage() {
         sortBy,
         tier: tierFilter,
         search: searchQuery,
+        platform: platformFilter,  // Pass platform filter to API
       });
 
+      // Fetch leaderboard with platform filter
       const response = await fetch(`/api/leaderboard-db?${params}`);
       const result = await response.json();
 
@@ -133,19 +135,14 @@ export default function LeaderboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortBy, tierFilter, platformFilter, searchQuery]);
 
-  // Get available platforms from data
-  const availablePlatforms = Array.from(
-    new Set(
-      leaderboardData.flatMap((entry) => entry.platforms || [])
-    )
-  ).sort();
+  // Available platforms - hardcoded since they're separate leaderboards
+  const availablePlatforms = [
+    'PancakeSwap Prediction',
+    'Polymarket',
+  ];
 
-  // Filter data by platform
-  const platformFilteredData = platformFilter === 'all'
-    ? leaderboardData
-    : leaderboardData.filter((entry) =>
-        entry.platforms?.includes(platformFilter)
-      );
+  // Data is already filtered by API based on platform parameter
+  const platformFilteredData = leaderboardData;
 
   const handleCopyAddress = (address: string) => {
     navigator.clipboard.writeText(address);
@@ -392,14 +389,12 @@ export default function LeaderboardPage() {
                     <TableRow>
                       <TableHead className="w-16 sticky left-0 bg-background z-10">Rank</TableHead>
                       <TableHead className="sticky left-16 bg-background z-10">Address</TableHead>
-                      <TableHead className="text-right">
-                        {platformFilter === 'all' ? 'TruthScore' : 'Platform Score'}
-                      </TableHead>
+                      <TableHead className="text-right">TruthScore</TableHead>
+                      <TableHead className="text-right">Win Rate</TableHead>
                       <TableHead className="hidden sm:table-cell">
                         {platformFilter === 'all' ? 'Platforms' : 'Chain/Token'}
                       </TableHead>
-                      <TableHead className="text-right hidden md:table-cell">Win Rate</TableHead>
-                      <TableHead className="text-right hidden lg:table-cell">Bets</TableHead>
+                      <TableHead className="text-right hidden md:table-cell">Bets</TableHead>
                       <TableHead className="text-right hidden lg:table-cell">Volume</TableHead>
                       <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
@@ -446,17 +441,19 @@ export default function LeaderboardPage() {
                         </div>
                       </TableCell>
 
-                      {/* TruthScore / Platform Score */}
+                      {/* TruthScore */}
                       <TableCell className="text-right whitespace-nowrap">
-                        {(() => {
-                          const platformData = getPlatformData(entry);
-                          const score = platformData ? platformData.score : entry.truthScore;
-                          return (
-                            <span className="font-black text-base md:text-lg bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
-                              {score.toLocaleString()}
-                            </span>
-                          );
-                        })()}
+                        <span className="font-black text-base md:text-lg bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+                          {entry.truthScore.toLocaleString()}
+                        </span>
+                      </TableCell>
+
+                      {/* Win Rate - always visible */}
+                      <TableCell className="text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          <TrendingUp className="w-3 h-3 text-green-500" />
+                          <span className="font-black text-sm">{entry.winRate.toFixed(1)}%</span>
+                        </div>
                       </TableCell>
 
                       {/* Platforms / Chain */}
@@ -493,22 +490,8 @@ export default function LeaderboardPage() {
                         )}
                       </TableCell>
 
-                      {/* Win Rate */}
-                      <TableCell className="text-right hidden md:table-cell whitespace-nowrap">
-                        {(() => {
-                          const platformData = getPlatformData(entry);
-                          const winRate = platformData ? platformData.winRate : entry.winRate;
-                          return (
-                            <div className="flex items-center justify-end gap-1">
-                              <TrendingUp className="w-3 h-3 text-green-500" />
-                              <span className="font-black text-sm">{winRate.toFixed(1)}%</span>
-                            </div>
-                          );
-                        })()}
-                      </TableCell>
-
                       {/* Bets */}
-                      <TableCell className="text-right hidden lg:table-cell whitespace-nowrap">
+                      <TableCell className="text-right hidden md:table-cell whitespace-nowrap">
                         {(() => {
                           const platformData = getPlatformData(entry);
                           const bets = platformData ? platformData.bets : (entry.totalBets || entry.totalPredictions);

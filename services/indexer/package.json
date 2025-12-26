@@ -1,0 +1,17 @@
+{
+  "name": "truthbounty-indexer",
+  "version": "1.0.0",
+  "description": "BSC blockchain indexer for TruthBounty - indexes PancakeSwap Prediction events",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "backfill": "node backfill.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "ethers": "^6.9.0",
+    "dotenv": "^16.3.1"
+  }
+}

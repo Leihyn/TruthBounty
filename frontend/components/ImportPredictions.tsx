@@ -7,29 +7,32 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTruthBounty } from '@/hooks/useTruthBounty';
-import { Download, Check, Loader2, TrendingUp, Clock, AlertCircle } from 'lucide-react';
+import { useAccount } from 'wagmi';
+import { Download, Check, Loader2, TrendingUp, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+
+interface BetHistoryResponse {
+  success: boolean;
+  address: string;
+  totalBets: number;
+  correctBets: number;
+  totalVolumeBNB: number;
+  winRate: number;
+  error?: string;
+}
 
 interface ImportState {
-  status: 'idle' | 'scanning' | 'found' | 'importing' | 'success' | 'error';
-  foundCount?: number;
-  correctCount?: number;
-  volume?: string;
+  status: 'idle' | 'scanning' | 'found' | 'importing' | 'success' | 'error' | 'no_bets';
+  data?: BetHistoryResponse;
   calculatedScore?: number;
   error?: string;
 }
 
 export function ImportPredictions() {
+  const { address } = useAccount();
   const { platforms, connectPlatform, importPredictions, isConnecting, isImporting } = useTruthBounty();
   const [selectedPlatform, setSelectedPlatform] = useState<bigint | null>(null);
   const [importState, setImportState] = useState<ImportState>({ status: 'idle' });
   const [progress, setProgress] = useState(0);
-
-  // Mock scenarios for testing
-  const mockScenarios = [
-    { name: 'Beginner', total: 20, correct: 12, volume: '1', winRate: 60 },
-    { name: 'Intermediate', total: 100, correct: 75, volume: '10', winRate: 75 },
-    { name: 'Expert', total: 500, correct: 425, volume: '100', winRate: 85 },
-  ];
 
   const handleConnectPlatform = async (platformId: bigint) => {
     try {
@@ -40,76 +43,134 @@ export function ImportPredictions() {
     }
   };
 
-  const simulateScan = async () => {
+  /**
+   * Scan blockchain for REAL prediction history
+   */
+  const scanForPredictions = async () => {
+    if (!address) {
+      setImportState({ status: 'error', error: 'Wallet not connected' });
+      return;
+    }
+
     setImportState({ status: 'scanning' });
     setProgress(0);
 
-    // Simulate blockchain scanning
-    for (let i = 0; i <= 100; i += 10) {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      setProgress(i);
-    }
+    try {
+      // Show progress animation
+      const progressInterval = setInterval(() => {
+        setProgress(prev => Math.min(prev + 10, 90));
+      }, 200);
 
-    // Simulate found predictions
-    const scenario = mockScenarios[1]; // Use intermediate by default
-    setImportState({
-      status: 'found',
-      foundCount: scenario.total,
-      correctCount: scenario.correct,
-      volume: scenario.volume,
-    });
+      // Fetch real bet history from our API
+      const response = await fetch(`/api/pancakeswap/history?address=${address}`);
+      const data: BetHistoryResponse = await response.json();
+
+      clearInterval(progressInterval);
+      setProgress(100);
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch bet history');
+      }
+
+      if (data.totalBets === 0) {
+        setImportState({ status: 'no_bets' });
+        return;
+      }
+
+      setImportState({
+        status: 'found',
+        data,
+      });
+    } catch (error: any) {
+      console.error('Scan error:', error);
+      setImportState({
+        status: 'error',
+        error: error?.message || 'Failed to scan blockchain',
+      });
+    }
   };
 
+  /**
+   * Import predictions to the TruthBounty contract
+   */
   const handleImport = async () => {
-    if (!selectedPlatform || importState.status !== 'found') return;
+    if (!selectedPlatform || importState.status !== 'found' || !importState.data) return;
 
     setImportState(prev => ({ ...prev, status: 'importing' }));
     setProgress(0);
 
     try {
-      const { foundCount, correctCount, volume } = importState;
+      const { totalBets, correctBets, totalVolumeBNB } = importState.data;
 
-      // Simulate import progress
-      for (let i = 0; i <= 100; i += 20) {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        setProgress(i);
-      }
+      // Show progress animation
+      const progressInterval = setInterval(() => {
+        setProgress(prev => Math.min(prev + 15, 85));
+      }, 300);
 
-      // Generate proof
-      const proof = `0x${Date.now().toString(16).padStart(64, '0')}` as `0x${string}`;
+      // Generate proof hash from the data
+      const proofData = `${address}-${totalBets}-${correctBets}-${totalVolumeBNB}-${Date.now()}`;
+      const encoder = new TextEncoder();
+      const data = encoder.encode(proofData);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const proof = ('0x' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
 
-      // Call contract
+      // Convert volume to wei (18 decimals)
+      const volumeWei = BigInt(Math.floor(totalVolumeBNB * 1e18));
+
+      // Call the contract
       await importPredictions(
         selectedPlatform,
-        BigInt(foundCount!),
-        BigInt(correctCount!),
-        BigInt(parseFloat(volume!) * 10 ** 18)  ,
+        BigInt(totalBets),
+        BigInt(correctBets),
+        volumeWei,
         proof
       );
 
-      // Calculate expected score (simplified formula)
-      const winRate = (correctCount! / foundCount!) * 100;
-      const volumeNum = parseFloat(volume!);
-      const calculatedScore = Math.floor((winRate * 100) * Math.sqrt(volumeNum) / 100);
+      clearInterval(progressInterval);
+      setProgress(100);
+
+      // Calculate expected TruthScore
+      const winRate = totalBets > 0 ? (correctBets / totalBets) * 100 : 0;
+      const calculatedScore = Math.floor((winRate * Math.sqrt(totalVolumeBNB)) / 10);
 
       setImportState({
         status: 'success',
-        foundCount,
-        correctCount,
-        volume,
-        calculatedScore,
+        data: importState.data,
+        calculatedScore: Math.min(calculatedScore, 999), // Cap at 999
       });
     } catch (error: any) {
-      setImportState({
-        status: 'error',
-        error: error?.message || 'Failed to import predictions',
-      });
+      console.error('Import error:', error);
+
+      // Check for rate limit error
+      if (error?.message?.includes('RateLimitExceeded')) {
+        setImportState({
+          status: 'error',
+          error: 'Rate limit: Please wait 1 hour between imports',
+        });
+      } else if (error?.message?.includes('BatchAlreadyImported')) {
+        setImportState({
+          status: 'error',
+          error: 'This prediction batch has already been imported',
+        });
+      } else {
+        setImportState({
+          status: 'error',
+          error: error?.message || 'Failed to import predictions',
+        });
+      }
     }
   };
 
   const resetFlow = () => {
     setImportState({ status: 'idle' });
     setProgress(0);
+  };
+
+  const formatVolume = (bnb: number) => {
+    if (bnb >= 1000) return `${(bnb / 1000).toFixed(1)}k`;
+    if (bnb >= 1) return bnb.toFixed(2);
+    return bnb.toFixed(4);
   };
 
   return (
@@ -120,7 +181,7 @@ export function ImportPredictions() {
           Import Predictions
         </CardTitle>
         <CardDescription>
-          Import your prediction history from connected platforms
+          Import your real prediction history from PancakeSwap
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -134,7 +195,7 @@ export function ImportPredictions() {
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 flex items-center justify-center">
                     <TrendingUp className="w-5 h-5 text-white" />
                   </div>
                   <div>
@@ -156,56 +217,101 @@ export function ImportPredictions() {
                 </Button>
               </div>
             ))}
+
+            {platforms.length === 0 && (
+              <Alert>
+                <AlertCircle className="w-4 h-4" />
+                <AlertDescription>
+                  No platforms available. Make sure you're registered.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         )}
 
-        {/* Scanning State */}
+        {/* Ready to Scan */}
         {selectedPlatform && importState.status === 'idle' && (
           <div className="space-y-4">
-            <Alert>
-              <Clock className="w-4 h-4" />
-              <AlertDescription>
-                Ready to scan blockchain for your prediction history
+            <Alert className="border-blue-500 bg-blue-50 dark:bg-blue-950/30">
+              <Clock className="w-4 h-4 text-blue-600" />
+              <AlertDescription className="text-blue-700 dark:text-blue-300">
+                Ready to scan BSC blockchain for your PancakeSwap prediction history
               </AlertDescription>
             </Alert>
-            <Button onClick={simulateScan} className="w-full" size="lg">
+            <Button onClick={scanForPredictions} className="w-full" size="lg">
               <Download className="w-4 h-4 mr-2" />
-              Start Scanning
+              Scan My Wallet
             </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              This will fetch your real bet history from PancakeSwap Prediction
+            </p>
           </div>
         )}
 
+        {/* Scanning */}
         {importState.status === 'scanning' && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm">
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Scanning blockchain for predictions...</span>
+              <span>Scanning blockchain for your predictions...</span>
             </div>
             <Progress value={progress} className="h-2" />
+            <p className="text-xs text-muted-foreground text-center">
+              Querying PancakeSwap Prediction contract on BSC
+            </p>
+          </div>
+        )}
+
+        {/* No Bets Found */}
+        {importState.status === 'no_bets' && (
+          <div className="space-y-4">
+            <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/30">
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+              <AlertDescription className="text-amber-700 dark:text-amber-300">
+                No PancakeSwap predictions found for your wallet. Try making some bets first!
+              </AlertDescription>
+            </Alert>
+            <div className="flex gap-2">
+              <Button onClick={resetFlow} variant="outline" className="flex-1">
+                Back
+              </Button>
+              <Button
+                onClick={() => window.open('https://pancakeswap.finance/prediction', '_blank')}
+                className="flex-1"
+              >
+                Go to PancakeSwap
+              </Button>
+            </div>
           </div>
         )}
 
         {/* Found Predictions */}
-        {importState.status === 'found' && (
+        {importState.status === 'found' && importState.data && (
           <div className="space-y-4">
-            <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
+            <Alert className="border-green-500 bg-green-50 dark:bg-green-950/30">
               <Check className="w-4 h-4 text-green-600" />
-              <AlertDescription className="text-green-600 dark:text-green-400">
-                Found {importState.foundCount} predictions on-chain!
+              <AlertDescription className="text-green-700 dark:text-green-300 font-semibold">
+                Found {importState.data.totalBets} real predictions on-chain!
               </AlertDescription>
             </Alert>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl font-bold">{importState.foundCount}</div>
-                <div className="text-xs text-muted-foreground">Total</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 border rounded-lg bg-muted/30">
+                <div className="text-2xl font-bold">{importState.data.totalBets}</div>
+                <div className="text-xs text-muted-foreground">Total Bets</div>
               </div>
-              <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{importState.correctCount}</div>
+              <div className="text-center p-4 border rounded-lg bg-green-500/10 border-green-500/30">
+                <div className="text-2xl font-bold text-green-600">{importState.data.correctBets}</div>
                 <div className="text-xs text-muted-foreground">Correct</div>
               </div>
-              <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl font-bold">{importState.volume} BNB</div>
+              <div className="text-center p-4 border rounded-lg bg-muted/30">
+                <div className="text-2xl font-bold">{importState.data.winRate.toFixed(1)}%</div>
+                <div className="text-xs text-muted-foreground">Win Rate</div>
+              </div>
+              <div className="text-center p-4 border rounded-lg bg-amber-500/10 border-amber-500/30">
+                <div className="text-2xl font-bold text-amber-600">
+                  {formatVolume(importState.data.totalVolumeBNB)} BNB
+                </div>
                 <div className="text-xs text-muted-foreground">Volume</div>
               </div>
             </div>
@@ -214,20 +320,31 @@ export function ImportPredictions() {
               <Button onClick={resetFlow} variant="outline" className="flex-1">
                 Cancel
               </Button>
-              <Button onClick={handleImport} className="flex-1" size="lg">
-                <Download className="w-4 h-4 mr-2" />
-                Import Now
+              <Button
+                onClick={handleImport}
+                className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+                size="lg"
+                disabled={isImporting}
+              >
+                {isImporting ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Importing...</>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    Import to Blockchain
+                  </>
+                )}
               </Button>
             </div>
           </div>
         )}
 
-        {/* Importing State */}
+        {/* Importing */}
         {importState.status === 'importing' && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm">
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Importing predictions to blockchain...</span>
+              <span>Importing predictions to TruthBounty...</span>
             </div>
             <Progress value={progress} className="h-2" />
             <p className="text-xs text-muted-foreground text-center">
@@ -236,35 +353,51 @@ export function ImportPredictions() {
           </div>
         )}
 
-        {/* Success State */}
-        {importState.status === 'success' && (
+        {/* Success */}
+        {importState.status === 'success' && importState.data && (
           <div className="space-y-4">
-            <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
+            <Alert className="border-green-500 bg-green-50 dark:bg-green-950/30">
               <Check className="w-4 h-4 text-green-600" />
-              <AlertDescription className="text-green-600 dark:text-green-400 font-semibold">
-                Successfully imported predictions!
+              <AlertDescription className="text-green-700 dark:text-green-300 font-semibold">
+                Successfully imported {importState.data.totalBets} predictions!
               </AlertDescription>
             </Alert>
 
-            <div className="p-6 border-2 border-purple-500 rounded-lg bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950">
+            <div className="p-6 border-2 border-amber-500 rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30">
               <div className="text-center space-y-2">
                 <div className="text-sm text-muted-foreground">Your TruthScore</div>
-                <div className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                <div className="text-5xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
                   {importState.calculatedScore}
                 </div>
-                <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
-                  Updated
+                <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white">
+                  NFT Updated
                 </Badge>
               </div>
             </div>
 
+            <div className="grid grid-cols-3 gap-2 text-center text-sm">
+              <div>
+                <div className="font-semibold">{importState.data.totalBets}</div>
+                <div className="text-muted-foreground">Predictions</div>
+              </div>
+              <div>
+                <div className="font-semibold text-green-600">{importState.data.winRate.toFixed(1)}%</div>
+                <div className="text-muted-foreground">Win Rate</div>
+              </div>
+              <div>
+                <div className="font-semibold">{formatVolume(importState.data.totalVolumeBNB)} BNB</div>
+                <div className="text-muted-foreground">Volume</div>
+              </div>
+            </div>
+
             <Button onClick={resetFlow} variant="outline" className="w-full">
+              <RefreshCw className="w-4 h-4 mr-2" />
               Import More
             </Button>
           </div>
         )}
 
-        {/* Error State */}
+        {/* Error */}
         {importState.status === 'error' && (
           <div className="space-y-4">
             <Alert variant="destructive">
@@ -277,10 +410,10 @@ export function ImportPredictions() {
           </div>
         )}
 
-        {/* Rate Limit Warning */}
-        {selectedPlatform && (
+        {/* Rate Limit Info */}
+        {selectedPlatform && importState.status !== 'error' && (
           <p className="text-xs text-muted-foreground text-center">
-            ⏱️ Rate limit: 1 hour between imports
+            Rate limit: 1 hour between imports | Data sourced from BSC blockchain
           </p>
         )}
       </CardContent>
