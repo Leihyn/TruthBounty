@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { PolymarketMarket } from '@/lib/polymarket';
 import { PancakePredictionMarket, fetchPancakeMarkets } from '@/lib/pancakeswap';
-import { AlertTriangle, Timer, BarChart3, RefreshCw, TrendingUp, Clock } from 'lucide-react';
+import { AlertTriangle, Timer, BarChart3, RefreshCw, TrendingUp, Clock, Zap, Activity } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function MarketsPage() {
@@ -57,22 +57,29 @@ export default function MarketsPage() {
   const totalVolume = pancakeMarkets.reduce((sum, m) => sum + m.totalVolume, 0);
 
   return (
-    <div className="container px-4 md:px-6 py-6 space-y-4">
+    <div className="container px-4 md:px-6 py-6 space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold">Markets</h1>
-          <p className="text-sm text-muted-foreground">Live prediction markets</p>
-        </div>
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-success" />
-            <span className="font-semibold">{liveCount}</span>
-            <span className="text-muted-foreground hidden sm:inline">live</span>
+          <div className="flex items-center gap-2 mb-1">
+            <Activity className="w-5 h-5 text-primary" />
+            <h1 className="text-xl sm:text-2xl font-bold">Markets</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">30s refresh</span>
+          <p className="text-sm text-muted-foreground">Live prediction markets across platforms</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {liveCount > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+              </span>
+              <span className="text-sm font-semibold text-success">{liveCount} live</span>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="w-3.5 h-3.5" />
+            <span>30s</span>
           </div>
           <Button
             variant="outline"
@@ -98,17 +105,27 @@ export default function MarketsPage() {
 
       {/* Platform Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full h-11 p-1">
-          <TabsTrigger value="pancake" className="flex-1 gap-2">
-            <Timer className="w-4 h-4" />
-            <span>PancakeSwap</span>
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 hidden sm:inline-flex">
+        <TabsList className="w-full h-12 p-1 bg-surface/50 border border-border/50">
+          <TabsTrigger
+            value="pancake"
+            className="flex-1 gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500/10 data-[state=active]:to-yellow-500/10 data-[state=active]:border-amber-500/30"
+          >
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center">
+              <Timer className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="font-medium">PancakeSwap</span>
+            <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30 text-[10px] px-1.5 py-0 hidden sm:inline-flex">
               {pancakeMarkets.length}
             </Badge>
           </TabsTrigger>
-          <TabsTrigger value="polymarket" className="flex-1 gap-2">
-            <BarChart3 className="w-4 h-4" />
-            <span>Polymarket</span>
+          <TabsTrigger
+            value="polymarket"
+            className="flex-1 gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/10 data-[state=active]:to-blue-500/10 data-[state=active]:border-purple-500/30"
+          >
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center">
+              <BarChart3 className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="font-medium">Polymarket</span>
           </TabsTrigger>
         </TabsList>
 
