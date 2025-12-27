@@ -6,17 +6,12 @@ import { parseEther, formatEther } from 'viem';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import {
   Users,
   Activity,
@@ -26,43 +21,197 @@ import {
   TrendingUp,
   AlertTriangle,
   ExternalLink,
+  Lock,
+  Unlock,
   Plus,
   Minus,
   Eye,
   FlaskConical,
+  CheckCircle2,
+  XCircle,
+  Timer,
   ArrowUpRight,
   ArrowDownRight,
-  Timer,
-  Zap,
-  ChevronRight,
-  Copy,
-  CheckCircle2,
+  ChevronDown,
 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import Link from 'next/link';
 import { COPY_TRADING_VAULT_ABI, COPY_VAULT_ADDRESS } from '@/lib/contracts';
 
-// ============================================
-// NEW INFORMATION ARCHITECTURE
-// ============================================
-// User States:
-// 1. Not connected → Connect prompt
-// 2. Connected, no balance → Onboarding to deposit
-// 3. Has balance, no leaders → Guide to follow
-// 4. Active (balance + leaders) → Dashboard
-// ============================================
+function SimulationTab({ followerAddress }: { followerAddress?: string }) {
+  const [stats, setStats] = useState<any>(null);
+  const [trades, setTrades] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default function CopyTradingPage() {
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const statsRes = await fetch(`/api/copy-trading/simulation?stats=true${followerAddress ? `&follower=${followerAddress}` : ''}`);
+        const statsData = await statsRes.json();
+        setStats(statsData);
+
+        const tradesRes = await fetch(`/api/copy-trading/simulation?limit=20${followerAddress ? `&follower=${followerAddress}` : ''}`);
+        const tradesData = await tradesRes.json();
+        setTrades(tradesData.trades || []);
+      } catch (error) {
+        console.error('Error fetching simulation data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [followerAddress]);
+
+  if (loading) {
+    return (
+      <Card className="border-border/50">
+        <CardContent className="flex items-center justify-center py-16">
+          <Activity className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <Alert className="border-purple-500/30 bg-purple-500/5">
+        <FlaskConical className="h-4 w-4 text-purple-500" />
+        <AlertDescription>
+          <span className="font-medium">Simulation mode:</span> Using real mainnet leader data with virtual execution. No funds at risk.
+        </AlertDescription>
+      </Alert>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="border-border/50">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold">{stats?.overall?.totalTrades || 0}</p>
+            <p className="text-xs text-muted-foreground">Simulated trades</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-success">{stats?.overall?.overallWinRate || 'N/A'}</p>
+            <p className="text-xs text-muted-foreground">Win rate</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardContent className="p-4 text-center">
+            <p className={`text-2xl font-bold ${parseFloat(stats?.overall?.totalPnlBNB || '0') >= 0 ? 'text-success' : 'text-destructive'}`}>
+              {parseFloat(stats?.overall?.totalPnlBNB || '0') >= 0 ? '+' : ''}{parseFloat(stats?.overall?.totalPnlBNB || '0').toFixed(4)}
+            </p>
+            <p className="text-xs text-muted-foreground">Virtual PnL (BNB)</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-warning">{stats?.overall?.totalPending || 0}</p>
+            <p className="text-xs text-muted-foreground">Pending</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Trades */}
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Recent simulated trades</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {trades.length > 0 ? (
+            <div className="space-y-2">
+              {trades.map((trade) => (
+                <div
+                  key={trade.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-surface hover:bg-surface-raised transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {trade.outcome === 'win' ? (
+                      <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center">
+                        <ArrowUpRight className="h-4 w-4 text-success" />
+                      </div>
+                    ) : trade.outcome === 'loss' ? (
+                      <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center">
+                        <ArrowDownRight className="h-4 w-4 text-destructive" />
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center">
+                        <Timer className="h-4 w-4 text-warning" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium">
+                        Epoch #{trade.epoch} - {trade.isBull ? 'Bull' : 'Bear'}
+                      </p>
+                      <p className="text-xs text-muted-foreground font-mono">
+                        {trade.leader?.slice(0, 8)}...
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-mono font-medium">{parseFloat(trade.amountBNB).toFixed(4)} BNB</p>
+                    {trade.pnlBNB && (
+                      <p className={`text-xs font-mono ${parseFloat(trade.pnlBNB) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                        {parseFloat(trade.pnlBNB) >= 0 ? '+' : ''}{parseFloat(trade.pnlBNB).toFixed(4)}
+                      </p>
+                    )}
+                    {trade.outcome === 'pending' && (
+                      <Badge variant="outline" className="text-xs">Pending</Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <FlaskConical className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No simulated trades yet</p>
+              <p className="text-xs mt-1">Follow a leader and wait for them to place bets</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* How it works */}
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">How simulation works</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3">
+            {[
+              { num: 1, text: 'Deposit testnet BNB and follow mainnet leaders' },
+              { num: 2, text: 'Simulator monitors real mainnet bets from leaders' },
+              { num: 3, text: 'When a leader bets, we log your virtual copy trade' },
+              { num: 4, text: 'After rounds resolve, we calculate virtual PnL' },
+            ].map(({ num, text }) => (
+              <div key={num} className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center shrink-0">
+                  {num}
+                </div>
+                <p className="text-sm text-muted-foreground">{text}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export default function CopyTradingDashboard() {
   const account = useAccount();
   const [mounted, setMounted] = useState(false);
-  const [depositAmount, setDepositAmount] = useState('0.1');
+  const [depositAmount, setDepositAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [depositOpen, setDepositOpen] = useState(false);
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [simStats, setSimStats] = useState<any>(null);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  // Fetch simulation stats
   useEffect(() => {
     const fetchSimStats = async () => {
       try {
@@ -81,11 +230,35 @@ export default function CopyTradingPage() {
   const isConnected = mounted && !!account.address;
   const address = account.address;
 
-  // Contract reads
+  const { data: vaultStats, refetch: refetchStats } = useReadContract({
+    address: COPY_VAULT_ADDRESS,
+    abi: COPY_TRADING_VAULT_ABI,
+    functionName: 'getVaultStats',
+  });
+
+  const { data: maxVaultSize } = useReadContract({
+    address: COPY_VAULT_ADDRESS,
+    abi: COPY_TRADING_VAULT_ABI,
+    functionName: 'MAX_VAULT_SIZE',
+  });
+
+  const { data: withdrawalDelay } = useReadContract({
+    address: COPY_VAULT_ADDRESS,
+    abi: COPY_TRADING_VAULT_ABI,
+    functionName: 'WITHDRAWAL_DELAY',
+  });
+
   const { data: userBalance, refetch: refetchBalance } = useReadContract({
     address: COPY_VAULT_ADDRESS,
     abi: COPY_TRADING_VAULT_ABI,
     functionName: 'balances',
+    args: address ? [address] : undefined,
+  });
+
+  const { data: pendingWithdrawal, refetch: refetchPending } = useReadContract({
+    address: COPY_VAULT_ADDRESS,
+    abi: COPY_TRADING_VAULT_ABI,
+    functionName: 'getPendingWithdrawal',
     args: address ? [address] : undefined,
   });
 
@@ -96,40 +269,42 @@ export default function CopyTradingPage() {
     args: address ? [address] : undefined,
   });
 
-  const { data: vaultStats } = useReadContract({
-    address: COPY_VAULT_ADDRESS,
-    abi: COPY_TRADING_VAULT_ABI,
-    functionName: 'getVaultStats',
-  });
+  const followedLeaders = userFollowsData?.map((f: any) => f.leader) || [];
 
-  // Contract writes
   const { writeContract: deposit, data: depositHash, isPending: isDepositing } = useWriteContract();
   const { writeContract: requestWithdraw, data: withdrawHash, isPending: isWithdrawing } = useWriteContract();
+  const { writeContract: executeWithdraw, data: executeHash, isPending: isExecuting } = useWriteContract();
+  const { writeContract: cancelWithdraw, data: cancelHash, isPending: isCancelling } = useWriteContract();
 
   const { isLoading: isDepositConfirming, isSuccess: depositSuccess } = useWaitForTransactionReceipt({ hash: depositHash });
   const { isLoading: isWithdrawConfirming, isSuccess: withdrawSuccess } = useWaitForTransactionReceipt({ hash: withdrawHash });
+  const { isLoading: isExecuteConfirming, isSuccess: executeSuccess } = useWaitForTransactionReceipt({ hash: executeHash });
+  const { isLoading: isCancelConfirming, isSuccess: cancelSuccess } = useWaitForTransactionReceipt({ hash: cancelHash });
 
   useEffect(() => {
-    if (depositSuccess || withdrawSuccess) {
+    if (depositSuccess || withdrawSuccess || executeSuccess || cancelSuccess) {
       refetchBalance();
+      refetchStats();
+      refetchPending();
       refetchLeaders();
-      setDepositOpen(false);
-      setWithdrawOpen(false);
     }
-  }, [depositSuccess, withdrawSuccess]);
+  }, [depositSuccess, withdrawSuccess, executeSuccess, cancelSuccess]);
 
-  // Derived state
-  const balance = userBalance ? formatEther(userBalance) : '0';
-  const hasBalance = Number(balance) > 0;
-  const followedLeaders = userFollowsData?.map((f: any) => f.leader) || [];
-  const leadersCount = followedLeaders.length;
-  const hasLeaders = leadersCount > 0;
   const tvl = vaultStats ? formatEther(vaultStats[0]) : '0';
-  const virtualPnL = parseFloat(simStats?.overall?.totalPnlBNB || '0');
-  const winRate = simStats?.overall?.overallWinRate || '0%';
-  const totalTrades = simStats?.overall?.totalTrades || 0;
+  const totalCopyTrades = vaultStats ? Number(vaultStats[1]) : 0;
+  const totalVolume = vaultStats ? formatEther(vaultStats[2]) : '0';
+  const executorAddress = vaultStats ? vaultStats[4] : null;
+  const maxSize = maxVaultSize ? formatEther(maxVaultSize) : '100';
+  const utilizationPercent = maxVaultSize && vaultStats ? (Number(formatEther(vaultStats[0])) / Number(formatEther(maxVaultSize))) * 100 : 0;
+  const delayHours = withdrawalDelay ? Number(withdrawalDelay) / 3600 : 1;
 
-  // Handlers
+  const balance = userBalance ? formatEther(userBalance) : '0';
+  const pendingAmount = pendingWithdrawal ? formatEther(pendingWithdrawal[0]) : '0';
+  const unlockTime = pendingWithdrawal ? Number(pendingWithdrawal[1]) : 0;
+  const hasPendingWithdrawal = Number(pendingAmount) > 0;
+  const canExecuteWithdrawal = hasPendingWithdrawal && unlockTime > 0 && Date.now() / 1000 >= unlockTime;
+  const leadersCount = followedLeaders?.length || 0;
+
   const handleDeposit = () => {
     if (!depositAmount || Number(depositAmount) <= 0) return;
     deposit({
@@ -140,7 +315,7 @@ export default function CopyTradingPage() {
     });
   };
 
-  const handleWithdraw = () => {
+  const handleRequestWithdraw = () => {
     if (!withdrawAmount || Number(withdrawAmount) <= 0) return;
     requestWithdraw({
       address: COPY_VAULT_ADDRESS,
@@ -150,410 +325,573 @@ export default function CopyTradingPage() {
     });
   };
 
+  const handleExecuteWithdraw = () => {
+    executeWithdraw({
+      address: COPY_VAULT_ADDRESS,
+      abi: COPY_TRADING_VAULT_ABI,
+      functionName: 'executeWithdrawal',
+    });
+  };
+
+  const handleCancelWithdraw = () => {
+    cancelWithdraw({
+      address: COPY_VAULT_ADDRESS,
+      abi: COPY_TRADING_VAULT_ABI,
+      functionName: 'cancelWithdrawal',
+    });
+  };
+
+  function shortenAddress(addr: string): string {
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  }
+
+  function formatTimeRemaining(unlockTimestamp: number): string {
+    const now = Date.now() / 1000;
+    const remaining = unlockTimestamp - now;
+    if (remaining <= 0) return 'Ready to withdraw';
+    const hours = Math.floor(remaining / 3600);
+    const minutes = Math.floor((remaining % 3600) / 60);
+    return `${hours}h ${minutes}m remaining`;
+  }
+
   if (!mounted) return null;
 
-  // Check if vault is deployed
   const vaultNotDeployed = COPY_VAULT_ADDRESS === '0x0000000000000000000000000000000000000000';
+
   if (vaultNotDeployed) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-warning/30 bg-warning/5">
-          <CardContent className="pt-6 text-center">
-            <AlertTriangle className="h-12 w-12 text-warning mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Coming Soon</h2>
-            <p className="text-muted-foreground">Copy trading vault is not yet deployed.</p>
-          </CardContent>
-        </Card>
+      <div className="container py-16 max-w-lg text-center">
+        <div className="w-16 h-16 rounded-full bg-warning/10 mx-auto mb-4 flex items-center justify-center">
+          <AlertTriangle className="h-8 w-8 text-warning" />
+        </div>
+        <h1 className="text-2xl font-bold mb-2">Copy trading coming soon</h1>
+        <p className="text-muted-foreground">The vault contract has not been deployed yet.</p>
       </div>
     );
   }
 
-  // STATE 1: Not connected
   if (!isConnected) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-6 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 mx-auto mb-4 flex items-center justify-center">
-              <Copy className="h-8 w-8 text-primary" />
-            </div>
-            <h2 className="text-2xl font-bold mb-2">Copy Trading</h2>
-            <p className="text-muted-foreground mb-6">
-              Automatically copy trades from top performers. Connect your wallet to get started.
-            </p>
-            <div className="flex flex-col gap-3 text-sm text-left mb-6">
-              {[
-                'Deposit BNB to your vault balance',
-                'Follow top-performing traders',
-                'Trades are copied automatically',
-              ].map((step, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary/20 text-primary text-xs font-bold flex items-center justify-center">
-                    {i + 1}
-                  </div>
-                  <span className="text-muted-foreground">{step}</span>
-                </div>
-              ))}
-            </div>
-            <Button className="w-full" size="lg" disabled>
-              <Wallet className="h-4 w-4 mr-2" />
-              Connect Wallet to Start
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // STATE 2: Connected but no balance
-  if (!hasBalance && !hasLeaders) {
-    return (
-      <div className="container max-w-2xl py-8 px-4">
-        {/* Welcome Card */}
-        <Card className="mb-6 overflow-hidden">
-          <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-                <Zap className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold mb-1">Get Started with Copy Trading</h1>
-                <p className="text-sm text-muted-foreground">
-                  Deposit BNB to start copying trades from top performers automatically.
-                </p>
-              </div>
-            </div>
-          </div>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div>
-                <Label className="text-sm font-medium">Deposit Amount (BNB)</Label>
-                <div className="flex gap-2 mt-2">
-                  {['0.05', '0.1', '0.5'].map((amt) => (
-                    <Button
-                      key={amt}
-                      variant={depositAmount === amt ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setDepositAmount(amt)}
-                      className="flex-1"
-                    >
-                      {amt}
-                    </Button>
-                  ))}
-                </div>
-                <Input
-                  type="number"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(e.target.value)}
-                  className="mt-2"
-                  placeholder="Custom amount"
-                />
-              </div>
-              <Button
-                onClick={handleDeposit}
-                disabled={isDepositing || isDepositConfirming || !depositAmount}
-                className="w-full h-12 text-base bg-gradient-to-r from-primary to-blue-600"
-                size="lg"
-              >
-                {isDepositing || isDepositConfirming ? (
-                  <Activity className="h-5 w-5 animate-spin mr-2" />
-                ) : (
-                  <Plus className="h-5 w-5 mr-2" />
-                )}
-                {isDepositing ? 'Confirm in wallet...' : isDepositConfirming ? 'Processing...' : 'Deposit & Start'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Info Cards */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="border-border/50">
-            <CardContent className="p-4 flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
-                <Shield className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">Secure Vault</p>
-                <p className="text-xs text-muted-foreground">1-hour withdrawal lock protects your funds</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/50">
-            <CardContent className="p-4 flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
-                <FlaskConical className="h-5 w-5 text-purple-500" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">Simulation Mode</p>
-                <p className="text-xs text-muted-foreground">Test with virtual trades, no risk</p>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="container py-16 max-w-lg text-center">
+        <div className="w-16 h-16 rounded-full bg-primary/10 mx-auto mb-4 flex items-center justify-center">
+          <Wallet className="h-8 w-8 text-primary" />
         </div>
+        <h1 className="text-2xl font-bold mb-2">Connect your wallet</h1>
+        <p className="text-muted-foreground">Connect your wallet to access copy trading.</p>
       </div>
     );
   }
 
-  // STATE 3 & 4: Has balance - Show Dashboard
   return (
-    <div className="container max-w-6xl py-6 px-4">
-      {/* DESKTOP: Two-column layout */}
-      <div className="flex flex-col lg:flex-row gap-6">
+    <div className="container py-6 max-w-5xl">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1">Copy trading</h1>
+        <p className="text-sm text-muted-foreground">Deposit BNB and automatically copy trades from top performers</p>
+      </div>
 
-        {/* LEFT: Status Panel (sticky on desktop) */}
-        <div className="lg:w-80 lg:shrink-0">
-          <div className="lg:sticky lg:top-20 space-y-4">
-            {/* Balance Card */}
-            <Card className="overflow-hidden">
-              <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-5">
-                <p className="text-sm text-muted-foreground mb-1">Your Balance</p>
-                <p className="text-3xl font-bold">{Number(balance).toFixed(4)} <span className="text-lg text-muted-foreground">BNB</span></p>
-                <p className={`text-sm mt-1 font-medium ${virtualPnL >= 0 ? 'text-success' : 'text-destructive'}`}>
-                  {virtualPnL >= 0 ? '+' : ''}{virtualPnL.toFixed(4)} BNB virtual PnL
-                </p>
+      {/* Info Banner */}
+      <Alert className="mb-6 border-primary/30 bg-primary/5">
+        <Shield className="h-4 w-4 text-primary" />
+        <AlertDescription>
+          <span className="font-medium">Secure:</span> {delayHours}-hour withdrawal lock. All trades executed by verified executor.
+          {executorAddress && (
+            <a
+              href={`https://bscscan.com/address/${executorAddress}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-1 inline-flex items-center gap-0.5 text-primary hover:underline"
+            >
+              View <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </AlertDescription>
+      </Alert>
+
+      {/* Stats Row - Horizontal scroll on mobile */}
+      <div className="mb-6 -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="flex md:grid md:grid-cols-4 gap-3 overflow-x-auto pb-2 md:pb-0 snap-x snap-mandatory scrollbar-hide">
+          <Card className="border-border/50 bg-gradient-to-br from-primary/5 to-transparent min-w-[160px] md:min-w-0 snap-start shrink-0 md:shrink">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-muted-foreground font-medium">TVL</span>
+                <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <Lock className="h-3.5 w-3.5 text-primary" />
+                </div>
               </div>
-              <CardContent className="p-4 space-y-3">
-                {/* Quick Stats */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 rounded-lg bg-muted/30">
-                    <p className="text-lg font-bold">{leadersCount}</p>
-                    <p className="text-xs text-muted-foreground">Following</p>
-                  </div>
-                  <div className="text-center p-3 rounded-lg bg-muted/30">
-                    <p className="text-lg font-bold text-success">{winRate}</p>
-                    <p className="text-xs text-muted-foreground">Win Rate</p>
-                  </div>
-                </div>
+              <p className="text-xl font-bold">{Number(tvl).toFixed(2)} <span className="text-xs font-normal text-muted-foreground">BNB</span></p>
+              <Progress value={utilizationPercent} className="h-1 mt-2" />
+              <p className="text-[10px] text-muted-foreground mt-1">{utilizationPercent.toFixed(0)}% of {maxSize}</p>
+            </CardContent>
+          </Card>
 
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <Dialog open={depositOpen} onOpenChange={setDepositOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="flex-1" size="sm">
-                        <Plus className="h-4 w-4 mr-1" /> Deposit
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Deposit BNB</DialogTitle>
-                        <DialogDescription>Add funds to your copy trading balance</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 pt-4">
-                        <div className="flex gap-2">
-                          {['0.05', '0.1', '0.5'].map((amt) => (
-                            <Button
-                              key={amt}
-                              variant={depositAmount === amt ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => setDepositAmount(amt)}
-                              className="flex-1"
-                            >
-                              {amt} BNB
-                            </Button>
-                          ))}
-                        </div>
-                        <Input
-                          type="number"
-                          value={depositAmount}
-                          onChange={(e) => setDepositAmount(e.target.value)}
-                          placeholder="Custom amount"
-                        />
-                        <Button
-                          onClick={handleDeposit}
-                          disabled={isDepositing || isDepositConfirming}
-                          className="w-full"
-                        >
-                          {isDepositing || isDepositConfirming ? (
-                            <Activity className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <Plus className="h-4 w-4 mr-2" />
-                          )}
-                          Deposit
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-
-                  <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="flex-1" size="sm">
-                        <Minus className="h-4 w-4 mr-1" /> Withdraw
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Withdraw BNB</DialogTitle>
-                        <DialogDescription>1-hour time lock for security</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 pt-4">
-                        <div>
-                          <Label className="text-sm">Amount (BNB)</Label>
-                          <Input
-                            type="number"
-                            value={withdrawAmount}
-                            onChange={(e) => setWithdrawAmount(e.target.value)}
-                            placeholder="0.1"
-                            className="mt-1"
-                          />
-                          <p className="text-xs text-muted-foreground mt-1">Available: {balance} BNB</p>
-                        </div>
-                        <Button
-                          onClick={handleWithdraw}
-                          disabled={isWithdrawing || isWithdrawConfirming || !withdrawAmount}
-                          className="w-full"
-                          variant="secondary"
-                        >
-                          {isWithdrawing || isWithdrawConfirming ? (
-                            <Activity className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <Clock className="h-4 w-4 mr-2" />
-                          )}
-                          Request Withdrawal
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+          <Card className="border-border/50 bg-gradient-to-br from-secondary/5 to-transparent min-w-[140px] md:min-w-0 snap-start shrink-0 md:shrink">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-muted-foreground font-medium">Simulated</span>
+                <div className="w-7 h-7 rounded-lg bg-secondary/15 flex items-center justify-center">
+                  <TrendingUp className="h-3.5 w-3.5 text-secondary" />
                 </div>
+              </div>
+              <p className="text-xl font-bold">{simStats?.overall?.totalTrades || 0}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{simStats?.overall?.overallWinRate || 'N/A'} win rate</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 bg-gradient-to-br from-success/5 to-transparent min-w-[160px] md:min-w-0 snap-start shrink-0 md:shrink">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-muted-foreground font-medium">Balance</span>
+                <div className="w-7 h-7 rounded-lg bg-success/15 flex items-center justify-center">
+                  <Wallet className="h-3.5 w-3.5 text-success" />
+                </div>
+              </div>
+              <p className="text-xl font-bold">{Number(balance).toFixed(4)} <span className="text-xs font-normal text-muted-foreground">BNB</span></p>
+              <p className={`text-[10px] mt-1 font-medium ${parseFloat(simStats?.overall?.totalPnlBNB || '0') >= 0 ? 'text-success' : 'text-destructive'}`}>
+                {parseFloat(simStats?.overall?.totalPnlBNB || '0') >= 0 ? '+' : ''}{parseFloat(simStats?.overall?.totalPnlBNB || '0').toFixed(4)} PnL
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 bg-gradient-to-br from-purple-500/5 to-transparent min-w-[120px] md:min-w-0 snap-start shrink-0 md:shrink">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-muted-foreground font-medium">Following</span>
+                <div className="w-7 h-7 rounded-lg bg-purple-500/15 flex items-center justify-center">
+                  <Users className="h-3.5 w-3.5 text-purple-500" />
+                </div>
+              </div>
+              <p className="text-xl font-bold">{leadersCount}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">leaders</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Tabs - Scrollable on mobile */}
+      <Tabs defaultValue="deposit" className="space-y-4">
+        <div className="-mx-4 px-4 md:mx-0 md:px-0">
+          <TabsList className="w-full justify-start bg-surface/50 h-11 p-1 border border-border/50 overflow-x-auto scrollbar-hide">
+            <TabsTrigger value="deposit" className="text-sm gap-1.5 data-[state=active]:bg-primary/10 shrink-0">
+              <Wallet className="w-4 h-4" />
+              <span>Funds</span>
+            </TabsTrigger>
+            <TabsTrigger value="leaders" className="text-sm gap-1.5 data-[state=active]:bg-primary/10 shrink-0">
+              <Users className="w-4 h-4" />
+              <span>Leaders</span>
+            </TabsTrigger>
+            <TabsTrigger value="simulation" className="text-sm gap-1.5 data-[state=active]:bg-purple-500/10 shrink-0">
+              <FlaskConical className="w-4 h-4" />
+              <span>Simulation</span>
+            </TabsTrigger>
+            <TabsTrigger value="transparency" className="text-sm gap-1.5 data-[state=active]:bg-primary/10 shrink-0">
+              <Shield className="w-4 h-4" />
+              <span>Security</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* Deposit/Withdraw Tab */}
+        <TabsContent value="deposit" className="mt-4">
+          {/* Desktop: Side by side */}
+          <div className="hidden md:grid md:grid-cols-2 gap-4">
+            {/* Deposit */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Plus className="h-4 w-4 text-primary" />
+                  Deposit
+                </CardTitle>
+                <CardDescription>Add funds to your copy trading balance</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="deposit-desktop" className="text-sm">Amount (BNB)</Label>
+                  <Input
+                    id="deposit-desktop"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    placeholder="0.1"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    className="mt-1.5"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Minimum: 0.01 BNB</p>
+                </div>
+                <Button
+                  onClick={handleDeposit}
+                  disabled={isDepositing || isDepositConfirming || !depositAmount}
+                  className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg shadow-primary/25"
+                >
+                  {isDepositing || isDepositConfirming ? (
+                    <Activity className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
+                  {isDepositing ? 'Confirming...' : isDepositConfirming ? 'Processing...' : 'Deposit'}
+                </Button>
               </CardContent>
             </Card>
 
-            {/* Vault Info - Desktop only */}
-            <Card className="hidden lg:block border-border/50">
-              <CardContent className="p-4">
-                <p className="text-sm font-medium mb-3">Vault Info</p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total TVL</span>
-                    <span className="font-medium">{Number(tvl).toFixed(2)} BNB</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Your trades</span>
-                    <span className="font-medium">{totalTrades}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Security</span>
-                    <span className="font-medium text-success">1h lock</span>
-                  </div>
-                </div>
+            {/* Withdraw */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Minus className="h-4 w-4 text-warning" />
+                  Withdraw
+                </CardTitle>
+                <CardDescription>{delayHours}-hour time lock for security</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {hasPendingWithdrawal ? (
+                  <>
+                    <Alert className="border-warning/30 bg-warning/5">
+                      <Clock className="h-4 w-4 text-warning" />
+                      <AlertDescription>
+                        <span className="font-medium">{pendingAmount} BNB</span> pending
+                        <br />
+                        <span className="text-sm">{formatTimeRemaining(unlockTime)}</span>
+                      </AlertDescription>
+                    </Alert>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleExecuteWithdraw}
+                        disabled={!canExecuteWithdrawal || isExecuting || isExecuteConfirming}
+                        className="flex-1"
+                      >
+                        {isExecuting || isExecuteConfirming ? (
+                          <Activity className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Unlock className="h-4 w-4 mr-2" />
+                        )}
+                        Execute
+                      </Button>
+                      <Button
+                        onClick={handleCancelWithdraw}
+                        disabled={isCancelling || isCancelConfirming}
+                        variant="outline"
+                      >
+                        {isCancelling || isCancelConfirming ? (
+                          <Activity className="h-4 w-4 animate-spin" />
+                        ) : (
+                          'Cancel'
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <Label htmlFor="withdraw" className="text-sm">Amount (BNB)</Label>
+                      <Input
+                        id="withdraw"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max={balance}
+                        placeholder="0.1"
+                        value={withdrawAmount}
+                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                        className="mt-1.5"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Available: {balance} BNB</p>
+                    </div>
+                    <Button
+                      onClick={handleRequestWithdraw}
+                      disabled={isWithdrawing || isWithdrawConfirming || !withdrawAmount || Number(withdrawAmount) > Number(balance)}
+                      className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-500/90 hover:to-orange-500/90 text-white shadow-lg shadow-amber-500/25"
+                    >
+                      {isWithdrawing || isWithdrawConfirming ? (
+                        <Activity className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Clock className="h-4 w-4 mr-2" />
+                      )}
+                      {isWithdrawing ? 'Confirming...' : isWithdrawConfirming ? 'Processing...' : 'Request withdrawal'}
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
-        </div>
 
-        {/* RIGHT: Main Content */}
-        <div className="flex-1 space-y-6">
-          {/* Guide to follow leaders if none */}
-          {!hasLeaders && (
-            <Card className="border-warning/30 bg-gradient-to-r from-warning/10 to-transparent">
-              <CardContent className="p-5">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-warning/20 flex items-center justify-center shrink-0">
-                    <Users className="h-5 w-5 text-warning" />
+          {/* Mobile: Collapsible accordions */}
+          <div className="md:hidden space-y-3">
+            {/* Deposit Collapsible */}
+            <Collapsible defaultOpen className="border border-border/50 rounded-xl overflow-hidden">
+              <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-gradient-to-r from-primary/5 to-transparent hover:from-primary/10 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center">
+                    <Plus className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold mb-1">Follow traders to start</h3>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Browse the leaderboard and follow top performers to automatically copy their trades.
-                    </p>
-                    <Link href="/leaderboard">
-                      <Button size="sm">
-                        Browse Leaderboard <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </Link>
+                  <div className="text-left">
+                    <p className="font-semibold">Deposit</p>
+                    <p className="text-xs text-muted-foreground">Add funds to balance</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+                <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [&[data-state=open]]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="p-4 pt-0 space-y-4">
+                <div>
+                  <Label htmlFor="deposit-mobile" className="text-sm">Amount (BNB)</Label>
+                  <Input
+                    id="deposit-mobile"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    placeholder="0.1"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    className="mt-1.5"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Minimum: 0.01 BNB</p>
+                </div>
+                <Button
+                  onClick={handleDeposit}
+                  disabled={isDepositing || isDepositConfirming || !depositAmount}
+                  className="w-full bg-gradient-to-r from-primary to-blue-600"
+                >
+                  {isDepositing || isDepositConfirming ? (
+                    <Activity className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
+                  {isDepositing ? 'Confirming...' : isDepositConfirming ? 'Processing...' : 'Deposit'}
+                </Button>
+              </CollapsibleContent>
+            </Collapsible>
 
-          {/* Following List */}
-          {hasLeaders && (
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Following</CardTitle>
+            {/* Withdraw Collapsible */}
+            <Collapsible className="border border-border/50 rounded-xl overflow-hidden">
+              <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-gradient-to-r from-amber-500/5 to-transparent hover:from-amber-500/10 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center">
+                    <Minus className="h-4 w-4 text-amber-500" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold">Withdraw</p>
+                    <p className="text-xs text-muted-foreground">{delayHours}-hour time lock</p>
+                  </div>
+                </div>
+                <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="p-4 pt-0 space-y-4">
+                {hasPendingWithdrawal ? (
+                  <>
+                    <Alert className="border-warning/30 bg-warning/5">
+                      <Clock className="h-4 w-4 text-warning" />
+                      <AlertDescription>
+                        <span className="font-medium">{pendingAmount} BNB</span> pending
+                        <br />
+                        <span className="text-sm">{formatTimeRemaining(unlockTime)}</span>
+                      </AlertDescription>
+                    </Alert>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleExecuteWithdraw}
+                        disabled={!canExecuteWithdrawal || isExecuting || isExecuteConfirming}
+                        className="flex-1"
+                      >
+                        {isExecuting || isExecuteConfirming ? (
+                          <Activity className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Unlock className="h-4 w-4 mr-2" />
+                        )}
+                        Execute
+                      </Button>
+                      <Button
+                        onClick={handleCancelWithdraw}
+                        disabled={isCancelling || isCancelConfirming}
+                        variant="outline"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <Label htmlFor="withdraw-mobile" className="text-sm">Amount (BNB)</Label>
+                      <Input
+                        id="withdraw-mobile"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max={balance}
+                        placeholder="0.1"
+                        value={withdrawAmount}
+                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                        className="mt-1.5"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Available: {balance} BNB</p>
+                    </div>
+                    <Button
+                      onClick={handleRequestWithdraw}
+                      disabled={isWithdrawing || isWithdrawConfirming || !withdrawAmount || Number(withdrawAmount) > Number(balance)}
+                      className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white"
+                    >
+                      {isWithdrawing || isWithdrawConfirming ? (
+                        <Activity className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Clock className="h-4 w-4 mr-2" />
+                      )}
+                      Request withdrawal
+                    </Button>
+                  </>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        </TabsContent>
+
+        {/* Leaders Tab */}
+        <TabsContent value="leaders" className="mt-4">
+          <Card className="border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Follow top traders</CardTitle>
+              <CardDescription>Select traders from the leaderboard to copy their bets</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {leadersCount === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 mx-auto mb-3 flex items-center justify-center">
+                    <Users className="h-6 w-6 text-primary" />
+                  </div>
+                  <p className="font-medium mb-1">No leaders followed</p>
+                  <p className="text-sm text-muted-foreground mb-4">Browse the leaderboard to find top traders</p>
                   <Link href="/leaderboard">
-                    <Button variant="ghost" size="sm">
-                      <Plus className="h-4 w-4 mr-1" /> Add more
+                    <Button>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Browse leaderboard
                     </Button>
                   </Link>
                 </div>
-              </CardHeader>
-              <CardContent>
+              ) : (
                 <div className="space-y-2">
-                  {followedLeaders.slice(0, 5).map((leader: string) => (
-                    <div key={leader} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                          <Users className="h-4 w-4 text-primary" />
-                        </div>
-                        <code className="text-sm">{leader.slice(0, 8)}...{leader.slice(-6)}</code>
+                  <p className="text-sm text-muted-foreground mb-3">Following {leadersCount} trader{leadersCount !== 1 ? 's' : ''}</p>
+                  {followedLeaders?.map((leader: string) => (
+                    <div
+                      key={leader}
+                      className="flex items-center justify-between p-3 rounded-lg bg-surface hover:bg-surface-raised transition-colors"
+                    >
+                      <div>
+                        <p className="font-mono text-sm">{shortenAddress(leader)}</p>
+                        <a
+                          href={`https://bscscan.com/address/${leader}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
+                        >
+                          BSCScan <ExternalLink className="h-3 w-3" />
+                        </a>
                       </div>
-                      <Badge variant="outline" className="text-success border-success/30">Active</Badge>
+                      <Badge variant="outline" className="text-xs">Following</Badge>
                     </div>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Recent Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {totalTrades > 0 ? (
-                <div className="space-y-2">
-                  <Alert className="border-purple-500/30 bg-purple-500/5">
-                    <FlaskConical className="h-4 w-4 text-purple-500" />
-                    <AlertDescription className="text-sm">
-                      <span className="font-medium">{totalTrades}</span> simulated trades • <span className="text-success">{winRate}</span> win rate
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Timer className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">No trades yet</p>
-                  <p className="text-xs mt-1">Follow leaders and wait for them to place bets</p>
                 </div>
               )}
             </CardContent>
           </Card>
+        </TabsContent>
 
-          {/* How it works - collapsed on mobile */}
-          <Card className="border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">How it works</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2">
+        {/* Simulation Tab */}
+        <TabsContent value="simulation" className="mt-4">
+          <SimulationTab followerAddress={address} />
+        </TabsContent>
+
+        {/* Transparency Tab */}
+        <TabsContent value="transparency" className="mt-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-success/20 flex items-center justify-center">
+                    <Shield className="w-3.5 h-3.5 text-success" />
+                  </div>
+                  Security features
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 {[
-                  { icon: Plus, title: 'Deposit', desc: 'Add BNB to your vault balance' },
-                  { icon: Users, title: 'Follow', desc: 'Select top traders from leaderboard' },
-                  { icon: Zap, title: 'Auto-copy', desc: 'Trades are copied automatically' },
-                  { icon: TrendingUp, title: 'Earn', desc: 'Track your virtual PnL' },
-                ].map(({ icon: Icon, title, desc }) => (
-                  <div key={title} className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Icon className="h-4 w-4 text-primary" />
+                  { icon: Clock, title: 'Time-locked withdrawals', desc: `${delayHours}-hour delay prevents attacks`, color: 'warning' },
+                  { icon: Lock, title: 'Vault size cap', desc: `Maximum ${maxSize} BNB limit`, color: 'primary' },
+                  { icon: Users, title: 'Allocation limits', desc: 'Max 50% per leader', color: 'purple-500' },
+                ].map(({ icon: Icon, title, desc, color }) => (
+                  <div key={title} className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-br from-surface to-surface-raised border border-border/30">
+                    <div className={`w-9 h-9 rounded-lg bg-${color}/15 flex items-center justify-center shrink-0`}>
+                      <Icon className={`h-4 w-4 text-${color}`} />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">{title}</p>
+                      <p className="text-sm font-semibold">{title}</p>
                       <p className="text-xs text-muted-foreground">{desc}</p>
                     </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Contract addresses</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="p-3 rounded-lg bg-surface">
+                  <p className="text-xs text-muted-foreground mb-1">Vault contract</p>
+                  <div className="flex items-center gap-2">
+                    <code className="text-xs font-mono">{shortenAddress(COPY_VAULT_ADDRESS)}</code>
+                    <a
+                      href={`https://bscscan.com/address/${COPY_VAULT_ADDRESS}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:text-primary/80"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                </div>
+                {executorAddress && (
+                  <div className="p-3 rounded-lg bg-surface">
+                    <p className="text-xs text-muted-foreground mb-1">Executor address</p>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs font-mono">{shortenAddress(executorAddress)}</code>
+                      <a
+                        href={`https://bscscan.com/address/${executorAddress}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:text-primary/80"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Executes copy trades on your behalf</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="border-border/50 mt-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Vault statistics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: 'TVL (BNB)', value: Number(tvl).toFixed(2) },
+                  { label: 'Copy trades', value: totalCopyTrades },
+                  { label: 'Volume (BNB)', value: Number(totalVolume).toFixed(2) },
+                  { label: 'Utilization', value: `${utilizationPercent.toFixed(1)}%` },
+                ].map(({ label, value }) => (
+                  <div key={label} className="p-3 rounded-lg bg-surface text-center">
+                    <p className="text-lg font-bold">{value}</p>
+                    <p className="text-xs text-muted-foreground">{label}</p>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
