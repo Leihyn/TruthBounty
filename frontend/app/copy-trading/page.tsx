@@ -260,14 +260,61 @@ export default function CopyTradingDashboard() {
     args: address ? [address] : undefined,
   });
 
-  const { data: userFollowsData, refetch: refetchLeaders } = useReadContract({
-    address: COPY_VAULT_ADDRESS,
-    abi: COPY_TRADING_VAULT_ABI,
-    functionName: 'getUserFollows',
-    args: address ? [address] : undefined,
-  });
+  // Fetch follows from database OR extract from simulated trades
+  const [dbFollows, setDbFollows] = useState<any[]>([]);
+  const [simLeaders, setSimLeaders] = useState<any[]>([]);
 
-  const followedLeaders = userFollowsData?.map((f: any) => f.leader) || [];
+  const fetchDbFollows = async () => {
+    if (!address) return;
+    try {
+      // First try explicit follows
+      const res = await fetch(`/api/copy-trade/follow?follower=${address}`);
+      const data = await res.json();
+      if (data.success && data.follows) {
+        // Filter to only include follows where the follower matches our address
+        const myFollows = data.follows.filter((f: any) =>
+          f.is_active && f.follower?.wallet_address?.toLowerCase() === address.toLowerCase()
+        );
+        setDbFollows(myFollows);
+
+        // If no explicit follows, get leaders from simulated trades
+        if (myFollows.length === 0) {
+          const simRes = await fetch(`/api/copy-trading/simulation?limit=100&follower=${address}`);
+          const simData = await simRes.json();
+          if (simData.trades && simData.trades.length > 0) {
+            // Extract unique leaders
+            const leaderMap = new Map();
+            simData.trades.forEach((t: any) => {
+              if (t.leader && !leaderMap.has(t.leader)) {
+                leaderMap.set(t.leader, {
+                  id: t.leader,
+                  trader: { wallet_address: t.leader },
+                  fromSimulation: true,
+                  tradeCount: 0,
+                });
+              }
+              if (t.leader) {
+                leaderMap.get(t.leader).tradeCount++;
+              }
+            });
+            setSimLeaders(Array.from(leaderMap.values()));
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching follows:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (address) {
+      fetchDbFollows();
+    }
+  }, [address]);
+
+  const refetchLeaders = fetchDbFollows;
+  // Use explicit follows if any, otherwise use leaders from simulation
+  const followedLeaders = dbFollows.length > 0 ? dbFollows : simLeaders;
 
   const { writeContract: deposit, data: depositHash, isPending: isDepositing } = useWriteContract();
   const { writeContract: requestWithdraw, data: withdrawHash, isPending: isWithdrawing } = useWriteContract();
@@ -782,25 +829,39 @@ export default function CopyTradingDashboard() {
               ) : (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground mb-3">Following {leadersCount} trader{leadersCount !== 1 ? 's' : ''}</p>
-                  {followedLeaders?.map((leader: string) => (
-                    <div
-                      key={leader}
-                      className="flex items-center justify-between p-3 rounded-lg bg-surface hover:bg-surface-raised transition-colors"
-                    >
-                      <div>
-                        <p className="font-mono text-sm">{shortenAddress(leader)}</p>
-                        <a
-                          href={`https://bscscan.com/address/${leader}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
-                        >
-                          BSCScan <ExternalLink className="h-3 w-3" />
-                        </a>
+                  {followedLeaders?.map((follow: any) => {
+                    const traderAddr = follow.trader?.wallet_address || '';
+                    const traderName = follow.trader?.username;
+                    const isFromSim = follow.fromSimulation;
+                    return (
+                      <div
+                        key={follow.id || traderAddr}
+                        className="flex items-center justify-between p-3 rounded-lg bg-surface hover:bg-surface-raised transition-colors"
+                      >
+                        <div>
+                          <p className="font-mono text-sm">{traderName || shortenAddress(traderAddr)}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {isFromSim ? (
+                              <span className="text-xs text-muted-foreground">{follow.tradeCount} simulated trades</span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">{follow.allocation_percentage}% allocation</span>
+                            )}
+                            <a
+                              href={`https://bscscan.com/address/${traderAddr}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
+                            >
+                              BSCScan <ExternalLink className="h-3 w-3" />
+                            </a>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className={isFromSim ? "text-xs border-purple-500/30 text-purple-500" : "text-xs border-success/30 text-success"}>
+                          {isFromSim ? 'Simulating' : 'Following'}
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className="text-xs">Following</Badge>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

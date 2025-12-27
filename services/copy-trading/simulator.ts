@@ -154,6 +154,9 @@ class CopyTradingSimulator {
     // Load leaders from leaderboard
     await this.loadLeadersFromLeaderboard();
 
+    // Load any pending trades from database (recover from restart)
+    await this.loadPendingFromDatabase();
+
     this.isRunning = true;
 
     // Start monitoring mainnet for bets
@@ -163,6 +166,33 @@ class CopyTradingSimulator {
     this.startRoundResolution();
 
     console.log('\n✅ Simulator running. Monitoring mainnet for leader bets...\n');
+  }
+
+  /**
+   * Load pending epochs from database (recover from restart)
+   */
+  private async loadPendingFromDatabase(): Promise<void> {
+    console.log('Loading pending trades from database...');
+    try {
+      const { data: pending, error } = await this.supabase
+        .from('simulated_trades')
+        .select('epoch')
+        .eq('outcome', 'pending');
+
+      if (error) {
+        console.error('Error loading pending trades:', error);
+        return;
+      }
+
+      const uniqueEpochs = [...new Set(pending?.map(t => t.epoch) || [])];
+      for (const epoch of uniqueEpochs) {
+        this.pendingRounds.add(epoch);
+      }
+
+      console.log(`Loaded ${uniqueEpochs.length} pending epochs from database`);
+    } catch (error) {
+      console.error('Error loading pending epochs:', error);
+    }
   }
 
   /**
