@@ -30,11 +30,12 @@ import {
   CheckCircle2,
   XCircle,
   Timer,
+  ArrowUpRight,
+  ArrowDownRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import { COPY_TRADING_VAULT_ABI, COPY_VAULT_ADDRESS } from '@/lib/contracts';
 
-// Simulation Tab Component
 function SimulationTab({ followerAddress }: { followerAddress?: string }) {
   const [stats, setStats] = useState<any>(null);
   const [trades, setTrades] = useState<any[]>([]);
@@ -43,12 +44,10 @@ function SimulationTab({ followerAddress }: { followerAddress?: string }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch stats
         const statsRes = await fetch(`/api/copy-trading/simulation?stats=true${followerAddress ? `&follower=${followerAddress}` : ''}`);
         const statsData = await statsRes.json();
         setStats(statsData);
 
-        // Fetch recent trades
         const tradesRes = await fetch(`/api/copy-trading/simulation?limit=20${followerAddress ? `&follower=${followerAddress}` : ''}`);
         const tradesData = await tradesRes.json();
         setTrades(tradesData.trades || []);
@@ -60,155 +59,139 @@ function SimulationTab({ followerAddress }: { followerAddress?: string }) {
     };
 
     fetchData();
-    // Refresh every 30 seconds
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [followerAddress]);
 
   if (loading) {
     return (
-      <Card className="border-purple-500/20 bg-gradient-to-br from-slate-950/90 to-slate-900/90">
+      <Card className="border-border/50">
         <CardContent className="flex items-center justify-center py-16">
-          <Activity className="h-8 w-8 animate-spin text-purple-500" />
+          <Activity className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Simulation Mode Banner */}
-      <Alert className="border-purple-500/50 bg-purple-500/10">
+    <div className="space-y-4">
+      <Alert className="border-purple-500/30 bg-purple-500/5">
         <FlaskConical className="h-4 w-4 text-purple-500" />
-        <AlertDescription className="text-purple-200">
-          <span className="font-semibold">Testnet Simulation Mode:</span> Using real mainnet leader data with simulated trade execution. No real funds at risk.
+        <AlertDescription>
+          <span className="font-medium">Simulation mode:</span> Using real mainnet leader data with virtual execution. No funds at risk.
         </AlertDescription>
       </Alert>
 
-      {/* Overall Stats */}
-      <Card className="border-purple-500/20 bg-gradient-to-br from-slate-950/90 to-slate-900/90">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bebas uppercase tracking-wider bg-gradient-to-r from-purple-500 via-pink-500 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
-            <FlaskConical className="h-6 w-6 text-purple-500" />
-            Simulation Results
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            Virtual performance based on real mainnet predictions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {stats?.overall ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-800 text-center">
-                <p className="text-3xl font-teko text-purple-400">{stats.overall.totalTrades}</p>
-                <p className="text-xs text-slate-500">Simulated Trades</p>
-              </div>
-              <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-800 text-center">
-                <p className="text-3xl font-teko text-green-400">{stats.overall.overallWinRate}</p>
-                <p className="text-xs text-slate-500">Win Rate</p>
-              </div>
-              <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-800 text-center">
-                <p className={`text-3xl font-teko ${parseFloat(stats.overall.totalPnlBNB) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {parseFloat(stats.overall.totalPnlBNB) >= 0 ? '+' : ''}{parseFloat(stats.overall.totalPnlBNB).toFixed(4)}
-                </p>
-                <p className="text-xs text-slate-500">Virtual PnL (BNB)</p>
-              </div>
-              <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-800 text-center">
-                <p className="text-3xl font-teko text-amber-400">{stats.overall.totalPending}</p>
-                <p className="text-xs text-slate-500">Pending</p>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-slate-400">
-              <FlaskConical className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No simulation data yet</p>
-              <p className="text-sm mt-2">Follow a leader and wait for them to place bets</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="border-border/50">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold">{stats?.overall?.totalTrades || 0}</p>
+            <p className="text-xs text-muted-foreground">Simulated trades</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-success">{stats?.overall?.overallWinRate || 'N/A'}</p>
+            <p className="text-xs text-muted-foreground">Win rate</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardContent className="p-4 text-center">
+            <p className={`text-2xl font-bold ${parseFloat(stats?.overall?.totalPnlBNB || '0') >= 0 ? 'text-success' : 'text-destructive'}`}>
+              {parseFloat(stats?.overall?.totalPnlBNB || '0') >= 0 ? '+' : ''}{parseFloat(stats?.overall?.totalPnlBNB || '0').toFixed(4)}
+            </p>
+            <p className="text-xs text-muted-foreground">Virtual PnL (BNB)</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-warning">{stats?.overall?.totalPending || 0}</p>
+            <p className="text-xs text-muted-foreground">Pending</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Recent Trades */}
-      <Card className="border-slate-500/20 bg-gradient-to-br from-slate-950/90 to-slate-900/90">
-        <CardHeader>
-          <CardTitle className="text-xl font-bebas uppercase tracking-wider text-slate-200">
-            Recent Simulated Trades
-          </CardTitle>
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Recent simulated trades</CardTitle>
         </CardHeader>
         <CardContent>
           {trades.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {trades.map((trade) => (
                 <div
                   key={trade.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-slate-900/50 border border-slate-800"
+                  className="flex items-center justify-between p-3 rounded-lg bg-surface hover:bg-surface-raised transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     {trade.outcome === 'win' ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center">
+                        <ArrowUpRight className="h-4 w-4 text-success" />
+                      </div>
                     ) : trade.outcome === 'loss' ? (
-                      <XCircle className="h-5 w-5 text-red-500" />
+                      <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center">
+                        <ArrowDownRight className="h-4 w-4 text-destructive" />
+                      </div>
                     ) : (
-                      <Timer className="h-5 w-5 text-amber-500" />
+                      <div className="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center">
+                        <Timer className="h-4 w-4 text-warning" />
+                      </div>
                     )}
                     <div>
-                      <p className="text-sm font-medium text-slate-200">
-                        Epoch #{trade.epoch} - {trade.isBull ? '🐂 BULL' : '🐻 BEAR'}
+                      <p className="text-sm font-medium">
+                        Epoch #{trade.epoch} - {trade.isBull ? 'Bull' : 'Bear'}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        Leader: {trade.leader?.slice(0, 8)}...
+                      <p className="text-xs text-muted-foreground font-mono">
+                        {trade.leader?.slice(0, 8)}...
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium text-slate-200">{parseFloat(trade.amountBNB).toFixed(4)} BNB</p>
+                    <p className="text-sm font-mono font-medium">{parseFloat(trade.amountBNB).toFixed(4)} BNB</p>
                     {trade.pnlBNB && (
-                      <p className={`text-xs ${parseFloat(trade.pnlBNB) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {parseFloat(trade.pnlBNB) >= 0 ? '+' : ''}{parseFloat(trade.pnlBNB).toFixed(4)} BNB
+                      <p className={`text-xs font-mono ${parseFloat(trade.pnlBNB) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                        {parseFloat(trade.pnlBNB) >= 0 ? '+' : ''}{parseFloat(trade.pnlBNB).toFixed(4)}
                       </p>
                     )}
                     {trade.outcome === 'pending' && (
-                      <p className="text-xs text-amber-400">Pending</p>
+                      <Badge variant="outline" className="text-xs">Pending</Badge>
                     )}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-slate-400">
-              <p>No simulated trades yet</p>
+            <div className="text-center py-8 text-muted-foreground">
+              <FlaskConical className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No simulated trades yet</p>
+              <p className="text-xs mt-1">Follow a leader and wait for them to place bets</p>
             </div>
           )}
         </CardContent>
       </Card>
 
       {/* How it works */}
-      <Card className="border-slate-500/20 bg-gradient-to-br from-slate-950/90 to-slate-900/90">
-        <CardHeader>
-          <CardTitle className="text-lg font-bebas uppercase tracking-wider text-slate-200">
-            How Simulation Mode Works
-          </CardTitle>
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">How simulation works</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-slate-400">
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center flex-shrink-0 text-xs font-bold">1</div>
-            <p>You deposit testnet BNB and follow leaders from the real mainnet leaderboard</p>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center flex-shrink-0 text-xs font-bold">2</div>
-            <p>The simulator monitors REAL mainnet bets from your followed leaders</p>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center flex-shrink-0 text-xs font-bold">3</div>
-            <p>When a leader bets, we calculate and LOG what your copy trade would be (no execution)</p>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center flex-shrink-0 text-xs font-bold">4</div>
-            <p>After rounds resolve on mainnet, we calculate your virtual PnL</p>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center flex-shrink-0 text-xs font-bold">✓</div>
-            <p className="text-green-300">This lets you test copy-trading strategies with zero risk before going live!</p>
+        <CardContent>
+          <div className="grid gap-3">
+            {[
+              { num: 1, text: 'Deposit testnet BNB and follow mainnet leaders' },
+              { num: 2, text: 'Simulator monitors real mainnet bets from leaders' },
+              { num: 3, text: 'When a leader bets, we log your virtual copy trade' },
+              { num: 4, text: 'After rounds resolve, we calculate virtual PnL' },
+            ].map(({ num, text }) => (
+              <div key={num} className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center shrink-0">
+                  {num}
+                </div>
+                <p className="text-sm text-muted-foreground">{text}</p>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -223,12 +206,10 @@ export default function CopyTradingDashboard() {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [simStats, setSimStats] = useState<any>(null);
 
-  // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Fetch simulation stats
   useEffect(() => {
     const fetchSimStats = async () => {
       try {
@@ -247,28 +228,24 @@ export default function CopyTradingDashboard() {
   const isConnected = mounted && !!account.address;
   const address = account.address;
 
-  // Read vault stats
   const { data: vaultStats, refetch: refetchStats } = useReadContract({
     address: COPY_VAULT_ADDRESS,
     abi: COPY_TRADING_VAULT_ABI,
     functionName: 'getVaultStats',
   });
 
-  // Read max vault size
   const { data: maxVaultSize } = useReadContract({
     address: COPY_VAULT_ADDRESS,
     abi: COPY_TRADING_VAULT_ABI,
     functionName: 'MAX_VAULT_SIZE',
   });
 
-  // Read withdrawal delay
   const { data: withdrawalDelay } = useReadContract({
     address: COPY_VAULT_ADDRESS,
     abi: COPY_TRADING_VAULT_ABI,
     functionName: 'WITHDRAWAL_DELAY',
   });
 
-  // Read user balance
   const { data: userBalance, refetch: refetchBalance } = useReadContract({
     address: COPY_VAULT_ADDRESS,
     abi: COPY_TRADING_VAULT_ABI,
@@ -276,7 +253,6 @@ export default function CopyTradingDashboard() {
     args: address ? [address] : undefined,
   });
 
-  // Read pending withdrawal
   const { data: pendingWithdrawal, refetch: refetchPending } = useReadContract({
     address: COPY_VAULT_ADDRESS,
     abi: COPY_TRADING_VAULT_ABI,
@@ -284,7 +260,6 @@ export default function CopyTradingDashboard() {
     args: address ? [address] : undefined,
   });
 
-  // Read followed leaders (getUserFollows returns Follow[] structs)
   const { data: userFollowsData, refetch: refetchLeaders } = useReadContract({
     address: COPY_VAULT_ADDRESS,
     abi: COPY_TRADING_VAULT_ABI,
@@ -292,22 +267,18 @@ export default function CopyTradingDashboard() {
     args: address ? [address] : undefined,
   });
 
-  // Extract leader addresses from the Follow structs
   const followedLeaders = userFollowsData?.map((f: any) => f.leader) || [];
 
-  // Write functions
   const { writeContract: deposit, data: depositHash, isPending: isDepositing } = useWriteContract();
   const { writeContract: requestWithdraw, data: withdrawHash, isPending: isWithdrawing } = useWriteContract();
   const { writeContract: executeWithdraw, data: executeHash, isPending: isExecuting } = useWriteContract();
   const { writeContract: cancelWithdraw, data: cancelHash, isPending: isCancelling } = useWriteContract();
 
-  // Wait for transactions
   const { isLoading: isDepositConfirming, isSuccess: depositSuccess } = useWaitForTransactionReceipt({ hash: depositHash });
   const { isLoading: isWithdrawConfirming, isSuccess: withdrawSuccess } = useWaitForTransactionReceipt({ hash: withdrawHash });
   const { isLoading: isExecuteConfirming, isSuccess: executeSuccess } = useWaitForTransactionReceipt({ hash: executeHash });
   const { isLoading: isCancelConfirming, isSuccess: cancelSuccess } = useWaitForTransactionReceipt({ hash: cancelHash });
 
-  // Refetch on success
   useEffect(() => {
     if (depositSuccess || withdrawSuccess || executeSuccess || cancelSuccess) {
       refetchBalance();
@@ -317,7 +288,6 @@ export default function CopyTradingDashboard() {
     }
   }, [depositSuccess, withdrawSuccess, executeSuccess, cancelSuccess]);
 
-  // Parse vault data
   const tvl = vaultStats ? formatEther(vaultStats[0]) : '0';
   const totalCopyTrades = vaultStats ? Number(vaultStats[1]) : 0;
   const totalVolume = vaultStats ? formatEther(vaultStats[2]) : '0';
@@ -326,7 +296,6 @@ export default function CopyTradingDashboard() {
   const utilizationPercent = maxVaultSize && vaultStats ? (Number(formatEther(vaultStats[0])) / Number(formatEther(maxVaultSize))) * 100 : 0;
   const delayHours = withdrawalDelay ? Number(withdrawalDelay) / 3600 : 1;
 
-  // User data
   const balance = userBalance ? formatEther(userBalance) : '0';
   const pendingAmount = pendingWithdrawal ? formatEther(pendingWithdrawal[0]) : '0';
   const unlockTime = pendingWithdrawal ? Number(pendingWithdrawal[1]) : 0;
@@ -383,175 +352,134 @@ export default function CopyTradingDashboard() {
     return `${hours}h ${minutes}m remaining`;
   }
 
-  // Show nothing during SSR
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
 
-  // Check if vault is deployed
   const vaultNotDeployed = COPY_VAULT_ADDRESS === '0x0000000000000000000000000000000000000000';
 
   if (vaultNotDeployed) {
     return (
-      <div className="container mx-auto px-4 py-16 max-w-4xl">
-        <Card className="border-amber-500/20 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <AlertTriangle className="h-16 w-16 text-amber-500 mb-6" />
-            <h2 className="text-3xl font-bebas uppercase tracking-wider mb-2 text-amber-400">
-              Copy Trading Coming Soon
-            </h2>
-            <p className="text-slate-400 text-center max-w-md">
-              The Copy Trading Vault contract has not been deployed yet. Check back soon!
-            </p>
-          </CardContent>
-        </Card>
+      <div className="container py-16 max-w-lg text-center">
+        <div className="w-16 h-16 rounded-full bg-warning/10 mx-auto mb-4 flex items-center justify-center">
+          <AlertTriangle className="h-8 w-8 text-warning" />
+        </div>
+        <h1 className="text-2xl font-bold mb-2">Copy trading coming soon</h1>
+        <p className="text-muted-foreground">The vault contract has not been deployed yet.</p>
       </div>
     );
   }
 
   if (!isConnected) {
     return (
-      <div className="container mx-auto px-4 py-16 max-w-4xl">
-        <Card className="border-red-500/20 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="relative mb-6">
-              <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 via-blue-500/20 to-gold-500/20 blur-xl" />
-              <Wallet className="h-16 w-16 text-blue-500 relative" />
-            </div>
-            <h2 className="text-3xl font-bebas uppercase tracking-wider mb-2 bg-gradient-to-r from-red-500 via-blue-500 to-amber-500 bg-clip-text text-transparent">
-              Connect Your Wallet
-            </h2>
-            <p className="text-slate-400 text-center">
-              Connect your wallet to access copy trading
-            </p>
-          </CardContent>
-        </Card>
+      <div className="container py-16 max-w-lg text-center">
+        <div className="w-16 h-16 rounded-full bg-primary/10 mx-auto mb-4 flex items-center justify-center">
+          <Wallet className="h-8 w-8 text-primary" />
+        </div>
+        <h1 className="text-2xl font-bold mb-2">Connect your wallet</h1>
+        <p className="text-muted-foreground">Connect your wallet to access copy trading.</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="mb-8">
-        <h1 className="text-5xl font-bebas uppercase tracking-wider mb-2 bg-gradient-to-r from-red-500 via-blue-500 to-amber-500 bg-clip-text text-transparent">
-          Copy Trading Vault
-        </h1>
-        <p className="text-slate-400">
-          Deposit BNB and automatically copy trades from top prediction traders
-        </p>
+    <div className="container py-6 max-w-5xl">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1">Copy trading</h1>
+        <p className="text-sm text-muted-foreground">Deposit BNB and automatically copy trades from top performers</p>
       </div>
 
-      {/* Transparency Banner */}
-      <Alert className="mb-6 border-blue-500/50 bg-blue-500/10">
-        <Shield className="h-4 w-4 text-blue-500" />
-        <AlertDescription className="text-blue-200">
-          <span className="font-semibold">Transparent & Secure:</span> All trades are executed by a public executor address. Withdrawals have a {delayHours}-hour time lock for security.
+      {/* Info Banner */}
+      <Alert className="mb-6 border-primary/30 bg-primary/5">
+        <Shield className="h-4 w-4 text-primary" />
+        <AlertDescription>
+          <span className="font-medium">Secure:</span> {delayHours}-hour withdrawal lock. All trades executed by verified executor.
           {executorAddress && (
             <a
               href={`https://bscscan.com/address/${executorAddress}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-2 inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
+              className="ml-1 inline-flex items-center gap-0.5 text-primary hover:underline"
             >
-              View Executor <ExternalLink className="h-3 w-3" />
+              View <ExternalLink className="h-3 w-3" />
             </a>
           )}
         </AlertDescription>
       </Alert>
 
-      {/* Vault Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <Card className="border-blue-500/20 bg-gradient-to-br from-blue-950/50 to-slate-950/50">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">
-                Total Value Locked
-              </CardTitle>
-              <Lock className="h-5 w-5 text-blue-500" />
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <Card className="border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">TVL</span>
+              <Lock className="h-4 w-4 text-primary" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-teko text-blue-400">{Number(tvl).toFixed(2)} BNB</div>
-            <Progress value={utilizationPercent} className="h-1.5 mt-2 bg-slate-800 [&>div]:bg-blue-500" />
-            <p className="text-xs text-slate-500 mt-1">{utilizationPercent.toFixed(1)}% of {maxSize} BNB cap</p>
+            <p className="text-xl font-bold">{Number(tvl).toFixed(2)} <span className="text-sm font-normal text-muted-foreground">BNB</span></p>
+            <Progress value={utilizationPercent} className="h-1 mt-2" />
+            <p className="text-xs text-muted-foreground mt-1">{utilizationPercent.toFixed(0)}% of {maxSize} cap</p>
           </CardContent>
         </Card>
 
-        <Card className="border-amber-500/20 bg-gradient-to-br from-amber-950/50 to-slate-950/50">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">
-                Simulated Trades
-              </CardTitle>
-              <TrendingUp className="h-5 w-5 text-amber-500" />
+        <Card className="border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">Simulated</span>
+              <TrendingUp className="h-4 w-4 text-secondary" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-teko text-amber-400">{simStats?.overall?.totalTrades || 0}</div>
-            <p className="text-xs text-slate-500 mt-1">
-              {simStats?.overall?.overallWinRate || 'N/A'} win rate
+            <p className="text-xl font-bold">{simStats?.overall?.totalTrades || 0}</p>
+            <p className="text-xs text-muted-foreground mt-1">{simStats?.overall?.overallWinRate || 'N/A'} win rate</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">Your balance</span>
+              <Wallet className="h-4 w-4 text-success" />
+            </div>
+            <p className="text-xl font-bold">{Number(balance).toFixed(4)} <span className="text-sm font-normal text-muted-foreground">BNB</span></p>
+            <p className={`text-xs mt-1 ${parseFloat(simStats?.overall?.totalPnlBNB || '0') >= 0 ? 'text-success' : 'text-destructive'}`}>
+              {parseFloat(simStats?.overall?.totalPnlBNB || '0') >= 0 ? '+' : ''}{parseFloat(simStats?.overall?.totalPnlBNB || '0').toFixed(4)} virtual PnL
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-green-500/20 bg-gradient-to-br from-green-950/50 to-slate-950/50">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">
-                Virtual PnL
-              </CardTitle>
-              <TrendingUp className="h-5 w-5 text-green-500" />
+        <Card className="border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">Following</span>
+              <Users className="h-4 w-4 text-primary" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-4xl font-teko ${parseFloat(simStats?.overall?.totalPnlBNB || '0') >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {parseFloat(simStats?.overall?.totalPnlBNB || '0') >= 0 ? '+' : ''}{parseFloat(simStats?.overall?.totalPnlBNB || '0').toFixed(4)} BNB
-            </div>
-            <p className="text-xs text-slate-500 mt-1">Balance: {Number(balance).toFixed(4)} BNB</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-blue-500/20 bg-gradient-to-br from-blue-950/50 to-slate-950/50">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">
-                Following
-              </CardTitle>
-              <Users className="h-5 w-5 text-blue-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-teko text-blue-400">{leadersCount}</div>
-            <p className="text-xs text-slate-500 mt-1">Leaders</p>
+            <p className="text-xl font-bold">{leadersCount}</p>
+            <p className="text-xs text-muted-foreground mt-1">leaders</p>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="deposit" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="deposit">Deposit & Withdraw</TabsTrigger>
-          <TabsTrigger value="leaders">Follow Leaders</TabsTrigger>
-          <TabsTrigger value="simulation">Simulation</TabsTrigger>
-          <TabsTrigger value="transparency">Transparency</TabsTrigger>
+      {/* Tabs */}
+      <Tabs defaultValue="deposit" className="space-y-4">
+        <TabsList className="w-full justify-start bg-surface/50 h-10">
+          <TabsTrigger value="deposit" className="text-sm">Deposit & withdraw</TabsTrigger>
+          <TabsTrigger value="leaders" className="text-sm">Follow leaders</TabsTrigger>
+          <TabsTrigger value="simulation" className="text-sm">Simulation</TabsTrigger>
+          <TabsTrigger value="transparency" className="text-sm">Security</TabsTrigger>
         </TabsList>
 
         {/* Deposit/Withdraw Tab */}
-        <TabsContent value="deposit" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Deposit Card */}
-            <Card className="border-blue-500/20 bg-gradient-to-br from-slate-950/90 to-slate-900/90">
-              <CardHeader>
-                <CardTitle className="text-xl font-bebas uppercase tracking-wider text-slate-200 flex items-center gap-2">
-                  <Plus className="h-5 w-5 text-blue-500" />
-                  Deposit BNB
+        <TabsContent value="deposit" className="mt-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Deposit */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Plus className="h-4 w-4 text-primary" />
+                  Deposit
                 </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Add funds to your copy trading balance
-                </CardDescription>
+                <CardDescription>Add funds to your copy trading balance</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="deposit" className="text-slate-400">Amount (BNB)</Label>
+                  <Label htmlFor="deposit" className="text-sm">Amount (BNB)</Label>
                   <Input
                     id="deposit"
                     type="number"
@@ -560,14 +488,14 @@ export default function CopyTradingDashboard() {
                     placeholder="0.1"
                     value={depositAmount}
                     onChange={(e) => setDepositAmount(e.target.value)}
-                    className="bg-slate-900 border-slate-700 text-slate-200"
+                    className="mt-1.5"
                   />
-                  <p className="text-xs text-slate-500 mt-1">Minimum: 0.01 BNB</p>
+                  <p className="text-xs text-muted-foreground mt-1">Minimum: 0.01 BNB</p>
                 </div>
                 <Button
                   onClick={handleDeposit}
                   disabled={isDepositing || isDepositConfirming || !depositAmount}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600"
+                  className="w-full"
                 >
                   {isDepositing || isDepositConfirming ? (
                     <Activity className="h-4 w-4 animate-spin mr-2" />
@@ -579,32 +507,31 @@ export default function CopyTradingDashboard() {
               </CardContent>
             </Card>
 
-            {/* Withdraw Card */}
-            <Card className="border-amber-500/20 bg-gradient-to-br from-slate-950/90 to-slate-900/90">
-              <CardHeader>
-                <CardTitle className="text-xl font-bebas uppercase tracking-wider text-slate-200 flex items-center gap-2">
-                  <Minus className="h-5 w-5 text-amber-500" />
-                  Withdraw BNB
+            {/* Withdraw */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Minus className="h-4 w-4 text-warning" />
+                  Withdraw
                 </CardTitle>
-                <CardDescription className="text-slate-400">
-                  {delayHours}-hour time lock for security
-                </CardDescription>
+                <CardDescription>{delayHours}-hour time lock for security</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {hasPendingWithdrawal ? (
-                  <div className="space-y-4">
-                    <Alert className="border-amber-500/50 bg-amber-500/10">
-                      <Clock className="h-4 w-4 text-amber-500" />
-                      <AlertDescription className="text-amber-200">
-                        <div className="font-semibold">{pendingAmount} BNB pending</div>
-                        <div className="text-sm">{formatTimeRemaining(unlockTime)}</div>
+                  <>
+                    <Alert className="border-warning/30 bg-warning/5">
+                      <Clock className="h-4 w-4 text-warning" />
+                      <AlertDescription>
+                        <span className="font-medium">{pendingAmount} BNB</span> pending
+                        <br />
+                        <span className="text-sm">{formatTimeRemaining(unlockTime)}</span>
                       </AlertDescription>
                     </Alert>
                     <div className="flex gap-2">
                       <Button
                         onClick={handleExecuteWithdraw}
                         disabled={!canExecuteWithdrawal || isExecuting || isExecuteConfirming}
-                        className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600"
+                        className="flex-1"
                       >
                         {isExecuting || isExecuteConfirming ? (
                           <Activity className="h-4 w-4 animate-spin mr-2" />
@@ -617,7 +544,6 @@ export default function CopyTradingDashboard() {
                         onClick={handleCancelWithdraw}
                         disabled={isCancelling || isCancelConfirming}
                         variant="outline"
-                        className="border-slate-600 text-slate-300 hover:bg-slate-800"
                       >
                         {isCancelling || isCancelConfirming ? (
                           <Activity className="h-4 w-4 animate-spin" />
@@ -626,11 +552,11 @@ export default function CopyTradingDashboard() {
                         )}
                       </Button>
                     </div>
-                  </div>
+                  </>
                 ) : (
                   <>
                     <div>
-                      <Label htmlFor="withdraw" className="text-slate-400">Amount (BNB)</Label>
+                      <Label htmlFor="withdraw" className="text-sm">Amount (BNB)</Label>
                       <Input
                         id="withdraw"
                         type="number"
@@ -640,21 +566,22 @@ export default function CopyTradingDashboard() {
                         placeholder="0.1"
                         value={withdrawAmount}
                         onChange={(e) => setWithdrawAmount(e.target.value)}
-                        className="bg-slate-900 border-slate-700 text-slate-200"
+                        className="mt-1.5"
                       />
-                      <p className="text-xs text-slate-500 mt-1">Available: {balance} BNB</p>
+                      <p className="text-xs text-muted-foreground mt-1">Available: {balance} BNB</p>
                     </div>
                     <Button
                       onClick={handleRequestWithdraw}
                       disabled={isWithdrawing || isWithdrawConfirming || !withdrawAmount || Number(withdrawAmount) > Number(balance)}
-                      className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600"
+                      variant="secondary"
+                      className="w-full"
                     >
                       {isWithdrawing || isWithdrawConfirming ? (
                         <Activity className="h-4 w-4 animate-spin mr-2" />
                       ) : (
                         <Clock className="h-4 w-4 mr-2" />
                       )}
-                      {isWithdrawing ? 'Confirming...' : isWithdrawConfirming ? 'Processing...' : 'Request Withdrawal'}
+                      {isWithdrawing ? 'Confirming...' : isWithdrawConfirming ? 'Processing...' : 'Request withdrawal'}
                     </Button>
                   </>
                 )}
@@ -663,61 +590,48 @@ export default function CopyTradingDashboard() {
           </div>
         </TabsContent>
 
-        {/* Follow Leaders Tab */}
-        <TabsContent value="leaders" className="space-y-4">
-          <Card className="border-blue-500/20 bg-gradient-to-br from-slate-950/90 to-slate-900/90">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bebas uppercase tracking-wider bg-gradient-to-r from-red-500 via-blue-500 to-amber-500 bg-clip-text text-transparent">
-                Follow Top Traders
-              </CardTitle>
-              <CardDescription className="text-slate-400">
-                Select traders from the leaderboard to automatically copy their bets
-              </CardDescription>
+        {/* Leaders Tab */}
+        <TabsContent value="leaders" className="mt-4">
+          <Card className="border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Follow top traders</CardTitle>
+              <CardDescription>Select traders from the leaderboard to copy their bets</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent>
               {leadersCount === 0 ? (
                 <div className="text-center py-8">
-                  <div className="relative mb-6 inline-block">
-                    <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 via-blue-500/20 to-amber-500/20 blur-xl" />
-                    <Users className="h-16 w-16 text-blue-500 relative" />
+                  <div className="w-12 h-12 rounded-full bg-primary/10 mx-auto mb-3 flex items-center justify-center">
+                    <Users className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-2xl font-bebas uppercase tracking-wider mb-2 text-slate-200">
-                    No Leaders Followed
-                  </h3>
-                  <p className="text-slate-400 mb-6">
-                    Browse the leaderboard to find top traders to copy
-                  </p>
+                  <p className="font-medium mb-1">No leaders followed</p>
+                  <p className="text-sm text-muted-foreground mb-4">Browse the leaderboard to find top traders</p>
                   <Link href="/leaderboard">
-                    <Button className="bg-gradient-to-r from-red-600 to-blue-600 hover:from-red-500 hover:to-blue-500">
+                    <Button>
                       <Eye className="h-4 w-4 mr-2" />
-                      Browse Leaderboard
+                      Browse leaderboard
                     </Button>
                   </Link>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <p className="text-slate-400">
-                    You are following {leadersCount} trader{leadersCount !== 1 ? 's' : ''}
-                  </p>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground mb-3">Following {leadersCount} trader{leadersCount !== 1 ? 's' : ''}</p>
                   {followedLeaders?.map((leader: string) => (
                     <div
                       key={leader}
-                      className="flex items-center justify-between p-4 border border-slate-800 rounded-lg bg-gradient-to-r from-slate-900/50 to-slate-950/50"
+                      className="flex items-center justify-between p-3 rounded-lg bg-surface hover:bg-surface-raised transition-colors"
                     >
                       <div>
-                        <p className="font-mono text-slate-200">{shortenAddress(leader)}</p>
+                        <p className="font-mono text-sm">{shortenAddress(leader)}</p>
                         <a
                           href={`https://bscscan.com/address/${leader}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-blue-400 hover:text-blue-300 inline-flex items-center gap-1"
+                          className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
                         >
-                          View on BSCScan <ExternalLink className="h-3 w-3" />
+                          BSCScan <ExternalLink className="h-3 w-3" />
                         </a>
                       </div>
-                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">
-                        Following
-                      </Badge>
+                      <Badge variant="outline" className="text-xs">Following</Badge>
                     </div>
                   ))}
                 </div>
@@ -727,116 +641,91 @@ export default function CopyTradingDashboard() {
         </TabsContent>
 
         {/* Simulation Tab */}
-        <TabsContent value="simulation" className="space-y-4">
+        <TabsContent value="simulation" className="mt-4">
           <SimulationTab followerAddress={address} />
         </TabsContent>
 
         {/* Transparency Tab */}
-        <TabsContent value="transparency" className="space-y-4">
-          <Card className="border-blue-500/20 bg-gradient-to-br from-slate-950/90 to-slate-900/90">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bebas uppercase tracking-wider bg-gradient-to-r from-red-500 via-blue-500 to-amber-500 bg-clip-text text-transparent">
-                Vault Transparency
-              </CardTitle>
-              <CardDescription className="text-slate-400">
-                Full visibility into the copy trading system
-              </CardDescription>
+        <TabsContent value="transparency" className="mt-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Security features</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[
+                  { icon: Clock, title: 'Time-locked withdrawals', desc: `${delayHours}-hour delay prevents attacks` },
+                  { icon: Lock, title: 'Vault size cap', desc: `Maximum ${maxSize} BNB limit` },
+                  { icon: Users, title: 'Allocation limits', desc: 'Max 50% per leader' },
+                ].map(({ icon: Icon, title, desc }) => (
+                  <div key={title} className="flex items-start gap-3 p-3 rounded-lg bg-surface">
+                    <Icon className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">{title}</p>
+                      <p className="text-xs text-muted-foreground">{desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Contract addresses</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="p-3 rounded-lg bg-surface">
+                  <p className="text-xs text-muted-foreground mb-1">Vault contract</p>
+                  <div className="flex items-center gap-2">
+                    <code className="text-xs font-mono">{shortenAddress(COPY_VAULT_ADDRESS)}</code>
+                    <a
+                      href={`https://bscscan.com/address/${COPY_VAULT_ADDRESS}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:text-primary/80"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                </div>
+                {executorAddress && (
+                  <div className="p-3 rounded-lg bg-surface">
+                    <p className="text-xs text-muted-foreground mb-1">Executor address</p>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs font-mono">{shortenAddress(executorAddress)}</code>
+                      <a
+                        href={`https://bscscan.com/address/${executorAddress}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:text-primary/80"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Executes copy trades on your behalf</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="border-border/50 mt-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Vault statistics</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bebas uppercase tracking-wider text-slate-200">
-                    Security Features
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-900/50 border border-slate-800">
-                      <Shield className="h-5 w-5 text-blue-500 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-slate-200">Time-Locked Withdrawals</p>
-                        <p className="text-sm text-slate-400">{delayHours}-hour delay prevents flash loan attacks</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-900/50 border border-slate-800">
-                      <Lock className="h-5 w-5 text-amber-500 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-slate-200">Vault Size Cap</p>
-                        <p className="text-sm text-slate-400">Maximum {maxSize} BNB to limit risk</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-900/50 border border-slate-800">
-                      <Users className="h-5 w-5 text-red-500 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-slate-200">Max 50% Allocation</p>
-                        <p className="text-sm text-slate-400">Per-leader allocation capped at 50%</p>
-                      </div>
-                    </div>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: 'TVL (BNB)', value: Number(tvl).toFixed(2) },
+                  { label: 'Copy trades', value: totalCopyTrades },
+                  { label: 'Volume (BNB)', value: Number(totalVolume).toFixed(2) },
+                  { label: 'Utilization', value: `${utilizationPercent.toFixed(1)}%` },
+                ].map(({ label, value }) => (
+                  <div key={label} className="p-3 rounded-lg bg-surface text-center">
+                    <p className="text-lg font-bold">{value}</p>
+                    <p className="text-xs text-muted-foreground">{label}</p>
                   </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bebas uppercase tracking-wider text-slate-200">
-                    Contract Addresses
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="p-3 rounded-lg bg-slate-900/50 border border-slate-800">
-                      <p className="text-sm text-slate-400 mb-1">Vault Contract</p>
-                      <div className="flex items-center gap-2">
-                        <code className="text-xs text-slate-300 font-mono">{shortenAddress(COPY_VAULT_ADDRESS)}</code>
-                        <a
-                          href={`https://bscscan.com/address/${COPY_VAULT_ADDRESS}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:text-blue-300"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </div>
-                    </div>
-                    {executorAddress && (
-                      <div className="p-3 rounded-lg bg-slate-900/50 border border-slate-800">
-                        <p className="text-sm text-slate-400 mb-1">Executor Address</p>
-                        <div className="flex items-center gap-2">
-                          <code className="text-xs text-slate-300 font-mono">{shortenAddress(executorAddress)}</code>
-                          <a
-                            href={`https://bscscan.com/address/${executorAddress}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-1">This address executes copy trades on your behalf</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <Separator className="bg-slate-800" />
-
-              <div>
-                <h3 className="text-lg font-bebas uppercase tracking-wider text-slate-200 mb-4">
-                  Vault Statistics
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-3 rounded-lg bg-slate-900/50 border border-slate-800 text-center">
-                    <p className="text-2xl font-teko text-blue-400">{Number(tvl).toFixed(2)}</p>
-                    <p className="text-xs text-slate-500">TVL (BNB)</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-900/50 border border-slate-800 text-center">
-                    <p className="text-2xl font-teko text-amber-400">{totalCopyTrades}</p>
-                    <p className="text-xs text-slate-500">Copy Trades</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-900/50 border border-slate-800 text-center">
-                    <p className="text-2xl font-teko text-red-400">{Number(totalVolume).toFixed(2)}</p>
-                    <p className="text-xs text-slate-500">Volume (BNB)</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-900/50 border border-slate-800 text-center">
-                    <p className="text-2xl font-teko text-blue-400">{utilizationPercent.toFixed(1)}%</p>
-                    <p className="text-xs text-slate-500">Utilization</p>
-                  </div>
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>

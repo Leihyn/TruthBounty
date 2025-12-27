@@ -19,10 +19,10 @@ interface TruthScoreCardProps {
 
 const TIER_THRESHOLDS = {
   [ReputationTier.BRONZE]: 0,
-  [ReputationTier.SILVER]: 500,
-  [ReputationTier.GOLD]: 1000,
-  [ReputationTier.PLATINUM]: 2000,
-  [ReputationTier.DIAMOND]: 5000,
+  [ReputationTier.SILVER]: 200,
+  [ReputationTier.GOLD]: 400,
+  [ReputationTier.PLATINUM]: 650,
+  [ReputationTier.DIAMOND]: 900,
 };
 
 const TIER_GRADIENTS = {

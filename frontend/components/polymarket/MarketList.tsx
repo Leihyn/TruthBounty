@@ -3,17 +3,16 @@
 import { useState, useEffect } from 'react';
 import { MarketCard } from './MarketCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SimpleEmptyState } from '@/components/SimpleEmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   PolymarketMarket,
   fetchTrendingMarkets,
   fetchActiveMarkets,
   searchPolymarkets,
 } from '@/lib/polymarket';
-import { Search, TrendingUp, Activity, RefreshCw } from 'lucide-react';
+import { Search, TrendingUp, Activity, RefreshCw, BarChart3 } from 'lucide-react';
 
 interface MarketListProps {
   onSelectMarket?: (market: PolymarketMarket) => void;
@@ -54,7 +53,7 @@ export function MarketList({
       setMarkets(data);
     } catch (err) {
       console.error('Error loading markets:', err);
-      setError('Failed to load markets. Please try again.');
+      setError('Failed to load markets');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -70,15 +69,11 @@ export function MarketList({
     loadMarkets();
   };
 
-  const handleRefresh = () => {
-    loadMarkets(true);
-  };
-
   if (loading && !refreshing) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {[...Array(6)].map((_, i) => (
-          <Skeleton key={i} className="h-64 w-full rounded-lg" />
+          <Skeleton key={i} className="h-48 rounded-xl" />
         ))}
       </div>
     );
@@ -86,79 +81,96 @@ export function MarketList({
 
   if (error) {
     return (
-      <SimpleEmptyState
-        title="Failed to load markets"
-        description={error}
-        action={
-          <Button onClick={handleRefresh}>
+      <Card className="border-border/50">
+        <CardContent className="py-12 text-center">
+          <BarChart3 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button variant="outline" size="sm" onClick={() => loadMarkets(true)}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Try Again
           </Button>
-        }
-      />
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header with Search and Refresh */}
-      <div className="flex flex-col sm:flex-row gap-4">
+    <div className="space-y-4">
+      {/* Filters Row */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Toggle Buttons */}
+        {!searchQuery && (
+          <div className="flex rounded-lg border border-border/50 p-0.5 bg-muted/20">
+            <button
+              onClick={() => setActiveTab('trending')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'trending'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-white/5'
+              }`}
+            >
+              <TrendingUp className="w-3 h-3" />
+              Trending
+            </button>
+            <button
+              onClick={() => setActiveTab('active')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'active'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-white/5'
+              }`}
+            >
+              <Activity className="w-3 h-3" />
+              Active
+            </button>
+          </div>
+        )}
+
+        {/* Search */}
         {showSearch && (
-          <form onSubmit={handleSearch} className="flex-1 flex gap-2">
-            <Input
-              type="text"
-              placeholder="Search markets..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="submit" variant="outline">
-              <Search className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Search</span>
-            </Button>
+          <form onSubmit={handleSearch} className="flex-1 flex gap-2 min-w-[180px]">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search markets..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+            {searchQuery && (
+              <Button type="submit" size="sm" className="h-8 text-xs">
+                Search
+              </Button>
+            )}
           </form>
         )}
+
+        {/* Refresh */}
         <Button
-          onClick={handleRefresh}
+          onClick={() => loadMarkets(true)}
           disabled={refreshing}
           variant="outline"
-          className="w-full sm:w-auto"
+          size="icon"
+          className="h-8 w-8"
         >
-          <RefreshCw className={`w-4 h-4 sm:mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">
-            {refreshing ? 'Refreshing...' : 'Refresh'}
-          </span>
+          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
         </Button>
       </div>
 
-      {/* Tabs */}
-      {!searchQuery && (
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'trending' | 'active')}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="trending" className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              Trending
-            </TabsTrigger>
-            <TabsTrigger value="active" className="flex items-center gap-2">
-              <Activity className="w-4 h-4" />
-              Active
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      )}
-
       {/* Market Cards */}
       {markets.length === 0 ? (
-        <SimpleEmptyState
-          title="No markets found"
-          description={
-            searchQuery
-              ? 'Try a different search term'
-              : 'No markets available at the moment'
-          }
-        />
+        <Card className="border-border/50">
+          <CardContent className="py-12 text-center">
+            <BarChart3 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
+            <p className="text-muted-foreground text-sm">
+              {searchQuery ? 'No markets match your search' : 'No markets available'}
+            </p>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {markets.map((market) => (
             <MarketCard
               key={market.id}

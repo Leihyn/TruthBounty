@@ -2,19 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Select,
   SelectContent,
@@ -22,54 +15,78 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TIER_NAMES, TIER_COLORS } from '@/lib/contracts';
+import { TIER_NAMES, TIER_COLORS, ReputationTier, TIER_THRESHOLDS } from '@/lib/contracts';
 import {
   Trophy,
   Medal,
-  Award,
   Search,
   Copy,
   Check,
-  ExternalLink,
   TrendingUp,
-  Target,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  Users,
+  ExternalLink,
+  Crown,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UserDetailModal } from '@/components/UserDetailModal';
 import { CopyTradeButton } from '@/components/CopyTradeButton';
 import { formatEther } from 'viem';
 
-interface PlatformBreakdown {
-  platform: string;
-  bets: number;
-  winRate: number;
-  score: number;
-  volume?: string;
-}
-
 interface LeaderboardEntry {
   rank: number;
   address: string;
   truthScore: number;
+  rawScore: number;  // Original platform score
+  normalizedScore: number;  // Percentile-normalized score (0-1300)
+  percentileRank: number;  // Percentile within platform (0-100)
   tier: number;
   winRate: number;
   totalPredictions: number;
-  totalBets?: number;  // Multi-platform support
+  totalBets?: number;
   wins?: number;
-  losses?: number;
   correctPredictions: number;
   totalVolume: string;
   nftTokenId: number;
-  lastUpdated: number;
-  platforms?: string[];  // Multi-platform support
-  platformBreakdown?: PlatformBreakdown[];  // Multi-platform support
-  bets?: any[];  // Detailed bet history
+  platforms?: string[];
+  username?: string;
+}
+
+// Calculate percentile-normalized score
+// Top 1% = 1300, Top 10% = 1100, Top 25% = 900, etc.
+function normalizeByPercentile(percentile: number): number {
+  // percentile is 0-100 where 100 = best
+  // Map to 0-1300 with curve favoring top performers
+  if (percentile >= 99) return 1300;
+  if (percentile >= 95) return 1200 + (percentile - 95) * 20;
+  if (percentile >= 90) return 1100 + (percentile - 90) * 20;
+  if (percentile >= 75) return 900 + (percentile - 75) * 13.3;
+  if (percentile >= 50) return 650 + (percentile - 50) * 10;
+  if (percentile >= 25) return 400 + (percentile - 25) * 10;
+  if (percentile >= 10) return 200 + (percentile - 10) * 13.3;
+  return percentile * 20;
 }
 
 const ITEMS_PER_PAGE = 20;
+
+function getTierFromScore(score: number): ReputationTier {
+  if (score >= TIER_THRESHOLDS[ReputationTier.DIAMOND]) return ReputationTier.DIAMOND;
+  if (score >= TIER_THRESHOLDS[ReputationTier.PLATINUM]) return ReputationTier.PLATINUM;
+  if (score >= TIER_THRESHOLDS[ReputationTier.GOLD]) return ReputationTier.GOLD;
+  if (score >= TIER_THRESHOLDS[ReputationTier.SILVER]) return ReputationTier.SILVER;
+  return ReputationTier.BRONZE;
+}
+
+const TIER_FILTER_MAP: Record<string, ReputationTier | null> = {
+  all: null,
+  diamond: ReputationTier.DIAMOND,
+  platinum: ReputationTier.PLATINUM,
+  gold: ReputationTier.GOLD,
+  silver: ReputationTier.SILVER,
+  bronze: ReputationTier.BRONZE,
+};
 
 export default function LeaderboardPage() {
   const router = useRouter();
@@ -77,53 +94,90 @@ export default function LeaderboardPage() {
 
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Filters
   const [sortBy, setSortBy] = useState('score');
   const [tierFilter, setTierFilter] = useState('all');
   const [platformFilter, setPlatformFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-
-  // UI State
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
-  const [cacheInfo, setCacheInfo] = useState<{ cached: boolean; age?: number } | null>(null);
   const [selectedUser, setSelectedUser] = useState<LeaderboardEntry | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [dataSource, setDataSource] = useState<string | null>(null);
 
-  // Fetch leaderboard data
   const fetchLeaderboard = async () => {
     setIsLoading(true);
-    setError(null);
-
     try {
-      const params = new URLSearchParams({
-        sortBy,
-        tier: tierFilter,
-        search: searchQuery,
-        platform: platformFilter,  // Pass platform filter to API
+      // Fetch both PancakeSwap and Polymarket data in parallel
+      const [pancakeRes, polyRes] = await Promise.all([
+        fetch(`/api/leaderboard-db?sortBy=${sortBy}&search=${searchQuery}&limit=100`),
+        fetch(`/api/leaderboard-db?platform=Polymarket&limit=100`),
+      ]);
+
+      const [pancakeResult, polyResult] = await Promise.all([
+        pancakeRes.json(),
+        polyRes.json(),
+      ]);
+
+      // Process PancakeSwap data with percentile ranking
+      const pancakeData = (pancakeResult.data || [])
+        .map((entry: any) => ({
+          ...entry,
+          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
+          rawScore: entry.truthScore,
+        }))
+        .sort((a: any, b: any) => b.rawScore - a.rawScore);
+
+      // Calculate percentile for each PancakeSwap trader
+      const pancakeCount = pancakeData.length;
+      const pancakeWithPercentile = pancakeData.map((entry: any, index: number) => {
+        const percentile = pancakeCount > 1
+          ? ((pancakeCount - index - 1) / (pancakeCount - 1)) * 100
+          : 100;
+        return {
+          ...entry,
+          percentileRank: percentile,
+          normalizedScore: Math.round(normalizeByPercentile(percentile)),
+        };
       });
 
-      // Fetch leaderboard with platform filter
-      const response = await fetch(`/api/leaderboard-db?${params}`);
-      const result = await response.json();
+      // Process Polymarket data with percentile ranking
+      const polyData = (polyResult.data || [])
+        .map((entry: any) => ({
+          ...entry,
+          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
+          rawScore: entry.truthScore,
+        }))
+        .sort((a: any, b: any) => b.rawScore - a.rawScore);
 
-      if (result.error) {
-        setError(result.error);
-      }
-
-      setLeaderboardData(result.data || []);
-      setCacheInfo({
-        cached: result.cached,
-        age: result.cacheAge,
+      // Calculate percentile for each Polymarket trader
+      const polyCount = polyData.length;
+      const polyWithPercentile = polyData.map((entry: any, index: number) => {
+        const percentile = polyCount > 1
+          ? ((polyCount - index - 1) / (polyCount - 1)) * 100
+          : 100;
+        return {
+          ...entry,
+          percentileRank: percentile,
+          normalizedScore: Math.round(normalizeByPercentile(percentile)),
+        };
       });
-      setDataSource(result.source || null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch leaderboard');
+
+      // Combine both datasets
+      const allData = [...pancakeWithPercentile, ...polyWithPercentile];
+
+      // Sort by normalized score for global ranking
+      allData.sort((a, b) => b.normalizedScore - a.normalizedScore);
+
+      // Add global rank and tier based on normalized score
+      const dataWithTiers = allData.map((entry: any, index: number) => ({
+        ...entry,
+        rank: index + 1,
+        truthScore: entry.normalizedScore, // Use normalized for display in global view
+        tier: getTierFromScore(entry.normalizedScore),
+      }));
+
+      setLeaderboardData(dataWithTiers);
+    } catch (err) {
+      console.error('Leaderboard fetch error:', err);
       setLeaderboardData([]);
     } finally {
       setIsLoading(false);
@@ -132,409 +186,422 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     fetchLeaderboard();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy, tierFilter, platformFilter, searchQuery]);
+  }, [sortBy, searchQuery]);
 
-  // Available platforms - hardcoded since they're separate leaderboards
-  const availablePlatforms = [
-    'PancakeSwap Prediction',
-    'Polymarket',
-  ];
+  // When filtering by platform, use raw scores and re-rank within platform
+  const filteredData = (() => {
+    let data = leaderboardData;
 
-  // Data is already filtered by API based on platform parameter
-  const platformFilteredData = leaderboardData;
+    // Platform filter
+    if (platformFilter !== 'all') {
+      data = data.filter(entry => {
+        const platforms = entry.platforms || [];
+        if (platformFilter === 'polymarket') return platforms.includes('Polymarket');
+        if (platformFilter === 'pancakeswap') return platforms.includes('PancakeSwap Prediction');
+        return true;
+      });
 
-  const handleCopyAddress = (address: string) => {
+      // When filtering by platform, use raw scores and re-rank
+      data = data
+        .map(entry => ({
+          ...entry,
+          truthScore: entry.rawScore, // Show raw platform score
+          tier: getTierFromScore(entry.rawScore),
+        }))
+        .sort((a, b) => b.truthScore - a.truthScore)
+        .map((entry, index) => ({
+          ...entry,
+          rank: index + 1,
+        }));
+    }
+
+    // Tier filter (applied after platform filter)
+    if (tierFilter !== 'all') {
+      data = data.filter(entry => entry.tier === TIER_FILTER_MAP[tierFilter]);
+    }
+
+    return data;
+  })();
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [tierFilter, platformFilter]);
+
+  const handleCopyAddress = (address: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     navigator.clipboard.writeText(address);
     setCopiedAddress(address);
-    toast({
-      title: 'Address copied!',
-      description: 'Address copied to clipboard',
-    });
+    toast({ title: 'Copied', description: 'Address copied to clipboard' });
     setTimeout(() => setCopiedAddress(null), 2000);
   };
 
-  const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Trophy className="w-5 h-5 text-yellow-500" />;
-    if (rank === 2) return <Medal className="w-5 h-5 text-gray-400" />;
-    if (rank === 3) return <Medal className="w-5 h-5 text-orange-600" />;
-    return null;
+  const shortenAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+
+  const formatVolume = (vol: string) => {
+    try {
+      const v = Number(formatEther(BigInt(vol)));
+      return v > 1000 ? `${(v/1000).toFixed(1)}K` : v.toFixed(1);
+    } catch { return '0'; }
   };
 
-  // Get platform-specific data for an entry
-  const getPlatformData = (entry: LeaderboardEntry) => {
-    if (platformFilter === 'all' || !entry.platformBreakdown) {
-      return null;
-    }
-    return entry.platformBreakdown.find((p) => p.platform === platformFilter);
-  };
+  // Separate top 3 and rest
+  const top3 = filteredData.slice(0, 3);
+  const restData = filteredData.slice(3);
 
-  // Platform chain mapping
-  const PLATFORM_CHAINS: Record<string, string> = {
-    'PancakeSwap Prediction': 'BSC (BNB)',
-    'Polymarket': 'Polygon (USDC)',
-    'Azuro Protocol': 'Polygon (USDC)',
-    'Thales': 'Optimism (sUSD)',
-  };
-
-  // Pagination (use filtered data)
-  const totalPages = Math.ceil(platformFilteredData.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(restData.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentPageData = platformFilteredData.slice(startIndex, endIndex);
+  const currentPageData = restData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  const goToPage = (page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-  };
 
   return (
-    <div className="container px-4 py-6 md:py-12 space-y-6 md:space-y-8">
+    <div className="container px-4 sm:px-6 py-6 max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="text-center space-y-4">
-        <div className="flex justify-center">
-          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 shadow-2xl flex items-center justify-center shadow-yellow-500/50">
-            <Trophy className="w-8 h-8 md:w-10 md:h-10 text-white" />
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            {platformFilter === 'all' ? 'Global Leaderboard' :
+             platformFilter === 'polymarket' ? 'Polymarket Leaderboard' : 'PancakeSwap Leaderboard'}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {platformFilter === 'all'
+              ? 'Cross-platform ranking by percentile-normalized TruthScore'
+              : `Platform ranking by raw TruthScore`}
+          </p>
+        </div>
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <span className="font-semibold">{filteredData.length}</span>
+            <span className="text-muted-foreground hidden sm:inline">traders</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-secondary" />
+            <span className="font-semibold text-secondary">{filteredData[0]?.truthScore || 0}</span>
+            <span className="text-muted-foreground hidden sm:inline">top score</span>
           </div>
         </div>
-        <h1 className="text-3xl md:text-4xl lg:text-5xl font-black">Global Leaderboard</h1>
-        <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto px-4">
-          Top predictors ranked by TruthScore and performance
-        </p>
-        {cacheInfo?.cached && (
-          <Badge variant="outline" className="text-xs">
-            Cached data ({cacheInfo.age}s old) • Auto-refresh every 5min
-          </Badge>
-        )}
-        {dataSource === 'local-file-fallback' && (
-          <Badge variant="outline" className="text-xs bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30">
-            Using demo data • Database connection unavailable
-          </Badge>
-        )}
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
-        <Card className="border-2">
-          <CardContent className="p-4 md:p-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center mx-auto mb-3">
-              <Award className="w-6 h-6 text-yellow-400" />
-            </div>
-            <div className="text-3xl font-black">{leaderboardData.length}</div>
-            <p className="text-sm text-muted-foreground">Total Users</p>
-          </CardContent>
-        </Card>
+      {/* Sticky Filters */}
+      <div className="sticky top-16 z-10 bg-background/95 backdrop-blur-sm py-3 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-border/50">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[130px] h-9 text-sm">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="score">TruthScore</SelectItem>
+              <SelectItem value="winRate">Win Rate</SelectItem>
+              <SelectItem value="predictions">Predictions</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Card className="border-2">
-          <CardContent className="p-4 md:p-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center mx-auto mb-3">
-              <Trophy className="w-6 h-6 text-yellow-400" />
-            </div>
-            <div className="text-2xl md:text-3xl font-black">
-              {leaderboardData[0]?.truthScore || 0}
-            </div>
-            <p className="text-sm text-muted-foreground">Top Score</p>
-          </CardContent>
-        </Card>
+          <Select value={platformFilter} onValueChange={setPlatformFilter}>
+            <SelectTrigger className="w-[140px] h-9 text-sm">
+              <SelectValue placeholder="Platform" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Platforms</SelectItem>
+              <SelectItem value="polymarket">Polymarket</SelectItem>
+              <SelectItem value="pancakeswap">PancakeSwap</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Card className="border-2">
-          <CardContent className="p-4 md:p-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center mx-auto mb-3">
-              <TrendingUp className="w-6 h-6 text-orange-400" />
-            </div>
-            <div className="text-2xl md:text-3xl font-black">
-              {leaderboardData.filter((u) => u.tier === 4).length}
-            </div>
-            <p className="text-sm text-muted-foreground">Diamond Tier</p>
-          </CardContent>
-        </Card>
-      </div>
+          <Select value={tierFilter} onValueChange={setTierFilter}>
+            <SelectTrigger className="w-[120px] h-9 text-sm">
+              <SelectValue placeholder="Tier" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tiers</SelectItem>
+              <SelectItem value="diamond">Diamond</SelectItem>
+              <SelectItem value="platinum">Platinum</SelectItem>
+              <SelectItem value="gold">Gold</SelectItem>
+              <SelectItem value="silver">Silver</SelectItem>
+              <SelectItem value="bronze">Bronze</SelectItem>
+            </SelectContent>
+          </Select>
 
-      {/* Filters and Search */}
-      <Card className="border-2">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 font-black">
-            <Search className="w-5 h-5" />
-            Filters
-          </CardTitle>
-          <CardDescription>Filter and search for specific users</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {/* Sort By */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Sort By</label>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="min-h-[44px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="score">TruthScore</SelectItem>
-                  <SelectItem value="winRate">Win Rate</SelectItem>
-                  <SelectItem value="predictions">Total Predictions</SelectItem>
-                  <SelectItem value="volume">Volume</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filter by Platform */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Platform</label>
-              <Select value={platformFilter} onValueChange={(value) => {
-                setPlatformFilter(value);
-                setCurrentPage(1); // Reset to page 1 when filtering
-              }}>
-                <SelectTrigger className="min-h-[44px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Platforms</SelectItem>
-                  {availablePlatforms.map((platform) => (
-                    <SelectItem key={platform} value={platform}>
-                      {platform}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filter by Tier */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tier</label>
-              <Select value={tierFilter} onValueChange={setTierFilter}>
-                <SelectTrigger className="min-h-[44px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Tiers</SelectItem>
-                  <SelectItem value="diamond">Diamond</SelectItem>
-                  <SelectItem value="platinum">Platinum</SelectItem>
-                  <SelectItem value="gold">Gold</SelectItem>
-                  <SelectItem value="silver">Silver</SelectItem>
-                  <SelectItem value="bronze">Bronze</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Search by Address */}
-            <div className="space-y-2 sm:col-span-2">
-              <label className="text-sm font-medium">Search Address</label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="0x..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 min-h-[44px]"
-                />
-                <Button
-                  variant="outline"
-                  onClick={fetchLeaderboard}
-                  disabled={isLoading}
-                  className="min-h-[44px] min-w-[44px]"
-                >
-                  <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
-            </div>
+          <div className="relative flex-1 min-w-[160px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search address..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 text-sm"
+            />
           </div>
 
-          {/* Platform Filter Info */}
-          {platformFilter !== 'all' && (
-            <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <p className="text-sm">
-                Showing <span className="font-bold">{platformFilteredData.length}</span> users on{' '}
-                <Badge className="bg-yellow-500">{platformFilter}</Badge>
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <Button variant="outline" size="icon" onClick={fetchLeaderboard} disabled={isLoading} className="h-9 w-9 shrink-0">
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+      </div>
 
-      {/* Error Message */}
-      {error && (
-        <Card className="border-2 border-yellow-500/50 bg-yellow-500/10">
-          <CardContent className="p-4">
-            <p className="text-sm text-yellow-600 dark:text-yellow-400">
-              ⚠️ {error}
-            </p>
+      {isLoading ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+          </div>
+          <div className="space-y-2">
+            {[...Array(10)].map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
+          </div>
+        </div>
+      ) : filteredData.length === 0 ? (
+        <Card className="border-border/50">
+          <CardContent className="py-16 text-center">
+            <Trophy className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30" />
+            <p className="text-muted-foreground">No traders found</p>
           </CardContent>
         </Card>
-      )}
+      ) : (
+        <>
+          {/* Podium - Top 3 */}
+          {top3.length > 0 && currentPage === 1 && tierFilter === 'all' && !searchQuery && (
+            <div className="grid grid-cols-3 gap-3 items-end">
+              {/* 2nd Place */}
+              {top3[1] && (() => {
+                const entry = top3[1];
+                const tier = getTierFromScore(entry.truthScore);
+                return (
+                  <button
+                    key={entry.address}
+                    onClick={() => { setSelectedUser(entry); setIsModalOpen(true); }}
+                    className="flex flex-col p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-gray-400/10 to-surface border-gray-400/30 transition-all hover:scale-[1.02]"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-gray-400/20">
+                        <span className="text-base sm:text-lg font-bold text-gray-400">2</span>
+                      </div>
+                      <Badge className={`${TIER_COLORS[tier]} text-white text-[10px]`}>{TIER_NAMES[tier]}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border-2 border-gray-400/50">
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs sm:text-sm font-bold">
+                          {entry.address.slice(2, 4).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="text-left min-w-0">
+                        {entry.username ? (
+                          <span className="text-xs sm:text-sm font-medium truncate block">{entry.username}</span>
+                        ) : (
+                          <code className="font-mono text-xs sm:text-sm truncate block">{shortenAddress(entry.address)}</code>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <p className="text-[10px] text-muted-foreground">{entry.totalPredictions.toLocaleString()} bets</p>
+                          {entry.platforms?.includes('Polymarket') && (
+                            <span className="px-1 py-0 rounded bg-purple-500/20 text-purple-400 text-[8px]">Poly</span>
+                          )}
+                          {entry.platforms?.includes('PancakeSwap Prediction') && (
+                            <span className="px-1 py-0 rounded bg-amber-500/20 text-amber-400 text-[8px]">Cake</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1 mt-auto">
+                      <div className="p-1.5 rounded-lg bg-surface/50 text-center">
+                        <p className="text-base sm:text-lg font-bold">{entry.truthScore}</p>
+                        <p className="text-[9px] text-muted-foreground">Score</p>
+                      </div>
+                      <div className="p-1.5 rounded-lg bg-surface/50 text-center">
+                        <p className="text-base sm:text-lg font-bold text-success">{entry.winRate.toFixed(0)}%</p>
+                        <p className="text-[9px] text-muted-foreground">Win</p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })()}
 
-      {/* Leaderboard Table */}
-      <Card className="border-2">
-        <CardHeader>
-          <CardTitle>Rankings</CardTitle>
-          <CardDescription>
-            Showing {startIndex + 1}-{Math.min(endIndex, leaderboardData.length)} of{' '}
-            {leaderboardData.length} users
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(10)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
+              {/* 1st Place - Elevated */}
+              {top3[0] && (() => {
+                const entry = top3[0];
+                const tier = getTierFromScore(entry.truthScore);
+                return (
+                  <button
+                    key={entry.address}
+                    onClick={() => { setSelectedUser(entry); setIsModalOpen(true); }}
+                    className="flex flex-col p-3 sm:p-5 rounded-xl border-2 bg-gradient-to-br from-secondary/20 to-surface border-secondary/50 transition-all hover:scale-[1.02] -mt-4 shadow-lg shadow-secondary/10"
+                  >
+                    <div className="flex items-center justify-between mb-2 sm:mb-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-secondary/20">
+                        <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-secondary" />
+                      </div>
+                      <Badge className={`${TIER_COLORS[tier]} text-white`}>{TIER_NAMES[tier]}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                      <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-secondary/50">
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-sm sm:text-base font-bold">
+                          {entry.address.slice(2, 4).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="text-left min-w-0">
+                        {entry.username ? (
+                          <span className="text-sm sm:text-base font-semibold truncate block">{entry.username}</span>
+                        ) : (
+                          <code className="font-mono text-sm sm:text-base truncate block">{shortenAddress(entry.address)}</code>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <p className="text-xs text-muted-foreground">{entry.totalPredictions.toLocaleString()} bets</p>
+                          {entry.platforms?.includes('Polymarket') && (
+                            <span className="px-1 py-0 rounded bg-purple-500/20 text-purple-400 text-[9px]">Poly</span>
+                          )}
+                          {entry.platforms?.includes('PancakeSwap Prediction') && (
+                            <span className="px-1 py-0 rounded bg-amber-500/20 text-amber-400 text-[9px]">Cake</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-auto">
+                      <div className="p-2 rounded-lg bg-surface/50 text-center">
+                        <p className="text-lg sm:text-2xl font-bold text-secondary">{entry.truthScore}</p>
+                        <p className="text-[10px] text-muted-foreground">Score</p>
+                      </div>
+                      <div className="p-2 rounded-lg bg-surface/50 text-center">
+                        <p className="text-lg sm:text-2xl font-bold text-success">{entry.winRate.toFixed(0)}%</p>
+                        <p className="text-[10px] text-muted-foreground">Win</p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })()}
+
+              {/* 3rd Place */}
+              {top3[2] && (() => {
+                const entry = top3[2];
+                const tier = getTierFromScore(entry.truthScore);
+                return (
+                  <button
+                    key={entry.address}
+                    onClick={() => { setSelectedUser(entry); setIsModalOpen(true); }}
+                    className="flex flex-col p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-amber-600/10 to-surface border-amber-600/30 transition-all hover:scale-[1.02]"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-amber-600/20">
+                        <span className="text-base sm:text-lg font-bold text-amber-600">3</span>
+                      </div>
+                      <Badge className={`${TIER_COLORS[tier]} text-white text-[10px]`}>{TIER_NAMES[tier]}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border-2 border-amber-600/50">
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs sm:text-sm font-bold">
+                          {entry.address.slice(2, 4).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="text-left min-w-0">
+                        {entry.username ? (
+                          <span className="text-xs sm:text-sm font-medium truncate block">{entry.username}</span>
+                        ) : (
+                          <code className="font-mono text-xs sm:text-sm truncate block">{shortenAddress(entry.address)}</code>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <p className="text-[10px] text-muted-foreground">{entry.totalPredictions.toLocaleString()} bets</p>
+                          {entry.platforms?.includes('Polymarket') && (
+                            <span className="px-1 py-0 rounded bg-purple-500/20 text-purple-400 text-[8px]">Poly</span>
+                          )}
+                          {entry.platforms?.includes('PancakeSwap Prediction') && (
+                            <span className="px-1 py-0 rounded bg-amber-500/20 text-amber-400 text-[8px]">Cake</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1 mt-auto">
+                      <div className="p-1.5 rounded-lg bg-surface/50 text-center">
+                        <p className="text-base sm:text-lg font-bold">{entry.truthScore}</p>
+                        <p className="text-[9px] text-muted-foreground">Score</p>
+                      </div>
+                      <div className="p-1.5 rounded-lg bg-surface/50 text-center">
+                        <p className="text-base sm:text-lg font-bold text-success">{entry.winRate.toFixed(0)}%</p>
+                        <p className="text-[9px] text-muted-foreground">Win</p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })()}
             </div>
-          ) : currentPageData.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Target className="w-12 h-12 mx-auto mb-3 opacity-20" />
-              <p>No users found matching your filters</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto -mx-2 md:mx-0">
-              <div className="inline-block min-w-full align-middle">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-16 sticky left-0 bg-background z-10">Rank</TableHead>
-                      <TableHead className="sticky left-16 bg-background z-10">Address</TableHead>
-                      <TableHead className="text-right">TruthScore</TableHead>
-                      <TableHead className="text-right">Win Rate</TableHead>
-                      <TableHead className="hidden sm:table-cell">
-                        {platformFilter === 'all' ? 'Platforms' : 'Chain/Token'}
-                      </TableHead>
-                      <TableHead className="text-right hidden md:table-cell">Bets</TableHead>
-                      <TableHead className="text-right hidden lg:table-cell">Volume</TableHead>
-                      <TableHead className="text-center">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                <TableBody>
-                  {currentPageData.map((entry) => (
-                    <TableRow
-                      key={entry.address}
-                      className="hover:bg-muted/50 cursor-pointer"
-                      onClick={() => {
-                        setSelectedUser(entry);
-                        setIsModalOpen(true);
-                      }}
-                    >
-                      {/* Rank */}
-                      <TableCell className="sticky left-0 bg-background z-10">
-                        <div className="flex items-center gap-1 md:gap-2">
-                          {getRankIcon(entry.rank)}
-                          <span className="font-bold text-sm md:text-base">{entry.rank}</span>
-                        </div>
-                      </TableCell>
+          )}
 
-                      {/* Address */}
-                      <TableCell className="sticky left-16 bg-background z-10">
-                        <div className="flex items-center gap-1 md:gap-2">
-                          <code className="text-xs md:text-sm font-mono whitespace-nowrap">
-                            {entry.address.slice(0, 6)}...{entry.address.slice(-4)}
-                          </code>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCopyAddress(entry.address);
-                            }}
-                            className="h-6 w-6 p-0 flex-shrink-0"
-                          >
-                            {copiedAddress === entry.address ? (
-                              <Check className="w-3 h-3 text-green-500" />
-                            ) : (
-                              <Copy className="w-3 h-3" />
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
+          {/* Rest of Leaderboard */}
+          {(currentPageData.length > 0 || currentPage > 1 || tierFilter !== 'all' || searchQuery) && (
+            <Card className="border-border/50 overflow-hidden">
+              <CardContent className="p-0">
+                <div className="divide-y divide-border/30">
+                  {(tierFilter === 'all' && !searchQuery && currentPage === 1 ? currentPageData : filteredData.slice(startIndex, startIndex + ITEMS_PER_PAGE)).map((entry) => {
+                    const tier = getTierFromScore(entry.truthScore);
+                    const isTop3 = entry.rank <= 3;
 
-                      {/* TruthScore */}
-                      <TableCell className="text-right whitespace-nowrap">
-                        <span className="font-black text-base md:text-lg bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
-                          {entry.truthScore.toLocaleString()}
-                        </span>
-                      </TableCell>
-
-                      {/* Win Rate - always visible */}
-                      <TableCell className="text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1">
-                          <TrendingUp className="w-3 h-3 text-green-500" />
-                          <span className="font-black text-sm">{entry.winRate.toFixed(1)}%</span>
-                        </div>
-                      </TableCell>
-
-                      {/* Platforms / Chain */}
-                      <TableCell className="hidden sm:table-cell">
-                        {platformFilter === 'all' ? (
-                          // Show platforms
-                          entry.platforms && entry.platforms.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {entry.platforms.slice(0, 2).map((platform) => (
-                                <Badge
-                                  key={platform}
-                                  variant="outline"
-                                  className="text-xs bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
-                                >
-                                  {platform.split(' ')[0]}
-                                </Badge>
-                              ))}
-                              {entry.platforms.length > 2 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{entry.platforms.length - 2}
-                                </Badge>
-                              )}
+                    return (
+                      <div
+                        key={entry.address}
+                        onClick={() => { setSelectedUser(entry); setIsModalOpen(true); }}
+                        className="flex items-center gap-3 p-3 sm:p-4 hover:bg-surface/50 cursor-pointer transition-colors group"
+                      >
+                        {/* Rank */}
+                        <div className="w-8 text-center shrink-0">
+                          {isTop3 ? (
+                            <div className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center ${
+                              entry.rank === 1 ? 'bg-secondary/20 text-secondary' :
+                              entry.rank === 2 ? 'bg-gray-400/20 text-gray-400' :
+                              'bg-amber-600/20 text-amber-600'
+                            }`}>
+                              {entry.rank === 1 ? <Trophy className="w-4 h-4" /> : <Medal className="w-4 h-4" />}
                             </div>
                           ) : (
-                            <Badge className={`${TIER_COLORS[entry.tier]} text-white text-xs`}>
-                              {TIER_NAMES[entry.tier]}
+                            <span className="text-sm text-muted-foreground">{entry.rank}</span>
+                          )}
+                        </div>
+
+                        {/* Avatar */}
+                        <Avatar className="h-9 w-9 shrink-0 hidden sm:flex">
+                          <AvatarFallback className="bg-gradient-to-br from-primary/80 to-secondary/80 text-white text-xs">
+                            {entry.address.slice(2, 4).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            {entry.username ? (
+                              <span className="text-sm font-medium truncate">{entry.username}</span>
+                            ) : (
+                              <code className="text-sm font-mono truncate">{shortenAddress(entry.address)}</code>
+                            )}
+                            <button onClick={(e) => handleCopyAddress(entry.address, e)} className="p-1 hover:bg-white/10 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                              {copiedAddress === entry.address ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3 text-muted-foreground" />}
+                            </button>
+                            <Badge className={`${TIER_COLORS[tier]} text-white text-[10px] px-1.5 py-0`}>
+                              {TIER_NAMES[tier]}
                             </Badge>
-                          )
-                        ) : (
-                          // Show chain/token for platform
-                          <Badge variant="outline" className="text-xs">
-                            {PLATFORM_CHAINS[platformFilter] || platformFilter}
-                          </Badge>
-                        )}
-                      </TableCell>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <TrendingUp className="w-3 h-3 text-success" />
+                              {entry.winRate.toFixed(1)}%
+                            </span>
+                            <span>{entry.totalPredictions.toLocaleString()} bets</span>
+                            <span className="hidden sm:inline">{formatVolume(entry.totalVolume)} vol</span>
+                            {entry.platforms?.includes('Polymarket') && (
+                              <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 text-[10px]">Poly</span>
+                            )}
+                            {entry.platforms?.includes('PancakeSwap Prediction') && (
+                              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px]">Cake</span>
+                            )}
+                          </div>
+                        </div>
 
-                      {/* Bets */}
-                      <TableCell className="text-right hidden md:table-cell whitespace-nowrap">
-                        {(() => {
-                          const platformData = getPlatformData(entry);
-                          const bets = platformData ? platformData.bets : (entry.totalBets || entry.totalPredictions);
-                          const wins = platformData
-                            ? Math.round(platformData.bets * (platformData.winRate / 100))
-                            : (entry.wins || entry.correctPredictions);
-                          return (
-                            <div className="text-sm">
-                              <span className="font-semibold">{bets}</span>
-                              <div className="text-xs text-muted-foreground">{wins} wins</div>
-                            </div>
-                          );
-                        })()}
-                      </TableCell>
+                        {/* Score */}
+                        <div className="text-right shrink-0">
+                          <p className="text-lg font-bold text-secondary">{entry.truthScore}</p>
+                          {platformFilter === 'all' && entry.percentileRank !== undefined && (
+                            <p className="text-[10px] text-muted-foreground hidden sm:block">
+                              Top {(100 - entry.percentileRank).toFixed(0)}%
+                            </p>
+                          )}
+                          {platformFilter !== 'all' && (
+                            <p className="text-[10px] text-muted-foreground hidden sm:block">Raw Score</p>
+                          )}
+                        </div>
 
-                      {/* Volume */}
-                      <TableCell className="text-right hidden lg:table-cell whitespace-nowrap">
-                        {(() => {
-                          const platformData = getPlatformData(entry);
-                          const volume = platformData?.volume || entry.totalVolume;
-                          try {
-                            const volumeNum = Number(formatEther(BigInt(volume)));
-                            return (
-                              <div className="text-sm">
-                                <span className="font-semibold">
-                                  {volumeNum > 1000 ? `${(volumeNum / 1000).toFixed(2)}K` : volumeNum.toFixed(2)}
-                                </span>
-                                <div className="text-xs text-muted-foreground">
-                                  {platformFilter === 'all'
-                                    ? (entry.platforms && entry.platforms.length > 1 ? 'Multi-chain' : 'Total')
-                                    : PLATFORM_CHAINS[platformFilter]?.split('(')[1]?.replace(')', '') || 'Token'}
-                                </div>
-                              </div>
-                            );
-                          } catch {
-                            return volume;
-                          }
-                        })()}
-                      </TableCell>
-
-                      {/* Actions */}
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <div className="flex gap-1 justify-center items-center">
+                        {/* Actions */}
+                        <div className="hidden md:flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                           <CopyTradeButton
                             traderAddress={entry.address}
                             traderStats={{
@@ -549,158 +616,52 @@ export default function LeaderboardPage() {
                           />
                           <Button
                             variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedUser(entry);
-                              setIsModalOpen(true);
-                            }}
-                            className="h-8 w-8 p-0"
-                            title="View Details"
+                            size="icon"
+                            onClick={() => router.push(`/profile/${entry.address}`)}
+                            className="h-8 w-8"
                           >
-                            <ExternalLink className="w-3 h-3 md:w-4 md:h-4" />
+                            <ExternalLink className="w-4 h-4" />
                           </Button>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              </div>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t">
-              <div className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </div>
-              <div className="flex gap-2 flex-wrap justify-center">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => goToPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="min-h-[44px]"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline ml-1">Previous</span>
-                </Button>
-
-                {/* Page Numbers */}
-                <div className="hidden md:flex gap-1">
-                  {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => goToPage(pageNum)}
-                        className={
-                          currentPage === pageNum
-                            ? 'bg-gradient-to-r from-yellow-500 to-orange-500'
-                            : ''
-                        }
-                      >
-                        {pageNum}
-                      </Button>
+                      </div>
                     );
                   })}
                 </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="min-h-[44px]"
-                >
-                  <span className="hidden sm:inline mr-1">Next</span>
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between p-4 border-t border-border/50">
+                    <span className="text-sm text-muted-foreground">
+                      {startIndex + 1 + (tierFilter === 'all' && !searchQuery ? 3 : 0)}-{Math.min(startIndex + ITEMS_PER_PAGE + (tierFilter === 'all' && !searchQuery ? 3 : 0), filteredData.length)} of {filteredData.length}
+                    </span>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="h-8"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="h-8"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Top 3 Spotlight */}
-      {leaderboardData.length >= 3 && (
-        <Card className="border-2 border-yellow-500/30 bg-gradient-to-br from-yellow-950/10 to-orange-950/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-black">
-              <Trophy className="w-5 h-5 text-yellow-500" />
-              Top 3 Predictors
-            </CardTitle>
-            <CardDescription>The elite performers</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-              {leaderboardData.slice(0, 3).map((entry, index) => (
-                <Card
-                  key={entry.address}
-                  className="border-2 hover:border-yellow-500/50 transition-all cursor-pointer shadow-2xl shadow-yellow-500/20"
-                  onClick={() => router.push(`/profile/${entry.address}`)}
-                >
-                  <CardContent className="p-4 md:p-6 text-center space-y-4">
-                    <div className="flex justify-center">
-                      {index === 0 && (
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 shadow-2xl flex shadow-yellow-500/50">
-                          <Trophy className="w-8 h-8 text-white" />
-                        </div>
-                      )}
-                      {index === 1 && (
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-400 to-gray-300 flex items-center justify-center">
-                          <Medal className="w-8 h-8 text-white" />
-                        </div>
-                      )}
-                      {index === 2 && (
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-600 to-orange-400 flex items-center justify-center">
-                          <Medal className="w-8 h-8 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <div className="text-3xl font-black bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
-                        {entry.truthScore.toLocaleString()}
-                      </div>
-                      <p className="text-sm text-muted-foreground">TruthScore</p>
-                    </div>
-                    <Badge className={`${TIER_COLORS[entry.tier]} text-white`}>
-                      {TIER_NAMES[entry.tier]}
-                    </Badge>
-                    <div className="text-xs text-muted-foreground font-mono">
-                      {entry.address.slice(0, 10)}...{entry.address.slice(-8)}
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t text-sm">
-                      <div>
-                        <div className="font-bold">{entry.winRate.toFixed(1)}%</div>
-                        <div className="text-xs text-muted-foreground">Win Rate</div>
-                      </div>
-                      <div>
-                        <div className="font-bold">{entry.totalPredictions}</div>
-                        <div className="text-xs text-muted-foreground">Predictions</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        </>
       )}
+
       {/* User Detail Modal */}
       <UserDetailModal
         isOpen={isModalOpen}

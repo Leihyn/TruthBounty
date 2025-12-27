@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTruthBounty } from '@/hooks/useTruthBounty';
 import { TIER_NAMES, TIER_COLORS } from '@/lib/contracts';
-import { Wallet, AlertCircle } from 'lucide-react';
+import { Wallet, ChevronDown } from 'lucide-react';
 import { ProfilePopup } from './ProfilePopup';
 
 export function ConnectWallet() {
@@ -43,82 +43,69 @@ export function ConnectWallet() {
             })}
           >
             {(() => {
+              // Not connected - show connect button
               if (!connected) {
                 return (
                   <Button
                     onClick={openConnectModal}
-                    size="lg"
-                    className="bg-gradient-to-r from-red-600 to-blue-600 hover:from-red-700 hover:to-blue-700 text-white font-black uppercase italic tracking-widest shadow-2xl shadow-red-500/50 rounded-xl px-8 py-6 transform -skew-y-1 border-2 border-amber-400/50"
+                    className="h-9 sm:h-10 px-4 sm:px-5 text-sm font-medium"
                   >
-                    <Wallet className="w-5 h-5 mr-2" />
-                    CONNECT WALLET
+                    <Wallet className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Connect</span>
+                    <span className="sm:hidden">Connect</span>
                   </Button>
                 );
               }
 
+              // Wrong network
               if (chain.unsupported) {
                 return (
-                  <Button onClick={openChainModal} variant="destructive" size="lg" className="font-black uppercase italic tracking-widest transform -skew-y-1 border-2 border-amber-400/50">
-                    <AlertCircle className="w-4 h-4 mr-2" />
-                    WRONG NETWORK
+                  <Button
+                    onClick={openChainModal}
+                    variant="destructive"
+                    className="h-9 sm:h-10 px-4 text-sm font-medium"
+                  >
+                    Wrong Network
                   </Button>
                 );
               }
 
+              // Connected - show minimal wallet info
               return (
                 <>
-                  <div className="flex gap-2 items-center">
-                    {/* Chain Selector */}
-                    <Button
-                      onClick={openChainModal}
-                      variant="outline"
-                      size="sm"
-                      className="hidden md:flex items-center gap-2 font-black uppercase italic tracking-wider transform -skew-y-1 border-2 border-amber-400/50"
-                    >
-                      {chain.hasIcon && (
-                        <div
-                          style={{
-                            background: chain.iconBackground,
-                            width: 16,
-                            height: 16,
-                            borderRadius: 999,
-                            overflow: 'hidden',
-                          }}
-                        >
-                          {chain.iconUrl && (
-                            <img
-                              alt={chain.name ?? 'Chain icon'}
-                              src={chain.iconUrl}
-                              style={{ width: 16, height: 16 }}
-                            />
-                          )}
-                        </div>
-                      )}
-                      {chain.name}
-                    </Button>
-
-                    {/* User Tier Badge (if registered) */}
+                  <div className="flex items-center gap-2">
+                    {/* Tier Badge - only on desktop, only if registered */}
                     {isRegistered && nftMetadata && (
                       <Badge
-                        className={`${TIER_COLORS[nftMetadata.tier]} text-white hidden md:inline-flex font-black uppercase italic tracking-wider transform -skew-y-1 border-2 border-amber-400/50`}
+                        className={`${TIER_COLORS[nftMetadata.tier]} text-white text-xs font-medium hidden lg:inline-flex`}
                       >
                         {TIER_NAMES[nftMetadata.tier]}
                       </Badge>
                     )}
 
-                    {/* Account Button - Opens Profile Popup */}
+                    {/* Wallet Button - compact */}
                     <Button
                       onClick={() => setIsProfileOpen(true)}
-                      size="sm"
-                      className="bg-gradient-to-r from-red-600 to-blue-600 hover:from-red-700 hover:to-blue-700 text-white font-black uppercase italic tracking-wider rounded-lg transform -skew-y-1 border-2 border-amber-400/50"
+                      variant="outline"
+                      className="h-9 sm:h-10 px-3 sm:px-4 text-sm font-medium border-border/50 hover:bg-white/5"
                     >
-                      <span className="hidden sm:inline">{account.displayName}</span>
-                      <span className="sm:hidden">{account.displayName.slice(0, 6)}...</span>
-                      {account.displayBalance && (
-                        <span className="ml-2 opacity-75 hidden lg:inline">
-                          {account.displayBalance}
-                        </span>
+                      {/* Chain icon - small */}
+                      {chain.hasIcon && chain.iconUrl && (
+                        <div
+                          className="w-4 h-4 rounded-full overflow-hidden mr-2 hidden sm:block"
+                          style={{ background: chain.iconBackground }}
+                        >
+                          <img
+                            alt=""
+                            src={chain.iconUrl}
+                            className="w-4 h-4"
+                          />
+                        </div>
                       )}
+                      {/* Just the truncated address */}
+                      <span className="font-mono">
+                        {account.address.slice(0, 6)}...{account.address.slice(-4)}
+                      </span>
                     </Button>
                   </div>
 

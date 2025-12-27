@@ -6,9 +6,8 @@ import { ConnectWallet } from "@/components/ConnectWallet";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toaster } from "@/components/ui/toaster";
 import { MobileNav, DesktopNav } from "@/components/MobileNav";
-import { TruthBountyLogo } from "@/components/TruthBountyLogo";
-import { AnimatedBackground } from "@/components/AnimatedBackground";
 import Link from "next/link";
+import Image from "next/image";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -37,40 +36,89 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background font-sans`}
       >
         <Providers>
-          <AnimatedBackground />
           <ErrorBoundary>
             <div className="flex flex-col min-h-screen">
-              <header className="sticky top-0 z-50 w-full border-b-4 border-amber-400/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="container flex h-16 items-center justify-between px-4">
-                  <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                    <TruthBountyLogo size={40} />
-                    <span className="text-2xl md:text-3xl font-black tracking-widest bg-gradient-to-r from-red-500 via-amber-500 to-blue-500 bg-clip-text text-transparent uppercase italic transform -skew-y-2 drop-shadow-[2px_2px_0px_rgba(0,0,0,0.8)]">
-                      TRUTHBOUNTY
+              {/* Header */}
+              <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-[#0a0e14]">
+                <div className="container flex h-14 sm:h-16 items-center justify-between px-4 md:px-6">
+                  {/* Logo */}
+                  <Link
+                    href="/"
+                    className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+                  >
+                    <Image
+                      src="/logo.png"
+                      alt="TruthBounty"
+                      width={32}
+                      height={32}
+                      className="w-7 h-7 sm:w-8 sm:h-8 invert"
+                    />
+                    <span className="text-base sm:text-lg font-semibold tracking-tight">
+                      TruthBounty
                     </span>
                   </Link>
 
                   {/* Desktop Navigation */}
-                  <div className="hidden md:flex items-center gap-4">
+                  <div className="hidden md:flex items-center gap-4 lg:gap-6">
                     <DesktopNav />
+                    <div className="h-5 w-px bg-border/50" />
                     <ConnectWallet />
                   </div>
 
                   {/* Mobile Navigation */}
-                  <div className="flex md:hidden items-center gap-2">
+                  <div className="flex md:hidden items-center gap-1">
+                    <ConnectWallet />
                     <MobileNav />
                   </div>
                 </div>
               </header>
+
+              {/* Main Content */}
               <main className="flex-1">
                 {children}
               </main>
-              <footer className="border-t-4 border-amber-400/50 py-6 md:py-0">
-                <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
-                  <div className="flex items-center gap-2">
-                    <TruthBountyLogo size={24} />
-                    <p className="text-sm text-amber-400 font-black uppercase italic tracking-wider">
-                      Decentralized Reputation Protocol
-                    </p>
+
+              {/* Footer */}
+              <footer className="border-t border-border bg-surface">
+                <div className="container px-4 md:px-6">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-6">
+                    {/* Left: Branding */}
+                    <div className="flex items-center gap-2">
+                      <Image
+                        src="/logo.png"
+                        alt="TruthBounty"
+                        width={24}
+                        height={24}
+                        className="w-5 h-5 invert opacity-70"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        TruthBounty - On-Chain Reputation Protocol
+                      </span>
+                    </div>
+
+                    {/* Right: Links */}
+                    <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                      <Link
+                        href="/leaderboard"
+                        className="hover:text-foreground transition-colors"
+                      >
+                        Leaderboard
+                      </Link>
+                      <Link
+                        href="/markets"
+                        className="hover:text-foreground transition-colors"
+                      >
+                        Markets
+                      </Link>
+                      <a
+                        href="https://github.com/truthbounty"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-foreground transition-colors"
+                      >
+                        GitHub
+                      </a>
+                    </div>
                   </div>
                 </div>
               </footer>

@@ -6,13 +6,11 @@ import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useTruthBounty } from '@/hooks/useTruthBounty';
 import { TIER_NAMES, TIER_COLORS } from '@/lib/contracts';
@@ -21,14 +19,13 @@ import {
   Trophy,
   Target,
   TrendingUp,
-  Wallet,
   Copy,
-  ExternalLink,
   LogOut,
-  Settings,
   Share2,
   Check,
   Sparkles,
+  ExternalLink,
+  ChevronRight,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -42,7 +39,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
   const { disconnect } = useDisconnect();
   const router = useRouter();
   const { toast } = useToast();
-  const { isRegistered, nftMetadata, userProfile } = useTruthBounty();
+  const { isRegistered, nftMetadata } = useTruthBounty();
 
   const [copied, setCopied] = useState(false);
 
@@ -51,7 +48,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
       navigator.clipboard.writeText(address);
       setCopied(true);
       toast({
-        title: 'Address copied!',
+        title: 'Address copied',
         description: 'Wallet address copied to clipboard',
       });
       setTimeout(() => setCopied(false), 2000);
@@ -79,198 +76,194 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
       const profileUrl = `${window.location.origin}/profile/${address}`;
       navigator.clipboard.writeText(profileUrl);
       toast({
-        title: 'Profile link copied!',
+        title: 'Profile link copied',
         description: 'Share your reputation with others',
       });
     }
   };
 
+  const truncatedAddress = address
+    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+    : '';
+
   if (!address) return null;
+
+  const tierGradients: Record<number, string> = {
+    0: 'from-amber-700 to-amber-900',
+    1: 'from-slate-400 to-slate-600',
+    2: 'from-yellow-500 to-amber-600',
+    3: 'from-cyan-400 to-blue-600',
+    4: 'from-violet-500 to-purple-700',
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
-        <DialogHeader className="sticky top-0 bg-background z-10 pb-4">
-          <DialogTitle className="flex items-center gap-2 font-bebas tracking-wider uppercase text-2xl">
-            <User className="w-5 h-5" />
-            Your Profile
-          </DialogTitle>
-          <DialogDescription>
-            Manage your wallet and reputation NFT
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-xs p-0 gap-0 overflow-hidden">
+        {/* Header with tier gradient */}
+        {isRegistered && nftMetadata ? (
+          <div className={`bg-gradient-to-br ${tierGradients[nftMetadata.tier] || tierGradients[0]} p-4 pb-8`}>
+            <div className="flex items-center justify-between mb-3">
+              <Badge className="bg-white/20 text-white text-xs backdrop-blur-sm border-0">
+                <Check className="w-3 h-3 mr-1" />
+                Verified
+              </Badge>
+              <Badge className={`${TIER_COLORS[nftMetadata.tier]} text-white text-xs`}>
+                {TIER_NAMES[nftMetadata.tier]}
+              </Badge>
+            </div>
 
-        <div className="space-y-4 pb-4">
-          {/* Wallet Info */}
-          <Card className="bg-gradient-to-br from-red-500/10 to-blue-500/10 border-red-500/30">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Wallet Address</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCopyAddress}
-                  className="h-8"
-                >
-                  {copied ? (
-                    <Check className="w-4 h-4 text-green-500" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
-                </Button>
+            <div className="text-center text-white">
+              <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm mx-auto mb-2 flex items-center justify-center">
+                <Trophy className="w-7 h-7" />
               </div>
-              <p className="font-mono text-sm break-all">{address}</p>
-            </CardContent>
-          </Card>
+              <p className="text-sm opacity-80 mb-1">TruthScore</p>
+              <p className="text-4xl font-bold tracking-tight">
+                {Number(nftMetadata.truthScore)}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <DialogHeader className="p-4 pb-2">
+            <DialogTitle className="text-lg">Your profile</DialogTitle>
+          </DialogHeader>
+        )}
 
-          {/* NFT Display */}
-          {isRegistered && nftMetadata ? (
-            <Card className="border-2 border-red-500/30">
-              <CardContent className="p-0">
-                {/* NFT Image - Compact Version */}
-                <div className="relative h-48 w-full bg-gradient-to-br from-slate-900 to-slate-800 rounded-t-lg overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    {/* Dynamic NFT Preview */}
-                    <div className="text-center space-y-2 p-4">
-                      <div className={`w-16 h-16 rounded-full mx-auto bg-gradient-to-br ${TIER_COLORS[nftMetadata.tier]} flex items-center justify-center`}>
-                        <Trophy className="w-8 h-8 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bebas tracking-wider uppercase text-white">TruthBounty</h3>
-                        <Badge className={`${TIER_COLORS[nftMetadata.tier]} text-white mt-1 text-xs`}>
-                          {TIER_NAMES[nftMetadata.tier]} Tier
-                        </Badge>
-                      </div>
-                      <div className="text-white">
-                        <p className="text-xs text-slate-400">TruthScore</p>
-                        <p className="text-3xl font-teko">{Number(nftMetadata.truthScore)}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Verification Badge */}
-                  <div className="absolute top-2 right-2">
-                    <Badge className="bg-green-500 text-white text-xs">
-                      <Check className="w-3 h-3 mr-1" />
-                      Verified
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* NFT Stats */}
-                <div className="p-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground flex items-center gap-1">
-                        <Target className="w-3 h-3" />
-                        Win Rate
-                      </p>
-                      <p className="font-teko text-xl">{(Number(nftMetadata.winRate) / 100).toFixed(1)}%</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" />
-                        Predictions
-                      </p>
-                      <p className="font-teko text-xl">{Number(nftMetadata.totalPredictions)}</p>
-                    </div>
-                  </div>
-
-                  {/* Connected Platforms */}
-                  {nftMetadata.platformNames && nftMetadata.platformNames.length > 0 && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-2">Connected Platforms</p>
-                      <div className="flex flex-wrap gap-1">
-                        {nftMetadata.platformNames.map((platform, i) => (
-                          <Badge key={i} variant="outline" className="text-xs">
-                            {platform}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="border-2 border-dashed border-red-500/30">
-              <CardContent className="p-6 text-center">
-                <Sparkles className="w-12 h-12 mx-auto text-amber-500 mb-3" />
-                <h4 className="font-bebas tracking-wider uppercase text-lg mb-2">No Reputation NFT</h4>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Claim your reputation NFT to start tracking your predictions
+        {/* Stats row - overlapping card */}
+        {isRegistered && nftMetadata && (
+          <div className="px-3 -mt-4">
+            <div className="bg-surface-raised rounded-lg border border-border/50 p-3 flex items-center justify-around">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                  <Target className="w-3 h-3" />
+                  Win rate
                 </p>
-                <Button
-                  onClick={() => {
-                    router.push('/dashboard');
-                    onClose();
-                  }}
-                  className="bg-gradient-to-r from-red-600 to-blue-600 hover:from-red-700 hover:to-blue-700"
-                >
-                  Claim NFT
-                </Button>
-              </CardContent>
-            </Card>
+                <p className="text-lg font-semibold text-success">
+                  {(Number(nftMetadata.winRate) / 100).toFixed(1)}%
+                </p>
+              </div>
+              <Separator orientation="vertical" className="h-8" />
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                  <TrendingUp className="w-3 h-3" />
+                  Predictions
+                </p>
+                <p className="text-lg font-semibold">
+                  {Number(nftMetadata.totalPredictions)}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="p-3 space-y-3">
+          {/* Wallet address */}
+          <button
+            onClick={handleCopyAddress}
+            className="w-full flex items-center justify-between p-2.5 rounded-lg bg-surface hover:bg-surface-raised transition-colors group"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="w-4 h-4 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs text-muted-foreground">Wallet</p>
+                <p className="text-sm font-mono">{truncatedAddress}</p>
+              </div>
+            </div>
+            {copied ? (
+              <Check className="w-4 h-4 text-success" />
+            ) : (
+              <Copy className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+            )}
+          </button>
+
+          {/* No NFT state */}
+          {!isRegistered && (
+            <div className="text-center py-4 px-2">
+              <div className="w-12 h-12 rounded-full bg-secondary/10 mx-auto mb-3 flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-secondary" />
+              </div>
+              <p className="font-medium mb-1">No reputation NFT</p>
+              <p className="text-sm text-muted-foreground mb-3">
+                Claim your NFT to start tracking predictions
+              </p>
+              <Button
+                onClick={() => {
+                  router.push('/dashboard');
+                  onClose();
+                }}
+                className="w-full"
+              >
+                Claim NFT
+              </Button>
+            </div>
+          )}
+
+          {/* Connected Platforms */}
+          {isRegistered && nftMetadata?.platformNames && nftMetadata.platformNames.length > 0 && (
+            <div className="p-2.5 rounded-lg bg-surface">
+              <p className="text-xs text-muted-foreground mb-2">Connected platforms</p>
+              <div className="flex flex-wrap gap-1.5">
+                {nftMetadata.platformNames.map((platform, i) => (
+                  <Badge key={i} variant="outline" className="text-xs">
+                    {platform}
+                  </Badge>
+                ))}
+              </div>
+            </div>
           )}
 
           <Separator />
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant="outline"
+          {/* Quick actions */}
+          <div className="space-y-1">
+            <button
               onClick={handleViewProfile}
-              className="justify-start"
+              className="w-full flex items-center justify-between p-2.5 rounded-lg hover:bg-surface transition-colors"
             >
-              <User className="w-4 h-4 mr-2" />
-              View Profile
-            </Button>
-            <Button
-              variant="outline"
+              <div className="flex items-center gap-2">
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm">View full profile</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
+
+            <button
               onClick={handleShareProfile}
-              className="justify-start"
+              className="w-full flex items-center justify-between p-2.5 rounded-lg hover:bg-surface transition-colors"
             >
-              <Share2 className="w-4 h-4 mr-2" />
-              Share
-            </Button>
-            <Button
-              variant="outline"
+              <div className="flex items-center gap-2">
+                <Share2 className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm">Share profile</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
+
+            <button
               onClick={() => {
                 router.push('/dashboard');
                 onClose();
               }}
-              className="justify-start"
+              className="w-full flex items-center justify-between p-2.5 rounded-lg hover:bg-surface transition-colors"
             >
-              <Trophy className="w-4 h-4 mr-2" />
-              Dashboard
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                // Settings page (to be implemented)
-                toast({
-                  title: 'Coming soon',
-                  description: 'Settings page is under development',
-                });
-              }}
-              className="justify-start"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </Button>
+              <div className="flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm">Dashboard</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
           </div>
 
           <Separator />
 
-          {/* Disconnect Button */}
+          {/* Disconnect */}
           <Button
-            variant="destructive"
+            variant="ghost"
             onClick={handleDisconnect}
-            size="lg"
-            className="w-full font-bold"
+            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
           >
-            <LogOut className="w-5 h-5 mr-2" />
-            Disconnect Wallet
+            <LogOut className="w-4 h-4 mr-2" />
+            Disconnect wallet
           </Button>
         </div>
       </DialogContent>

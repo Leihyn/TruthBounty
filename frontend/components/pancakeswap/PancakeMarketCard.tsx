@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { PancakePredictionMarket } from '@/lib/pancakeswap';
 import { PancakeBetModal } from './PancakeBetModal';
-import { TrendingUp, TrendingDown, Clock, DollarSign, Users, Wallet } from 'lucide-react';
+import { TrendingUp, TrendingDown, ExternalLink } from 'lucide-react';
 
 interface PancakeMarketCardProps {
   market: PancakePredictionMarket;
@@ -15,161 +14,131 @@ interface PancakeMarketCardProps {
 
 export function PancakeMarketCard({ market }: PancakeMarketCardProps) {
   const [isBetModalOpen, setIsBetModalOpen] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(market.timeRemaining);
+
+  // Live countdown timer
+  useEffect(() => {
+    if (market.status !== 'live' || timeRemaining <= 0) return;
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [market.status, timeRemaining]);
+
+  useEffect(() => {
+    setTimeRemaining(market.timeRemaining);
+  }, [market.timeRemaining]);
 
   const formatVolume = (volume: number) => {
-    if (volume >= 1000) {
-      return `${(volume / 1000).toFixed(2)}K BNB`;
-    }
-    return `${volume.toFixed(2)} BNB`;
+    if (volume >= 1000) return `${(volume / 1000).toFixed(1)}K`;
+    return volume.toFixed(2);
   };
 
-  const getStatusBadge = () => {
-    switch (market.status) {
-      case 'live':
-        return <Badge className="bg-green-500/20 text-green-400 font-teko border-green-500/30">LIVE</Badge>;
-      case 'locked':
-        return <Badge className="bg-amber-500/20 text-amber-400 font-teko border-amber-500/30">LOCKING</Badge>;
-      case 'calculating':
-        return <Badge className="bg-blue-500/20 text-blue-400 font-teko border-blue-500/30">CALCULATING</Badge>;
-      case 'closed':
-        return <Badge className="bg-slate-500/20 text-slate-400 font-teko border-slate-500/30">CLOSED</Badge>;
-      default:
-        return null;
-    }
+  const formatTime = () => {
+    if (timeRemaining <= 0) return '0:00';
+    const minutes = Math.floor(timeRemaining / 60);
+    const seconds = timeRemaining % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const formatTimeRemaining = () => {
-    if (market.timeRemaining <= 0) {
-      return 'Calculating result...';
-    }
-    const minutes = Math.floor(market.timeRemaining / 60);
-    const seconds = market.timeRemaining % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')} remaining`;
-  };
+  const isLive = market.status === 'live';
+  const bullPercent = market.bullProbability;
+  const bearPercent = market.bearProbability;
 
-  const bullWinning = market.bullProbability > market.bearProbability;
-  const bearWinning = market.bearProbability > market.bullProbability;
+  const statusStyles: Record<string, string> = {
+    live: 'bg-success text-success-foreground',
+    locked: 'bg-warning text-warning-foreground',
+    calculating: 'bg-info text-white',
+    closed: 'bg-muted text-muted-foreground',
+  };
 
   return (
-    <Card className="border-2 border-amber-500/30 hover:border-amber-500/60 transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/20 bg-gradient-to-br from-amber-950/20 to-orange-950/20">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-2">
+    <Card className={`border-border/50 transition-all ${isLive ? 'hover:border-success/50' : ''}`}>
+      <CardContent className="p-0">
+        {/* Header with Timer */}
+        <div className={`px-4 py-3 flex items-center justify-between ${isLive ? 'bg-success/10' : 'bg-muted/30'}`}>
           <div className="flex items-center gap-2">
-            {/* PancakeSwap Logo Indicator */}
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-              <span className="text-white font-bebas text-xs">P</span>
+            <div className="w-7 h-7 rounded-full bg-secondary/20 flex items-center justify-center">
+              <span className="text-secondary font-bold text-xs">P</span>
             </div>
             <div>
-              <CardTitle className="text-lg font-bebas tracking-wide uppercase">
-                {market.asset}
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">PancakeSwap Prediction</p>
+              <p className="font-semibold text-sm">{market.asset}</p>
+              <p className="text-[10px] text-muted-foreground">#{market.currentEpoch}</p>
             </div>
           </div>
-          {getStatusBadge()}
-        </div>
-        <p className="text-sm text-muted-foreground mt-2">
-          {market.question}
-        </p>
-        <p className="text-xs text-amber-400 font-teko">
-          Round #{market.currentEpoch}
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Time Remaining */}
-        {market.timeRemaining > 0 && (
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-900/50 border border-amber-500/20">
-            <Clock className="w-4 h-4 text-amber-400" />
-            <span className="text-sm font-teko text-amber-400">
-              {formatTimeRemaining()}
-            </span>
-          </div>
-        )}
 
-        {/* UP (Bull) Outcome */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className={`w-4 h-4 ${bullWinning ? 'text-green-400' : 'text-slate-400'}`} />
-              <span className="font-medium">UP (Bull)</span>
+          {isLive && timeRemaining > 0 ? (
+            <div className="text-right">
+              <p className="text-2xl font-mono font-bold text-success">{formatTime()}</p>
+              <p className="text-[10px] text-muted-foreground uppercase">remaining</p>
             </div>
-            <span className={`font-teko text-lg font-bold ${bullWinning ? 'text-green-400' : 'text-slate-400'}`}>
-              {market.bullProbability.toFixed(1)}%
-            </span>
-          </div>
-          <Progress value={market.bullProbability} className="h-2 bg-slate-800" />
-          <p className="text-xs text-muted-foreground">
-            Pool: {formatVolume(market.bullAmount)} ({market.bullProbability.toFixed(1)}%)
-          </p>
+          ) : (
+            <Badge className={`${statusStyles[market.status]} text-[10px]`}>
+              {market.status.toUpperCase()}
+            </Badge>
+          )}
         </div>
 
-        {/* DOWN (Bear) Outcome */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingDown className={`w-4 h-4 ${bearWinning ? 'text-red-400' : 'text-slate-400'}`} />
-              <span className="font-medium">DOWN (Bear)</span>
+        {/* Combined UP/DOWN Bar */}
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between text-xs mb-2">
+            <div className="flex items-center gap-1">
+              <TrendingUp className="w-3 h-3 text-success" />
+              <span className="text-success font-medium">UP {bullPercent.toFixed(0)}%</span>
             </div>
-            <span className={`font-teko text-lg font-bold ${bearWinning ? 'text-red-400' : 'text-slate-400'}`}>
-              {market.bearProbability.toFixed(1)}%
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-destructive font-medium">{bearPercent.toFixed(0)}% DOWN</span>
+              <TrendingDown className="w-3 h-3 text-destructive" />
+            </div>
           </div>
-          <Progress value={market.bearProbability} className="h-2 bg-slate-800" />
-          <p className="text-xs text-muted-foreground">
-            Pool: {formatVolume(market.bearAmount)} ({market.bearProbability.toFixed(1)}%)
-          </p>
-        </div>
 
-        {/* Market Stats */}
-        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-amber-500/20">
-          <div className="flex items-center gap-2 text-sm">
-            <DollarSign className="w-4 h-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Total Pool</p>
-              <p className="font-semibold font-teko">{formatVolume(market.totalVolume)}</p>
-            </div>
+          {/* Visual Split Bar */}
+          <div className="h-3 rounded-full overflow-hidden flex bg-muted/30">
+            <div
+              className="bg-success transition-all duration-300"
+              style={{ width: `${bullPercent}%` }}
+            />
+            <div
+              className="bg-destructive transition-all duration-300"
+              style={{ width: `${bearPercent}%` }}
+            />
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Users className="w-4 h-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Total Bets</p>
-              <p className="font-semibold font-teko">{market.totalBets}</p>
-            </div>
+
+          {/* Volume under bars */}
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-1">
+            <span>{formatVolume(market.bullAmount)} BNB</span>
+            <span>{formatVolume(market.bearAmount)} BNB</span>
           </div>
         </div>
 
-        {/* Lock Price */}
-        {market.lockPrice && (
-          <div className="text-xs text-muted-foreground border-t border-amber-500/20 pt-2">
-            <span>Lock Price: </span>
-            <span className="font-teko text-amber-400">${market.lockPrice.toFixed(2)}</span>
-          </div>
-        )}
+        {/* Stats Row */}
+        <div className="px-4 py-2 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+          <span>Pool: {formatVolume(market.totalVolume)} BNB</span>
+          <span>{market.totalBets} bets</span>
+          {market.lockPrice && <span>Lock: ${market.lockPrice.toFixed(0)}</span>}
+        </div>
 
-        {/* Bet Button */}
-        <div className="pt-2 space-y-2">
+        {/* Action */}
+        <div className="px-4 pb-4 pt-2 flex gap-2">
           <Button
             onClick={() => setIsBetModalOpen(true)}
-            disabled={market.status !== 'live'}
-            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-slate-700 disabled:to-slate-800"
+            disabled={!isLive}
+            className="flex-1 h-9"
+            size="sm"
           >
-            <Wallet className="w-4 h-4 mr-2" />
-            {market.status === 'live' ? 'Place Bet' : 'Betting Closed'}
+            {isLive ? 'Place Bet' : 'Closed'}
           </Button>
-
-          <a
-            href="https://pancakeswap.finance/prediction"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-amber-400 hover:text-amber-300 underline flex items-center justify-center gap-1"
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 w-9 p-0"
+            onClick={() => window.open('https://pancakeswap.finance/prediction', '_blank')}
           >
-            View on PancakeSwap
-            <span>↗</span>
-          </a>
+            <ExternalLink className="w-4 h-4" />
+          </Button>
         </div>
       </CardContent>
 
-      {/* Bet Modal */}
       <PancakeBetModal
         market={market}
         isOpen={isBetModalOpen}

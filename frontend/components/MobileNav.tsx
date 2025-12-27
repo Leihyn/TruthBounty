@@ -3,130 +3,114 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Home, LayoutDashboard, Trophy, Copy, BarChart3, TrendingUp, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ConnectWallet } from '@/components/ConnectWallet';
+import { Menu, X, Home, LayoutDashboard, Trophy, TrendingUp, Users, Copy } from 'lucide-react';
+
+const navLinks = [
+  { href: '/', label: 'Home', icon: Home },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/markets', label: 'Markets', icon: TrendingUp },
+  { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+  { href: '/traders', label: 'Traders', icon: Users },
+  { href: '/copy-trading', label: 'Copy Trading', icon: Copy },
+];
 
 export function MobileNav() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
-
-  const links = [
-    { href: '/', label: 'Home', icon: Home },
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/markets', label: 'Markets', icon: TrendingUp },
-    { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
-    { href: '/traders', label: 'Search Traders', icon: Search },
-    { href: '/copy-trading', label: 'Copy Trading', icon: Copy },
-    { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  ];
-
-  const toggleMenu = () => setIsOpen(!isOpen);
-  const closeMenu = () => setIsOpen(false);
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={toggleMenu}
-        className="md:hidden"
-        aria-label="Toggle menu"
+      <button
+        onClick={() => setOpen(true)}
+        className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10"
       >
-        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-      </Button>
+        <Menu className="h-5 w-5" />
+      </button>
 
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden"
-              onClick={closeMenu}
-            />
-
-            {/* Menu Panel */}
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="fixed top-16 right-0 bottom-0 w-64 bg-background border-l z-50 md:hidden"
-            >
-              <nav className="flex flex-col p-4 space-y-2">
-                {links.map((link) => {
-                  const Icon = link.icon;
-                  const isActive = pathname === link.href;
-
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={closeMenu}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors min-h-[44px] transform -skew-y-1 ${
-                        isActive
-                          ? 'bg-amber-500/20 text-amber-400 border-2 border-amber-400/50'
-                          : 'hover:bg-muted border-2 border-transparent'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="font-black uppercase italic tracking-wider">{link.label}</span>
-                    </Link>
-                  );
-                })}
-
-                {/* Connect Wallet in Menu */}
-                <div className="pt-4 border-t">
-                  <ConnectWallet />
-                </div>
-              </nav>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-[9999]">
+          <div className="absolute inset-0 bg-black/70" onClick={() => setOpen(false)} />
+          <div className="absolute top-0 right-0 h-full w-72 bg-[#0d1117] border-l border-white/10 flex flex-col">
+            <div className="h-16 px-4 flex items-center justify-between border-b border-white/10">
+              <span className="font-semibold">Menu</span>
+              <button
+                onClick={() => setOpen(false)}
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <nav className="flex-1 p-4">
+              {navLinks.map((link) => {
+                const Icon = link.icon;
+                const active = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-1 ${
+                      active ? 'bg-blue-500/15 text-blue-400' : 'text-gray-300 hover:bg-white/5'
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+      )}
     </>
   );
 }
 
-// Desktop Navigation (for larger screens)
 export function DesktopNav() {
   const pathname = usePathname();
 
-  const links = [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/markets', label: 'Markets' },
-    { href: '/leaderboard', label: 'Leaderboard' },
-    { href: '/traders', label: 'Traders' },
-    { href: '/copy-trading', label: 'Copy Trading' },
-    { href: '/analytics', label: 'Analytics' },
-  ];
+  return (
+    <nav className="hidden md:flex items-center gap-1">
+      {navLinks.map((link) => (
+        <Link
+          key={link.href}
+          href={link.href}
+          className={`px-3 py-2 text-sm font-medium rounded-lg ${
+            pathname === link.href
+              ? 'text-blue-400 bg-blue-500/10'
+              : 'text-gray-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          {link.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+export function SidebarNav() {
+  const pathname = usePathname();
 
   return (
-    <nav className="hidden md:flex gap-4">
-      {links.map((link) => {
-        const isActive = pathname === link.href;
-
-        return (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`text-sm font-black uppercase italic tracking-wider transition-colors transform -skew-y-1 px-3 py-2 rounded border-2 ${
-              isActive
-                ? 'text-amber-400 border-amber-400/50 bg-amber-500/10'
-                : 'text-slate-300 border-transparent hover:text-amber-400 hover:border-amber-400/30'
-            }`}
-          >
-            {link.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <aside className="hidden lg:flex flex-col w-60 border-r border-white/10 bg-[#0a0d12] min-h-[calc(100vh-4rem)]">
+      <nav className="flex-1 p-4">
+        {navLinks.map((link) => {
+          const Icon = link.icon;
+          const active = pathname === link.href;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium ${
+                active ? 'bg-blue-500/10 text-blue-400' : 'text-gray-400 hover:bg-white/5'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {link.label}
+            </Link>
+          );
+        })}
+      </nav>
+    </aside>
   );
 }

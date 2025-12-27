@@ -2,29 +2,31 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { TIER_NAMES, TIER_COLORS, TIER_THRESHOLDS, ReputationTier } from '@/lib/contracts';
 import {
   Search,
-  TrendingUp,
-  TrendingDown,
-  Target,
   Trophy,
   Activity,
-  CheckCircle2,
-  XCircle,
-  BarChart3,
   Users,
   Copy,
-  ExternalLink,
   UserPlus,
-  Clock,
-  Wallet as WalletIcon,
+  ArrowRight,
+  ArrowLeft,
+  History,
+  X,
+  Flame,
+  Crown,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { isAddress } from 'viem';
 import Link from 'next/link';
@@ -42,6 +44,16 @@ interface TraderStats {
   last_bet_at?: string;
 }
 
+interface LeaderboardEntry {
+  wallet_address: string;
+  username?: string;
+  total_bets: number;
+  wins: number;
+  win_rate: number;
+  truth_score: number;
+  total_volume: string;
+}
+
 interface Bet {
   id: string;
   market_id: string;
@@ -55,6 +67,17 @@ interface Bet {
   market_name?: string;
 }
 
+function getTierFromScore(score: number): ReputationTier {
+  if (score >= TIER_THRESHOLDS[ReputationTier.DIAMOND]) return ReputationTier.DIAMOND;
+  if (score >= TIER_THRESHOLDS[ReputationTier.PLATINUM]) return ReputationTier.PLATINUM;
+  if (score >= TIER_THRESHOLDS[ReputationTier.GOLD]) return ReputationTier.GOLD;
+  if (score >= TIER_THRESHOLDS[ReputationTier.SILVER]) return ReputationTier.SILVER;
+  return ReputationTier.BRONZE;
+}
+
+const SEARCH_HISTORY_KEY = 'truthbounty_search_history';
+const MAX_HISTORY = 5;
+
 export default function TraderSearchPage() {
   const account = useAccount();
   const [mounted, setMounted] = useState(false);
@@ -64,21 +87,82 @@ export default function TraderSearchPage() {
   const [traderStats, setTraderStats] = useState<TraderStats | null>(null);
   const [bets, setBets] = useState<Bet[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [showAllStats, setShowAllStats] = useState(false);
+
+  const [topTraders, setTopTraders] = useState<LeaderboardEntry[]>([]);
+  const [recentlyActive, setRecentlyActive] = useState<LeaderboardEntry[]>([]);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [loadingDiscovery, setLoadingDiscovery] = useState(true);
 
   useEffect(() => {
     setMounted(true);
+    loadSearchHistory();
+    fetchDiscoveryData();
   }, []);
 
   const isConnected = mounted && !!account.address;
   const userAddress = account.address;
 
-  async function handleSearch() {
-    if (!searchAddress.trim()) {
+  function loadSearchHistory() {
+    try {
+      const history = localStorage.getItem(SEARCH_HISTORY_KEY);
+      if (history) setSearchHistory(JSON.parse(history));
+    } catch (e) {
+      console.error('Failed to load search history:', e);
+    }
+  }
+
+  function saveToHistory(address: string) {
+    const normalized = address.toLowerCase();
+    const newHistory = [normalized, ...searchHistory.filter(a => a !== normalized)].slice(0, MAX_HISTORY);
+    setSearchHistory(newHistory);
+    try {
+      localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
+    } catch (e) {}
+  }
+
+  function removeFromHistory(address: string) {
+    const newHistory = searchHistory.filter(a => a !== address);
+    setSearchHistory(newHistory);
+    try {
+      localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
+    } catch (e) {}
+  }
+
+  async function fetchDiscoveryData() {
+    setLoadingDiscovery(true);
+    try {
+      const res = await fetch('/api/leaderboard-db?sortBy=score&limit=8');
+      if (res.ok) {
+        const json = await res.json();
+        // API returns { data: [...] } not { leaderboard: [...] }
+        const traders = (json.data || json.leaderboard || []).map((t: any) => ({
+          wallet_address: t.address || t.wallet_address,
+          username: t.username,
+          total_bets: t.totalBets || t.total_bets,
+          wins: t.wins,
+          win_rate: t.winRate || t.win_rate,
+          truth_score: t.truthScore || t.truth_score,
+          total_volume: t.totalVolume || t.total_volume,
+        }));
+        setTopTraders(traders);
+        const byActivity = [...traders].sort((a: LeaderboardEntry, b: LeaderboardEntry) => b.total_bets - a.total_bets);
+        setRecentlyActive(byActivity.slice(0, 4));
+      }
+    } catch (error) {
+      console.error('Error fetching discovery data:', error);
+    } finally {
+      setLoadingDiscovery(false);
+    }
+  }
+
+  async function handleSearch(address?: string) {
+    const targetAddress = address || searchAddress;
+    if (!targetAddress.trim()) {
       setSearchError('Please enter an address');
       return;
     }
-
-    if (!isAddress(searchAddress)) {
+    if (!isAddress(targetAddress)) {
       setSearchError('Invalid Ethereum address');
       return;
     }
@@ -89,37 +173,30 @@ export default function TraderSearchPage() {
     setBets([]);
 
     try {
-      // Fetch trader stats
-      const statsRes = await fetch(`/api/traders/stats?address=${searchAddress}`);
+      saveToHistory(targetAddress);
+      const statsRes = await fetch(`/api/traders/stats?address=${targetAddress}`);
       if (statsRes.ok) {
         const data = await statsRes.json();
-        if (data.stats) {
-          setTraderStats(data.stats);
-        } else {
-          setSearchError('No data found for this address. The trader may not have any recorded activity.');
-        }
+        if (data.stats) setTraderStats(data.stats);
+        else setSearchError('No data found for this address.');
       } else {
-        setSearchError('Unable to fetch trader data. Please try again later.');
+        setSearchError('Unable to fetch trader data.');
       }
 
-      // Fetch bet history - only set if we have real data
-      const betsRes = await fetch(`/api/traders/bets?address=${searchAddress}`);
+      const betsRes = await fetch(`/api/traders/bets?address=${targetAddress}`);
       if (betsRes.ok) {
         const data = await betsRes.json();
         setBets(data.bets || []);
       }
-      // No fallback to demo data - show empty state if no data
 
-      // Check if already following
       if (isConnected && userAddress) {
-        const followRes = await fetch(`/api/copy-trade/follow?address=${userAddress}&trader=${searchAddress}`);
+        const followRes = await fetch(`/api/copy-trade/follow?address=${userAddress}&trader=${targetAddress}`);
         if (followRes.ok) {
           const followData = await followRes.json();
           setIsFollowing(followData.isFollowing || false);
         }
       }
     } catch (error) {
-      console.error('Error fetching trader data:', error);
       setSearchError('Failed to fetch trader data');
     } finally {
       setLoading(false);
@@ -136,399 +213,374 @@ export default function TraderSearchPage() {
 
   function calculateProfit(amount: string, claimedAmount: string | null, won: boolean | null): string {
     if (won === null || claimedAmount === null) return '0';
-    const profit = Number(claimedAmount) - Number(amount);
-    return (profit / 1e18).toFixed(4);
+    return ((Number(claimedAmount) - Number(amount)) / 1e18).toFixed(4);
   }
 
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
+
+  const featuredTrader = topTraders[0];
+  const otherTopTraders = topTraders.slice(1, 7);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="mb-8">
-        <h1 className="text-5xl font-bebas uppercase tracking-wider mb-2 bg-gradient-to-r from-red-500 via-blue-500 to-amber-500 bg-clip-text text-transparent">
-          Trader Search
-        </h1>
-        <p className="text-slate-400">
-          Search for any trader's address to view their stats, bet history, and copy their trades
-        </p>
+    <div className="container mx-auto px-4 sm:px-6 py-6 max-w-6xl">
+      {/* Header + Search - Always visible */}
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1">Find traders</h1>
+        <p className="text-sm text-muted-foreground">Search by address or discover top performers</p>
       </div>
 
       {/* Search Bar */}
-      <Card className="border-blue-500/20 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 mb-8">
-        <CardContent className="pt-6">
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
-              <Input
-                type="text"
-                placeholder="Enter trader address (0x...)"
-                value={searchAddress}
-                onChange={(e) => {
-                  setSearchAddress(e.target.value);
-                  setSearchError('');
-                }}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="pl-10 bg-slate-900/50 border-slate-700 text-white placeholder:text-slate-500"
-              />
-            </div>
-            <Button
-              onClick={handleSearch}
-              disabled={loading}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600"
-            >
-              {loading ? (
-                <Activity className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4 mr-2" />
-              )}
-              Search
-            </Button>
-          </div>
-          {searchError && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertDescription>{searchError}</AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+      <div className="flex gap-2 sm:gap-3 mb-6">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Enter wallet address (0x...)"
+            value={searchAddress}
+            onChange={(e) => { setSearchAddress(e.target.value); setSearchError(''); }}
+            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            className="pl-9 h-11"
+          />
+        </div>
+        <Button onClick={() => handleSearch()} disabled={loading} className="h-11 px-5">
+          {loading ? <Activity className="h-4 w-4 animate-spin" /> : <><Search className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Search</span></>}
+        </Button>
+      </div>
 
-      {/* Trader Stats */}
-      {traderStats && (
-        <>
-          <Card className="border-blue-500/20 bg-gradient-to-br from-slate-950/90 to-slate-900/90 mb-6">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16 border-2 border-blue-500/30">
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-red-500 text-white font-bebas text-2xl">
-                      {traderStats.username?.[0]?.toUpperCase() ||
-                        traderStats.wallet_address.slice(2, 4).toUpperCase()}
+      {searchError && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription className="text-sm">{searchError}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* RESULTS VIEW - Split layout on desktop */}
+      {traderStats ? (
+        <div className="lg:grid lg:grid-cols-[340px_1fr] lg:gap-6">
+          {/* Left: Sticky Trader Card */}
+          <div className="lg:sticky lg:top-20 lg:h-fit mb-6 lg:mb-0">
+            <Card className="border-border/50 overflow-hidden">
+              <div className="bg-gradient-to-br from-surface to-surface-raised p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <Avatar className="h-14 w-14 border-2 border-primary/30 shadow-lg">
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white font-bold text-lg">
+                      {traderStats.wallet_address.slice(2, 4).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <CardTitle className="text-2xl font-bebas uppercase tracking-wider text-slate-200">
-                      {traderStats.username || shortenAddress(traderStats.wallet_address)}
-                    </CardTitle>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="font-mono text-sm text-slate-500">
-                        {traderStats.wallet_address}
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2"
-                        onClick={() => navigator.clipboard.writeText(traderStats.wallet_address)}
-                      >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold truncate">{traderStats.username || shortenAddress(traderStats.wallet_address)}</p>
+                      <Badge className={`${TIER_COLORS[getTierFromScore(traderStats.total_score)]} text-white text-xs shrink-0`}>
+                        {TIER_NAMES[getTierFromScore(traderStats.total_score)]}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <code className="text-xs text-muted-foreground font-mono">{shortenAddress(traderStats.wallet_address)}</code>
+                      <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => navigator.clipboard.writeText(traderStats.wallet_address)}>
                         <Copy className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
                 </div>
+
+                {/* Key Stats - Always visible */}
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="p-3 rounded-lg bg-success/10 border border-success/20 text-center">
+                    <p className="text-2xl font-bold text-success">{traderStats.win_rate.toFixed(1)}%</p>
+                    <p className="text-xs text-muted-foreground">Win rate</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-secondary/10 border border-secondary/20 text-center">
+                    <p className="text-2xl font-bold text-secondary">{traderStats.total_score}</p>
+                    <p className="text-xs text-muted-foreground">TruthScore</p>
+                  </div>
+                </div>
+
+                {/* Expandable Stats */}
+                <button
+                  onClick={() => setShowAllStats(!showAllStats)}
+                  className="w-full flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground py-2 transition-colors"
+                >
+                  {showAllStats ? 'Show less' : 'Show more stats'}
+                  {showAllStats ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </button>
+
+                {showAllStats && (
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 animate-in slide-in-from-top-2 duration-200">
+                    <div className="p-2 rounded-lg bg-surface/50 text-center">
+                      <p className="text-lg font-bold">{traderStats.total_bets}</p>
+                      <p className="text-xs text-muted-foreground">Total bets</p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-surface/50 text-center">
+                      <p className="text-lg font-bold text-primary">{formatBNB(traderStats.total_volume)}</p>
+                      <p className="text-xs text-muted-foreground">Volume (BNB)</p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-surface/50 text-center">
+                      <p className="text-lg font-bold text-success">{traderStats.wins}</p>
+                      <p className="text-xs text-muted-foreground">Wins</p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-surface/50 text-center">
+                      <p className="text-lg font-bold text-destructive">{traderStats.losses}</p>
+                      <p className="text-xs text-muted-foreground">Losses</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <CardContent className="p-4 space-y-3">
+                {/* Platforms */}
+                <div className="flex flex-wrap gap-1.5">
+                  {traderStats.platforms.map((p) => (
+                    <Badge key={p} variant="secondary" className="text-xs">{p}</Badge>
+                  ))}
+                </div>
+
+                {/* Actions */}
                 <div className="flex gap-2">
-                  <Link href={`/profile/${traderStats.wallet_address}`}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      View Profile
+                  <Link href={`/profile/${traderStats.wallet_address}`} className="flex-1">
+                    <Button variant="outline" size="sm" className="w-full">
+                      <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                      Profile
                     </Button>
                   </Link>
-                  {isConnected && userAddress !== traderStats.wallet_address && (
-                    <Button
-                      size="sm"
-                      className={
-                        isFollowing
-                          ? 'bg-slate-700 hover:bg-slate-600'
-                          : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600'
-                      }
-                      disabled={isFollowing}
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      {isFollowing ? 'Following' : 'Copy Trade'}
+                  {isConnected && userAddress?.toLowerCase() !== traderStats.wallet_address.toLowerCase() && (
+                    <Button size="sm" className="flex-1" disabled={isFollowing}>
+                      <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                      {isFollowing ? 'Following' : 'Copy'}
                     </Button>
                   )}
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div>
-                  <p className="text-sm text-slate-500 uppercase tracking-wider mb-1">Win Rate</p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-3xl font-teko text-blue-400">{traderStats.win_rate.toFixed(1)}%</p>
-                    {traderStats.win_rate >= 60 ? (
-                      <TrendingUp className="h-5 w-5 text-green-400" />
+
+                <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => { setTraderStats(null); setBets([]); setSearchAddress(''); }}>
+                  <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+                  New search
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right: Bet History */}
+          <div>
+            <h3 className="font-semibold mb-4">Bet history</h3>
+            <Tabs defaultValue="all">
+              <TabsList className="w-full justify-start mb-4 h-9 bg-surface/50">
+                <TabsTrigger value="all" className="text-xs">All ({bets.length})</TabsTrigger>
+                <TabsTrigger value="wins" className="text-xs">Wins ({bets.filter(b => b.won === true).length})</TabsTrigger>
+                <TabsTrigger value="losses" className="text-xs">Losses ({bets.filter(b => b.won === false).length})</TabsTrigger>
+                <TabsTrigger value="pending" className="text-xs">Pending ({bets.filter(b => b.won === null).length})</TabsTrigger>
+              </TabsList>
+
+              {['all', 'wins', 'losses', 'pending'].map((tab) => {
+                const filtered = bets.filter((b) => {
+                  if (tab === 'all') return true;
+                  if (tab === 'wins') return b.won === true;
+                  if (tab === 'losses') return b.won === false;
+                  return b.won === null;
+                });
+
+                return (
+                  <TabsContent key={tab} value={tab} className="space-y-2 mt-0">
+                    {filtered.length === 0 ? (
+                      <div className="py-12 text-center text-muted-foreground border border-dashed border-border/50 rounded-xl">
+                        <Activity className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                        <p className="text-sm">No bets in this category</p>
+                      </div>
                     ) : (
-                      <TrendingDown className="h-5 w-5 text-red-400" />
+                      filtered.map((bet) => (
+                        <div key={bet.id} className="flex items-center justify-between p-3 rounded-lg bg-surface/30 border border-border/30 hover:bg-surface/50 transition-colors">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className="text-xs">{bet.position}</Badge>
+                            <Badge variant="secondary" className="text-xs">{bet.platform}</Badge>
+                            {bet.won === true && <Badge className="bg-success text-xs">Won</Badge>}
+                            {bet.won === false && <Badge className="bg-destructive text-xs">Lost</Badge>}
+                            {bet.won === null && <Badge variant="outline" className="text-xs">Pending</Badge>}
+                          </div>
+                          <div className="text-right">
+                            <p className="font-mono text-sm font-medium">{formatBNB(bet.amount)} BNB</p>
+                            {bet.claimed_amount && (
+                              <p className={`text-xs font-mono ${Number(calculateProfit(bet.amount, bet.claimed_amount, bet.won)) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                                {Number(calculateProfit(bet.amount, bet.claimed_amount, bet.won)) >= 0 ? '+' : ''}{calculateProfit(bet.amount, bet.claimed_amount, bet.won)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))
                     )}
+                  </TabsContent>
+                );
+              })}
+            </Tabs>
+          </div>
+        </div>
+      ) : (
+        /* DISCOVERY VIEW - Dynamic layout */
+        <div className="space-y-8">
+          {/* Recent Searches */}
+          {searchHistory.length > 0 && (
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <History className="h-4 w-4 text-muted-foreground" />
+                <h2 className="text-sm font-medium">Recent searches</h2>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {searchHistory.map((addr) => (
+                  <div key={addr} className="flex items-center gap-1 bg-surface rounded-lg px-3 py-1.5 border border-border/50 group">
+                    <button onClick={() => { setSearchAddress(addr); handleSearch(addr); }} className="text-xs font-mono hover:text-primary transition-colors">
+                      {shortenAddress(addr)}
+                    </button>
+                    <button onClick={() => removeFromHistory(addr)} className="text-muted-foreground hover:text-destructive transition-colors ml-1 opacity-0 group-hover:opacity-100">
+                      <X className="h-3 w-3" />
+                    </button>
                   </div>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500 uppercase tracking-wider mb-1">Total Bets</p>
-                  <p className="text-3xl font-teko text-amber-400">{traderStats.total_bets}</p>
-                  <p className="text-xs text-slate-500">
-                    {traderStats.wins}W / {traderStats.losses}L
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500 uppercase tracking-wider mb-1">Score</p>
-                  <p className="text-3xl font-teko text-red-400">{traderStats.total_score}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500 uppercase tracking-wider mb-1">Volume</p>
-                  <p className="text-3xl font-teko text-blue-400">
-                    {formatBNB(traderStats.total_volume)} BNB
-                  </p>
-                </div>
+                ))}
               </div>
+            </section>
+          )}
+
+          {/* Featured + Grid Layout */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                {traderStats.platforms.map((platform) => (
-                  <Badge key={platform} variant="secondary" className="bg-slate-800 text-slate-300">
-                    {platform}
-                  </Badge>
-                ))}
-                {traderStats.last_bet_at && (
-                  <span className="text-xs text-slate-500 ml-auto">
-                    Last bet: {new Date(traderStats.last_bet_at).toLocaleString()}
-                  </span>
-                )}
+                <Crown className="h-4 w-4 text-secondary" />
+                <h2 className="text-sm font-medium">Top performers</h2>
               </div>
-            </CardContent>
-          </Card>
+              <Link href="/leaderboard">
+                <Button variant="ghost" size="sm" className="text-xs h-7">View all <ArrowRight className="h-3 w-3 ml-1" /></Button>
+              </Link>
+            </div>
 
-          {/* Bet History */}
-          <Tabs defaultValue="all" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="all">All Bets ({bets.length})</TabsTrigger>
-              <TabsTrigger value="wins">
-                Wins ({bets.filter((b) => b.won === true).length})
-              </TabsTrigger>
-              <TabsTrigger value="losses">
-                Losses ({bets.filter((b) => b.won === false).length})
-              </TabsTrigger>
-              <TabsTrigger value="pending">
-                Pending ({bets.filter((b) => b.won === null).length})
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="all" className="space-y-4">
-              {bets.length === 0 ? (
-                <Card className="border-slate-700 bg-slate-950/50">
-                  <CardContent className="py-16 text-center">
-                    <Activity className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-                    <p className="text-slate-400">No bets found for this trader</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                bets.map((bet) => (
-                  <Card
-                    key={bet.id}
-                    className="border-slate-700 bg-gradient-to-r from-slate-900/50 to-slate-950/50 hover:border-blue-500/30 transition-colors"
+            {loadingDiscovery ? (
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr] gap-3">
+                <Skeleton className="h-40 rounded-xl md:row-span-2" />
+                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-[72px] rounded-xl" />)}
+              </div>
+            ) : topTraders.length === 0 ? (
+              <Card className="border-border/50"><CardContent className="py-12 text-center text-muted-foreground"><Users className="h-8 w-8 mx-auto mb-2 opacity-40" /><p className="text-sm">No traders found</p></CardContent></Card>
+            ) : (
+              /* Bento-style grid: Featured large card + smaller cards */
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {/* Featured #1 - Spans 2 rows on md+ */}
+                {featuredTrader && (
+                  <button
+                    onClick={() => { setSearchAddress(featuredTrader.wallet_address); handleSearch(featuredTrader.wallet_address); }}
+                    className="col-span-2 md:col-span-1 md:row-span-2 p-4 sm:p-5 rounded-xl border border-secondary/30 bg-gradient-to-br from-secondary/5 to-surface hover:border-secondary/50 transition-all text-left group"
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="outline" className="border-blue-500/50 text-blue-400">
-                              {bet.position}
-                            </Badge>
-                            <Badge variant="secondary" className="bg-slate-800 text-slate-400">
-                              {bet.platform}
-                            </Badge>
-                            {bet.won === true && (
-                              <Badge className="bg-green-600">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Won
-                              </Badge>
-                            )}
-                            {bet.won === false && (
-                              <Badge className="bg-red-600">
-                                <XCircle className="h-3 w-3 mr-1" />
-                                Lost
-                              </Badge>
-                            )}
-                            {bet.won === null && (
-                              <Badge variant="secondary" className="bg-yellow-900/20 text-yellow-400">
-                                <Clock className="h-3 w-3 mr-1" />
-                                Pending
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-slate-300 mb-1">
-                            {bet.market_name || `Market #${bet.market_id}`}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            Placed: {new Date(bet.placed_at).toLocaleString()}
-                          </p>
-                          {bet.resolved_at && (
-                            <p className="text-xs text-slate-500">
-                              Resolved: {new Date(bet.resolved_at).toLocaleString()}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-teko text-slate-200">
-                            {formatBNB(bet.amount)} BNB
-                          </p>
-                          {bet.claimed_amount && (
-                            <>
-                              <p className="text-sm text-slate-400">
-                                → {formatBNB(bet.claimed_amount)} BNB
-                              </p>
-                              <p
-                                className={`text-sm font-semibold ${
-                                  Number(calculateProfit(bet.amount, bet.claimed_amount, bet.won)) >= 0
-                                    ? 'text-green-400'
-                                    : 'text-red-400'
-                                }`}
-                              >
-                                {Number(calculateProfit(bet.amount, bet.claimed_amount, bet.won)) >= 0
-                                  ? '+'
-                                  : ''}
-                                {calculateProfit(bet.amount, bet.claimed_amount, bet.won)} BNB
-                              </p>
-                            </>
-                          )}
-                        </div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-8 h-8 rounded-full bg-secondary/20 text-secondary flex items-center justify-center font-bold">1</div>
+                      <Badge className={`${TIER_COLORS[getTierFromScore(featuredTrader.truth_score)]} text-white`}>{TIER_NAMES[getTierFromScore(featuredTrader.truth_score)]}</Badge>
+                    </div>
+                    <p className="font-mono text-sm text-muted-foreground group-hover:text-foreground transition-colors mb-3">{shortenAddress(featuredTrader.wallet_address)}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-2xl font-bold text-success">{featuredTrader.win_rate.toFixed(1)}%</p>
+                        <p className="text-xs text-muted-foreground">Win rate</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </TabsContent>
+                      <div>
+                        <p className="text-2xl font-bold text-secondary">{featuredTrader.truth_score}</p>
+                        <p className="text-xs text-muted-foreground">Score</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3">{featuredTrader.total_bets} total bets</p>
+                  </button>
+                )}
 
-            <TabsContent value="wins">
-              {bets
-                .filter((b) => b.won === true)
-                .map((bet) => (
-                  <Card
-                    key={bet.id}
-                    className="border-green-500/20 bg-gradient-to-r from-green-950/20 to-slate-950/50"
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="outline" className="border-blue-500/50 text-blue-400">
-                              {bet.position}
-                            </Badge>
-                            <Badge variant="secondary">{bet.platform}</Badge>
-                            <Badge className="bg-green-600">
-                              <CheckCircle2 className="h-3 w-3 mr-1" />
-                              Won
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-slate-300 mb-1">
-                            {bet.market_name || `Market #${bet.market_id}`}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {new Date(bet.placed_at).toLocaleString()}
-                          </p>
+                {/* Other top traders - Compact cards */}
+                {otherTopTraders.map((trader, i) => {
+                  const tier = getTierFromScore(trader.truth_score);
+                  return (
+                    <button
+                      key={trader.wallet_address}
+                      onClick={() => { setSearchAddress(trader.wallet_address); handleSearch(trader.wallet_address); }}
+                      className="p-3 rounded-xl border border-border/50 bg-card hover:border-primary/30 hover:bg-surface-raised transition-all text-left group"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-surface-raised text-xs flex items-center justify-center font-medium text-muted-foreground">{i + 2}</span>
+                          <Badge className={`${TIER_COLORS[tier]} text-white text-[10px]`}>{TIER_NAMES[tier]}</Badge>
                         </div>
-                        <div className="text-right">
-                          <p className="text-lg font-teko text-slate-200">
-                            {formatBNB(bet.amount)} BNB
-                          </p>
-                          <p className="text-sm text-slate-400">
-                            → {formatBNB(bet.claimed_amount!)} BNB
-                          </p>
-                          <p className="text-sm font-semibold text-green-400">
-                            +{calculateProfit(bet.amount, bet.claimed_amount, bet.won)} BNB
-                          </p>
-                        </div>
+                        <span className="text-success text-sm font-medium">{trader.win_rate.toFixed(1)}%</span>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </TabsContent>
+                      <p className="font-mono text-xs text-muted-foreground group-hover:text-foreground transition-colors">{shortenAddress(trader.wallet_address)}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
 
-            <TabsContent value="losses">
-              {bets
-                .filter((b) => b.won === false)
-                .map((bet) => (
-                  <Card
-                    key={bet.id}
-                    className="border-red-500/20 bg-gradient-to-r from-red-950/20 to-slate-950/50"
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="outline" className="border-blue-500/50 text-blue-400">
-                              {bet.position}
-                            </Badge>
-                            <Badge variant="secondary">{bet.platform}</Badge>
-                            <Badge className="bg-red-600">
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Lost
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-slate-300 mb-1">
-                            {bet.market_name || `Market #${bet.market_id}`}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {new Date(bet.placed_at).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-teko text-slate-200">
-                            {formatBNB(bet.amount)} BNB
-                          </p>
-                          <p className="text-sm font-semibold text-red-400">
-                            -{formatBNB(bet.amount)} BNB
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </TabsContent>
+          {/* Most Active - Horizontal scroll on mobile */}
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <Flame className="h-4 w-4 text-warning" />
+              <h2 className="text-sm font-medium">Most active</h2>
+            </div>
 
-            <TabsContent value="pending">
-              {bets
-                .filter((b) => b.won === null)
-                .map((bet) => (
-                  <Card
-                    key={bet.id}
-                    className="border-yellow-500/20 bg-gradient-to-r from-yellow-950/20 to-slate-950/50"
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="outline" className="border-blue-500/50 text-blue-400">
-                              {bet.position}
-                            </Badge>
-                            <Badge variant="secondary">{bet.platform}</Badge>
-                            <Badge className="bg-yellow-900/20 text-yellow-400">
-                              <Clock className="h-3 w-3 mr-1" />
-                              Pending
-                            </Badge>
+            {loadingDiscovery ? (
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 md:grid-cols-4">
+                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 min-w-[200px] sm:min-w-0 rounded-xl" />)}
+              </div>
+            ) : recentlyActive.length === 0 ? (
+              <Card className="border-border/50"><CardContent className="py-6 text-center text-muted-foreground"><p className="text-sm">No active traders</p></CardContent></Card>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 md:grid-cols-4 snap-x snap-mandatory sm:snap-none">
+                {recentlyActive.map((trader) => {
+                  const tier = getTierFromScore(trader.truth_score);
+                  return (
+                    <button
+                      key={trader.wallet_address}
+                      onClick={() => { setSearchAddress(trader.wallet_address); handleSearch(trader.wallet_address); }}
+                      className="min-w-[200px] sm:min-w-0 p-3 rounded-xl border border-border/50 bg-card hover:border-primary/30 hover:bg-surface-raised transition-all snap-center"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Avatar className="h-9 w-9">
+                          <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs font-medium">
+                            {trader.wallet_address.slice(2, 4).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="font-mono text-xs truncate">{shortenAddress(trader.wallet_address)}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <Badge className={`${TIER_COLORS[tier]} text-white text-[10px]`}>{TIER_NAMES[tier]}</Badge>
+                            <span className="text-[10px] text-muted-foreground">{trader.total_bets} bets</span>
                           </div>
-                          <p className="text-sm text-slate-300 mb-1">
-                            {bet.market_name || `Market #${bet.market_id}`}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {new Date(bet.placed_at).toLocaleString()}
-                          </p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-lg font-teko text-slate-200">
-                            {formatBNB(bet.amount)} BNB
-                          </p>
-                          <p className="text-xs text-slate-500">Awaiting result</p>
-                        </div>
+                        <p className="text-sm font-semibold text-success">{trader.win_rate.toFixed(0)}%</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </TabsContent>
-          </Tabs>
-        </>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Quick Links - Bottom cards */}
+          <section className="grid grid-cols-2 gap-3">
+            <Link href="/leaderboard" className="block">
+              <Card className="border-border/50 hover:border-secondary/30 hover:bg-surface-raised transition-all h-full group">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center group-hover:bg-secondary/20 transition-colors">
+                    <Trophy className="h-5 w-5 text-secondary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Leaderboard</p>
+                    <p className="text-xs text-muted-foreground">View rankings</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/copy-trading" className="block">
+              <Card className="border-border/50 hover:border-primary/30 hover:bg-surface-raised transition-all h-full group">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Copy trading</p>
+                    <p className="text-xs text-muted-foreground">Follow traders</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </section>
+        </div>
       )}
     </div>
   );

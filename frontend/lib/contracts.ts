@@ -532,19 +532,19 @@ export const TIER_NAMES = {
 } as const;
 
 export const TIER_COLORS = {
-  [ReputationTier.BRONZE]: 'bg-orange-600',
-  [ReputationTier.SILVER]: 'bg-gray-400',
-  [ReputationTier.GOLD]: 'bg-yellow-500',
-  [ReputationTier.PLATINUM]: 'bg-cyan-400',
-  [ReputationTier.DIAMOND]: 'bg-blue-500',
+  [ReputationTier.BRONZE]: 'bg-tier-bronze',
+  [ReputationTier.SILVER]: 'bg-tier-silver',
+  [ReputationTier.GOLD]: 'bg-tier-gold',
+  [ReputationTier.PLATINUM]: 'bg-tier-platinum',
+  [ReputationTier.DIAMOND]: 'bg-tier-diamond',
 } as const;
 
 export const TIER_THRESHOLDS = {
   [ReputationTier.BRONZE]: 0,
-  [ReputationTier.SILVER]: 500,
-  [ReputationTier.GOLD]: 1000,
-  [ReputationTier.PLATINUM]: 2000,
-  [ReputationTier.DIAMOND]: 5000,
+  [ReputationTier.SILVER]: 200,
+  [ReputationTier.GOLD]: 400,
+  [ReputationTier.PLATINUM]: 650,
+  [ReputationTier.DIAMOND]: 900,
 } as const;
 
 // Types
