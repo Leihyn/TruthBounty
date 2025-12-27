@@ -32,9 +32,7 @@ import {
   Timer,
   ArrowUpRight,
   ArrowDownRight,
-  ChevronDown,
 } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import Link from 'next/link';
 import { COPY_TRADING_VAULT_ABI, COPY_VAULT_ADDRESS } from '@/lib/contracts';
 
@@ -383,113 +381,130 @@ export default function CopyTradingDashboard() {
   }
 
   return (
-    <div className="container py-6 max-w-5xl">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1">Copy trading</h1>
-        <p className="text-sm text-muted-foreground">Deposit BNB and automatically copy trades from top performers</p>
+    <div className="container px-4 md:px-6 py-6 max-w-5xl">
+      {/* Header - Better mobile spacing */}
+      <div className="mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+                <TrendingUp className="h-4 w-4 text-white" />
+              </div>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Copy trading</h1>
+            </div>
+            <p className="text-sm text-muted-foreground">Automatically copy trades from top performers</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs border-success/30 text-success bg-success/5">
+              <Shield className="h-3 w-3 mr-1" />
+              {delayHours}h lock
+            </Badge>
+            {executorAddress && (
+              <a
+                href={`https://bscscan.com/address/${executorAddress}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+              >
+                Executor <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Info Banner */}
-      <Alert className="mb-6 border-primary/30 bg-primary/5">
-        <Shield className="h-4 w-4 text-primary" />
-        <AlertDescription>
-          <span className="font-medium">Secure:</span> {delayHours}-hour withdrawal lock. All trades executed by verified executor.
-          {executorAddress && (
-            <a
-              href={`https://bscscan.com/address/${executorAddress}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-1 inline-flex items-center gap-0.5 text-primary hover:underline"
-            >
-              View <ExternalLink className="h-3 w-3" />
-            </a>
-          )}
-        </AlertDescription>
-      </Alert>
-
-      {/* Stats Row - Horizontal scroll on mobile */}
-      <div className="mb-6 -mx-4 px-4 md:mx-0 md:px-0">
-        <div className="flex md:grid md:grid-cols-4 gap-3 overflow-x-auto pb-2 md:pb-0 snap-x snap-mandatory scrollbar-hide">
-          <Card className="border-border/50 bg-gradient-to-br from-primary/5 to-transparent min-w-[160px] md:min-w-0 snap-start shrink-0 md:shrink">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground font-medium">TVL</span>
-                <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
-                  <Lock className="h-3.5 w-3.5 text-primary" />
+      {/* Stats Row - Better mobile horizontal scroll */}
+      <div className="mb-5 overflow-hidden">
+        <div className="flex gap-3 overflow-x-auto pb-3 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-4 snap-x scrollbar-hide">
+          <Card className="border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent min-w-[150px] md:min-w-0 snap-start shrink-0 md:shrink">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <Lock className="h-4 w-4 text-primary" />
                 </div>
+                <span className="text-xs text-muted-foreground font-medium">TVL</span>
               </div>
               <p className="text-xl font-bold">{Number(tvl).toFixed(2)} <span className="text-xs font-normal text-muted-foreground">BNB</span></p>
-              <Progress value={utilizationPercent} className="h-1 mt-2" />
+              <Progress value={utilizationPercent} className="h-1.5 mt-2" />
               <p className="text-[10px] text-muted-foreground mt-1">{utilizationPercent.toFixed(0)}% of {maxSize}</p>
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 bg-gradient-to-br from-secondary/5 to-transparent min-w-[140px] md:min-w-0 snap-start shrink-0 md:shrink">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground font-medium">Simulated</span>
-                <div className="w-7 h-7 rounded-lg bg-secondary/15 flex items-center justify-center">
-                  <TrendingUp className="h-3.5 w-3.5 text-secondary" />
+          <Card className="border-border/50 bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent min-w-[140px] md:min-w-0 snap-start shrink-0 md:shrink">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                  <FlaskConical className="h-4 w-4 text-purple-500" />
                 </div>
+                <span className="text-xs text-muted-foreground font-medium">Simulated</span>
               </div>
               <p className="text-xl font-bold">{simStats?.overall?.totalTrades || 0}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">{simStats?.overall?.overallWinRate || 'N/A'} win rate</p>
+              <p className="text-xs text-success font-medium mt-1">{simStats?.overall?.overallWinRate || 'N/A'} win rate</p>
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 bg-gradient-to-br from-success/5 to-transparent min-w-[160px] md:min-w-0 snap-start shrink-0 md:shrink">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground font-medium">Balance</span>
-                <div className="w-7 h-7 rounded-lg bg-success/15 flex items-center justify-center">
-                  <Wallet className="h-3.5 w-3.5 text-success" />
+          <Card className="border-border/50 bg-gradient-to-br from-success/10 via-success/5 to-transparent min-w-[150px] md:min-w-0 snap-start shrink-0 md:shrink">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-success/20 flex items-center justify-center">
+                  <Wallet className="h-4 w-4 text-success" />
                 </div>
+                <span className="text-xs text-muted-foreground font-medium">Balance</span>
               </div>
               <p className="text-xl font-bold">{Number(balance).toFixed(4)} <span className="text-xs font-normal text-muted-foreground">BNB</span></p>
-              <p className={`text-[10px] mt-1 font-medium ${parseFloat(simStats?.overall?.totalPnlBNB || '0') >= 0 ? 'text-success' : 'text-destructive'}`}>
+              <p className={`text-xs mt-1 font-medium ${parseFloat(simStats?.overall?.totalPnlBNB || '0') >= 0 ? 'text-success' : 'text-destructive'}`}>
                 {parseFloat(simStats?.overall?.totalPnlBNB || '0') >= 0 ? '+' : ''}{parseFloat(simStats?.overall?.totalPnlBNB || '0').toFixed(4)} PnL
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 bg-gradient-to-br from-purple-500/5 to-transparent min-w-[120px] md:min-w-0 snap-start shrink-0 md:shrink">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground font-medium">Following</span>
-                <div className="w-7 h-7 rounded-lg bg-purple-500/15 flex items-center justify-center">
-                  <Users className="h-3.5 w-3.5 text-purple-500" />
+          <Card className="border-border/50 bg-gradient-to-br from-secondary/10 via-secondary/5 to-transparent min-w-[130px] md:min-w-0 snap-start shrink-0 md:shrink">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-secondary/20 flex items-center justify-center">
+                  <Users className="h-4 w-4 text-secondary" />
                 </div>
+                <span className="text-xs text-muted-foreground font-medium">Following</span>
               </div>
               <p className="text-xl font-bold">{leadersCount}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">leaders</p>
+              <p className="text-xs text-muted-foreground mt-1">leaders</p>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* Tabs - Scrollable on mobile */}
+      {/* Tabs - Improved styling */}
       <Tabs defaultValue="deposit" className="space-y-4">
-        <div className="-mx-4 px-4 md:mx-0 md:px-0">
-          <TabsList className="w-full justify-start bg-surface/50 h-11 p-1 border border-border/50 overflow-x-auto scrollbar-hide">
-            <TabsTrigger value="deposit" className="text-sm gap-1.5 data-[state=active]:bg-primary/10 shrink-0">
-              <Wallet className="w-4 h-4" />
-              <span>Funds</span>
-            </TabsTrigger>
-            <TabsTrigger value="leaders" className="text-sm gap-1.5 data-[state=active]:bg-primary/10 shrink-0">
-              <Users className="w-4 h-4" />
-              <span>Leaders</span>
-            </TabsTrigger>
-            <TabsTrigger value="simulation" className="text-sm gap-1.5 data-[state=active]:bg-purple-500/10 shrink-0">
-              <FlaskConical className="w-4 h-4" />
-              <span>Simulation</span>
-            </TabsTrigger>
-            <TabsTrigger value="transparency" className="text-sm gap-1.5 data-[state=active]:bg-primary/10 shrink-0">
-              <Shield className="w-4 h-4" />
-              <span>Security</span>
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        <TabsList className="w-full h-12 p-1 bg-surface/50 border border-border/50 grid grid-cols-4">
+          <TabsTrigger
+            value="deposit"
+            className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/15 data-[state=active]:to-blue-600/10 data-[state=active]:border-primary/30"
+          >
+            <Wallet className="w-4 h-4" />
+            <span className="hidden sm:inline">Funds</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="leaders"
+            className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-secondary/15 data-[state=active]:to-amber-500/10 data-[state=active]:border-secondary/30"
+          >
+            <Users className="w-4 h-4" />
+            <span className="hidden sm:inline">Leaders</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="simulation"
+            className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/15 data-[state=active]:to-purple-600/10 data-[state=active]:border-purple-500/30"
+          >
+            <FlaskConical className="w-4 h-4" />
+            <span className="hidden sm:inline">Simulation</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="transparency"
+            className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-success/15 data-[state=active]:to-emerald-500/10 data-[state=active]:border-success/30"
+          >
+            <Shield className="w-4 h-4" />
+            <span className="hidden sm:inline">Security</span>
+          </TabsTrigger>
+        </TabsList>
 
         {/* Deposit/Withdraw Tab */}
         <TabsContent value="deposit" className="mt-4">
@@ -615,23 +630,22 @@ export default function CopyTradingDashboard() {
             </Card>
           </div>
 
-          {/* Mobile: Collapsible accordions */}
-          <div className="md:hidden space-y-3">
-            {/* Deposit Collapsible */}
-            <Collapsible defaultOpen className="border border-border/50 rounded-xl overflow-hidden">
-              <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-gradient-to-r from-primary/5 to-transparent hover:from-primary/10 transition-colors">
+          {/* Mobile: Stacked cards */}
+          <div className="md:hidden space-y-4">
+            {/* Deposit Card */}
+            <Card className="border-border/50 overflow-hidden">
+              <div className="bg-gradient-to-r from-primary/10 to-transparent p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center">
-                    <Plus className="h-4 w-4 text-primary" />
+                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <Plus className="h-5 w-5 text-primary" />
                   </div>
-                  <div className="text-left">
-                    <p className="font-semibold">Deposit</p>
-                    <p className="text-xs text-muted-foreground">Add funds to balance</p>
+                  <div>
+                    <p className="font-semibold">Deposit BNB</p>
+                    <p className="text-xs text-muted-foreground">Add funds to start copying</p>
                   </div>
                 </div>
-                <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [&[data-state=open]]:rotate-180" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="p-4 pt-0 space-y-4">
+              </div>
+              <CardContent className="p-4 space-y-4">
                 <div>
                   <Label htmlFor="deposit-mobile" className="text-sm">Amount (BNB)</Label>
                   <Input
@@ -649,7 +663,7 @@ export default function CopyTradingDashboard() {
                 <Button
                   onClick={handleDeposit}
                   disabled={isDepositing || isDepositConfirming || !depositAmount}
-                  className="w-full bg-gradient-to-r from-primary to-blue-600"
+                  className="w-full bg-gradient-to-r from-primary to-blue-600 shadow-lg shadow-primary/20"
                 >
                   {isDepositing || isDepositConfirming ? (
                     <Activity className="h-4 w-4 animate-spin mr-2" />
@@ -658,24 +672,23 @@ export default function CopyTradingDashboard() {
                   )}
                   {isDepositing ? 'Confirming...' : isDepositConfirming ? 'Processing...' : 'Deposit'}
                 </Button>
-              </CollapsibleContent>
-            </Collapsible>
+              </CardContent>
+            </Card>
 
-            {/* Withdraw Collapsible */}
-            <Collapsible className="border border-border/50 rounded-xl overflow-hidden">
-              <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-gradient-to-r from-amber-500/5 to-transparent hover:from-amber-500/10 transition-colors">
+            {/* Withdraw Card */}
+            <Card className="border-border/50 overflow-hidden">
+              <div className="bg-gradient-to-r from-amber-500/10 to-transparent p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center">
-                    <Minus className="h-4 w-4 text-amber-500" />
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                    <Minus className="h-5 w-5 text-amber-500" />
                   </div>
-                  <div className="text-left">
-                    <p className="font-semibold">Withdraw</p>
-                    <p className="text-xs text-muted-foreground">{delayHours}-hour time lock</p>
+                  <div>
+                    <p className="font-semibold">Withdraw BNB</p>
+                    <p className="text-xs text-muted-foreground">{delayHours}-hour security lock</p>
                   </div>
                 </div>
-                <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="p-4 pt-0 space-y-4">
+              </div>
+              <CardContent className="p-4 space-y-4">
                 {hasPendingWithdrawal ? (
                   <>
                     <Alert className="border-warning/30 bg-warning/5">
@@ -728,7 +741,7 @@ export default function CopyTradingDashboard() {
                     <Button
                       onClick={handleRequestWithdraw}
                       disabled={isWithdrawing || isWithdrawConfirming || !withdrawAmount || Number(withdrawAmount) > Number(balance)}
-                      className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white"
+                      className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20"
                     >
                       {isWithdrawing || isWithdrawConfirming ? (
                         <Activity className="h-4 w-4 animate-spin mr-2" />
@@ -739,8 +752,8 @@ export default function CopyTradingDashboard() {
                     </Button>
                   </>
                 )}
-              </CollapsibleContent>
-            </Collapsible>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
