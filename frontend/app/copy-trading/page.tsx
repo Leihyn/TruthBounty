@@ -408,49 +408,59 @@ export default function CopyTradingDashboard() {
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <Card className="border-border/50">
+        <Card className="border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">TVL</span>
-              <Lock className="h-4 w-4 text-primary" />
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-muted-foreground font-medium">TVL</span>
+              <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
+                <Lock className="h-4 w-4 text-primary" />
+              </div>
             </div>
-            <p className="text-xl font-bold">{Number(tvl).toFixed(2)} <span className="text-sm font-normal text-muted-foreground">BNB</span></p>
-            <Progress value={utilizationPercent} className="h-1 mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">{utilizationPercent.toFixed(0)}% of {maxSize} cap</p>
+            <p className="text-2xl font-bold">{Number(tvl).toFixed(2)} <span className="text-sm font-normal text-muted-foreground">BNB</span></p>
+            <div className="mt-2">
+              <Progress value={utilizationPercent} className="h-1.5" />
+              <p className="text-xs text-muted-foreground mt-1">{utilizationPercent.toFixed(0)}% of {maxSize} cap</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="border-border/50">
+        <Card className="border-border/50 bg-gradient-to-br from-secondary/5 to-transparent">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">Simulated</span>
-              <TrendingUp className="h-4 w-4 text-secondary" />
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-muted-foreground font-medium">Simulated</span>
+              <div className="w-8 h-8 rounded-lg bg-secondary/15 flex items-center justify-center">
+                <TrendingUp className="h-4 w-4 text-secondary" />
+              </div>
             </div>
-            <p className="text-xl font-bold">{simStats?.overall?.totalTrades || 0}</p>
+            <p className="text-2xl font-bold">{simStats?.overall?.totalTrades || 0}</p>
             <p className="text-xs text-muted-foreground mt-1">{simStats?.overall?.overallWinRate || 'N/A'} win rate</p>
           </CardContent>
         </Card>
 
-        <Card className="border-border/50">
+        <Card className="border-border/50 bg-gradient-to-br from-success/5 to-transparent">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">Your balance</span>
-              <Wallet className="h-4 w-4 text-success" />
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-muted-foreground font-medium">Your balance</span>
+              <div className="w-8 h-8 rounded-lg bg-success/15 flex items-center justify-center">
+                <Wallet className="h-4 w-4 text-success" />
+              </div>
             </div>
-            <p className="text-xl font-bold">{Number(balance).toFixed(4)} <span className="text-sm font-normal text-muted-foreground">BNB</span></p>
-            <p className={`text-xs mt-1 ${parseFloat(simStats?.overall?.totalPnlBNB || '0') >= 0 ? 'text-success' : 'text-destructive'}`}>
+            <p className="text-2xl font-bold">{Number(balance).toFixed(4)} <span className="text-sm font-normal text-muted-foreground">BNB</span></p>
+            <p className={`text-xs mt-1 font-medium ${parseFloat(simStats?.overall?.totalPnlBNB || '0') >= 0 ? 'text-success' : 'text-destructive'}`}>
               {parseFloat(simStats?.overall?.totalPnlBNB || '0') >= 0 ? '+' : ''}{parseFloat(simStats?.overall?.totalPnlBNB || '0').toFixed(4)} virtual PnL
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-border/50">
+        <Card className="border-border/50 bg-gradient-to-br from-purple-500/5 to-transparent">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">Following</span>
-              <Users className="h-4 w-4 text-primary" />
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-muted-foreground font-medium">Following</span>
+              <div className="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center">
+                <Users className="h-4 w-4 text-purple-500" />
+              </div>
             </div>
-            <p className="text-xl font-bold">{leadersCount}</p>
+            <p className="text-2xl font-bold">{leadersCount}</p>
             <p className="text-xs text-muted-foreground mt-1">leaders</p>
           </CardContent>
         </Card>
@@ -458,11 +468,25 @@ export default function CopyTradingDashboard() {
 
       {/* Tabs */}
       <Tabs defaultValue="deposit" className="space-y-4">
-        <TabsList className="w-full justify-start bg-surface/50 h-10">
-          <TabsTrigger value="deposit" className="text-sm">Deposit & withdraw</TabsTrigger>
-          <TabsTrigger value="leaders" className="text-sm">Follow leaders</TabsTrigger>
-          <TabsTrigger value="simulation" className="text-sm">Simulation</TabsTrigger>
-          <TabsTrigger value="transparency" className="text-sm">Security</TabsTrigger>
+        <TabsList className="w-full justify-start bg-surface/50 h-11 p-1 border border-border/50">
+          <TabsTrigger value="deposit" className="text-sm gap-2 data-[state=active]:bg-primary/10">
+            <Wallet className="w-4 h-4" />
+            <span className="hidden sm:inline">Deposit & withdraw</span>
+            <span className="sm:hidden">Funds</span>
+          </TabsTrigger>
+          <TabsTrigger value="leaders" className="text-sm gap-2 data-[state=active]:bg-primary/10">
+            <Users className="w-4 h-4" />
+            <span className="hidden sm:inline">Follow leaders</span>
+            <span className="sm:hidden">Leaders</span>
+          </TabsTrigger>
+          <TabsTrigger value="simulation" className="text-sm gap-2 data-[state=active]:bg-purple-500/10">
+            <FlaskConical className="w-4 h-4" />
+            <span>Simulation</span>
+          </TabsTrigger>
+          <TabsTrigger value="transparency" className="text-sm gap-2 data-[state=active]:bg-primary/10">
+            <Shield className="w-4 h-4" />
+            <span>Security</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* Deposit/Withdraw Tab */}
@@ -495,7 +519,7 @@ export default function CopyTradingDashboard() {
                 <Button
                   onClick={handleDeposit}
                   disabled={isDepositing || isDepositConfirming || !depositAmount}
-                  className="w-full"
+                  className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg shadow-primary/25"
                 >
                   {isDepositing || isDepositConfirming ? (
                     <Activity className="h-4 w-4 animate-spin mr-2" />
@@ -573,8 +597,7 @@ export default function CopyTradingDashboard() {
                     <Button
                       onClick={handleRequestWithdraw}
                       disabled={isWithdrawing || isWithdrawConfirming || !withdrawAmount || Number(withdrawAmount) > Number(balance)}
-                      variant="secondary"
-                      className="w-full"
+                      className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-500/90 hover:to-orange-500/90 text-white shadow-lg shadow-amber-500/25"
                     >
                       {isWithdrawing || isWithdrawConfirming ? (
                         <Activity className="h-4 w-4 animate-spin mr-2" />
@@ -650,18 +673,25 @@ export default function CopyTradingDashboard() {
           <div className="grid md:grid-cols-2 gap-4">
             <Card className="border-border/50">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Security features</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-success/20 flex items-center justify-center">
+                    <Shield className="w-3.5 h-3.5 text-success" />
+                  </div>
+                  Security features
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {[
-                  { icon: Clock, title: 'Time-locked withdrawals', desc: `${delayHours}-hour delay prevents attacks` },
-                  { icon: Lock, title: 'Vault size cap', desc: `Maximum ${maxSize} BNB limit` },
-                  { icon: Users, title: 'Allocation limits', desc: 'Max 50% per leader' },
-                ].map(({ icon: Icon, title, desc }) => (
-                  <div key={title} className="flex items-start gap-3 p-3 rounded-lg bg-surface">
-                    <Icon className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  { icon: Clock, title: 'Time-locked withdrawals', desc: `${delayHours}-hour delay prevents attacks`, color: 'warning' },
+                  { icon: Lock, title: 'Vault size cap', desc: `Maximum ${maxSize} BNB limit`, color: 'primary' },
+                  { icon: Users, title: 'Allocation limits', desc: 'Max 50% per leader', color: 'purple-500' },
+                ].map(({ icon: Icon, title, desc, color }) => (
+                  <div key={title} className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-br from-surface to-surface-raised border border-border/30">
+                    <div className={`w-9 h-9 rounded-lg bg-${color}/15 flex items-center justify-center shrink-0`}>
+                      <Icon className={`h-4 w-4 text-${color}`} />
+                    </div>
                     <div>
-                      <p className="text-sm font-medium">{title}</p>
+                      <p className="text-sm font-semibold">{title}</p>
                       <p className="text-xs text-muted-foreground">{desc}</p>
                     </div>
                   </div>
