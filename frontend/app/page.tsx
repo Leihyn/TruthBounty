@@ -37,6 +37,9 @@ import {
   Lock,
   Target,
   ArrowUpRight,
+  Medal,
+  Crown,
+  Gem,
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -532,18 +535,18 @@ export default function HomePage() {
             {/* Tiers - simple responsive grid */}
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4">
               {[
-                { name: 'Bronze', range: '0-199', gradient: 'from-amber-700 to-amber-900', text: 'text-amber-500' },
-                { name: 'Silver', range: '200-399', gradient: 'from-gray-400 to-gray-600', text: 'text-gray-400' },
-                { name: 'Gold', range: '400-649', gradient: 'from-yellow-500 to-amber-600', text: 'text-yellow-500' },
-                { name: 'Platinum', range: '650-899', gradient: 'from-cyan-400 to-blue-500', text: 'text-cyan-400' },
-                { name: 'Diamond', range: '900+', gradient: 'from-cyan-300 via-white to-cyan-300', text: 'text-cyan-300' },
+                { name: 'Bronze', range: '0-199', gradient: 'from-amber-700 to-amber-900', text: 'text-amber-500', icon: Medal },
+                { name: 'Silver', range: '200-399', gradient: 'from-gray-400 to-gray-600', text: 'text-gray-400', icon: Shield },
+                { name: 'Gold', range: '400-649', gradient: 'from-yellow-500 to-amber-600', text: 'text-yellow-500', icon: Trophy },
+                { name: 'Platinum', range: '650-899', gradient: 'from-cyan-400 to-blue-500', text: 'text-cyan-400', icon: Crown },
+                { name: 'Diamond', range: '900+', gradient: 'from-cyan-300 via-white to-cyan-300', text: 'text-cyan-300', icon: Gem },
               ].map((tier, i) => (
                 <div
                   key={i}
-                  className="p-4 sm:p-5 rounded-xl bg-gradient-to-b from-surface-raised to-surface border border-border/50 text-center hover:border-primary/30 transition-colors"
+                  className="p-4 sm:p-5 rounded-xl bg-gradient-to-b from-surface-raised to-surface border border-border/50 text-center hover:border-primary/30 transition-all hover:scale-[1.02] hover:shadow-lg"
                 >
                   <div className={`w-11 h-11 sm:w-14 sm:h-14 mx-auto mb-2 sm:mb-3 rounded-full bg-gradient-to-br ${tier.gradient} flex items-center justify-center shadow-lg`}>
-                    <Trophy className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
+                    <tier.icon className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
                   </div>
                   <h3 className={`text-xs sm:text-base font-bold ${tier.text}`}>{tier.name}</h3>
                   <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{tier.range}</p>
@@ -576,6 +579,8 @@ export default function HomePage() {
                   chain: 'Polygon',
                   volume: '$2.1B+',
                   gradient: 'from-purple-500/10 to-blue-500/10',
+                  iconBg: 'from-purple-500 to-blue-600',
+                  glow: 'rgba(139, 92, 246, 0.15)',
                 },
                 {
                   name: 'PancakeSwap Prediction',
@@ -583,24 +588,38 @@ export default function HomePage() {
                   chain: 'BSC',
                   volume: '$340M+',
                   gradient: 'from-amber-500/10 to-yellow-500/10',
+                  iconBg: 'from-amber-500 to-yellow-500',
+                  glow: 'rgba(245, 158, 11, 0.15)',
                 },
               ].map((platform, i) => (
                 <div
                   key={i}
-                  className={`relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br ${platform.gradient} p-5 sm:p-6 hover:border-primary/30 transition-colors`}
+                  className="relative group"
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-11 h-11 rounded-lg bg-surface/80 border border-border/50 flex items-center justify-center">
-                      <TrendingUp className="h-5 w-5 text-primary" />
+                  {/* Glow effect */}
+                  <div
+                    className="absolute -inset-1 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl"
+                    style={{ background: platform.glow }}
+                  />
+                  <div
+                    className={`relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br ${platform.gradient} p-5 sm:p-6 hover:border-primary/30 transition-all hover:shadow-lg`}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${platform.iconBg} flex items-center justify-center shadow-lg`}>
+                        <BarChart3 className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="flex gap-1.5">
+                        <Badge variant="outline" className="text-[10px] sm:text-xs">{platform.chain}</Badge>
+                        <Badge className="bg-success/20 text-success border-success/30 text-[10px] sm:text-xs">Live</Badge>
+                      </div>
                     </div>
-                    <div className="flex gap-1.5">
-                      <Badge variant="outline" className="text-[10px] sm:text-xs">{platform.chain}</Badge>
-                      <Badge className="bg-success/20 text-success border-success/30 text-[10px] sm:text-xs">Live</Badge>
+                    <h3 className="text-base sm:text-lg font-semibold mb-1">{platform.name}</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-4">{platform.description}</p>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-2xl sm:text-3xl font-bold text-secondary">{platform.volume}</p>
+                      <span className="text-sm text-muted-foreground">volume</span>
                     </div>
                   </div>
-                  <h3 className="text-base sm:text-lg font-semibold mb-1">{platform.name}</h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-3">{platform.description}</p>
-                  <p className="text-xl sm:text-2xl font-bold text-secondary">{platform.volume} <span className="text-sm font-normal text-muted-foreground">volume</span></p>
                 </div>
               ))}
             </div>
