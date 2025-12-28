@@ -246,6 +246,36 @@ export default function CopyTradingDashboard() {
     functionName: 'WITHDRAWAL_DELAY',
   });
 
+  const { data: minDeposit } = useReadContract({
+    address: COPY_VAULT_ADDRESS,
+    abi: COPY_TRADING_VAULT_ABI,
+    functionName: 'MIN_DEPOSIT',
+  });
+
+  const { data: isPaused } = useReadContract({
+    address: COPY_VAULT_ADDRESS,
+    abi: COPY_TRADING_VAULT_ABI,
+    functionName: 'paused',
+  });
+
+  const { data: maxAllocationBps } = useReadContract({
+    address: COPY_VAULT_ADDRESS,
+    abi: COPY_TRADING_VAULT_ABI,
+    functionName: 'MAX_ALLOCATION_BPS',
+  });
+
+  const { data: protocolFeeBps } = useReadContract({
+    address: COPY_VAULT_ADDRESS,
+    abi: COPY_TRADING_VAULT_ABI,
+    functionName: 'PROTOCOL_FEE_BPS',
+  });
+
+  const { data: pancakePrediction } = useReadContract({
+    address: COPY_VAULT_ADDRESS,
+    abi: COPY_TRADING_VAULT_ABI,
+    functionName: 'PANCAKE_PREDICTION',
+  });
+
   const { data: userBalance, refetch: refetchBalance } = useReadContract({
     address: COPY_VAULT_ADDRESS,
     abi: COPY_TRADING_VAULT_ABI,
@@ -342,6 +372,11 @@ export default function CopyTradingDashboard() {
   const maxSize = maxVaultSize ? formatEther(maxVaultSize) : '100';
   const utilizationPercent = maxVaultSize && vaultStats ? (Number(formatEther(vaultStats[0])) / Number(formatEther(maxVaultSize))) * 100 : 0;
   const delayHours = withdrawalDelay ? Number(withdrawalDelay) / 3600 : 1;
+  const minDepositBNB = minDeposit ? formatEther(minDeposit) : '0.01';
+  const maxAllocationPercent = maxAllocationBps ? Number(maxAllocationBps) / 100 : 50;
+  const protocolFeePercent = protocolFeeBps ? Number(protocolFeeBps) / 100 : 10;
+  const isContractPaused = isPaused ?? false;
+  const pancakeAddress = pancakePrediction as `0x${string}` | undefined;
 
   const balance = userBalance ? formatEther(userBalance) : '0';
   const pendingAmount = pendingWithdrawal ? formatEther(pendingWithdrawal[0]) : '0';
@@ -874,47 +909,128 @@ export default function CopyTradingDashboard() {
         </TabsContent>
 
         {/* Transparency Tab */}
-        <TabsContent value="transparency" className="mt-4">
+        <TabsContent value="transparency" className="mt-4 space-y-4">
+          {/* Contract Health Status */}
+          <Card className="border-border/50 overflow-hidden">
+            <div className={`p-4 ${isContractPaused ? 'bg-gradient-to-r from-destructive/10 via-destructive/5 to-transparent' : 'bg-gradient-to-r from-success/10 via-success/5 to-transparent'}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-xl ${isContractPaused ? 'bg-destructive/20' : 'bg-success/20'} flex items-center justify-center`}>
+                    <Shield className={`h-6 w-6 ${isContractPaused ? 'text-destructive' : 'text-success'}`} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Contract status</h3>
+                    <p className="text-sm text-muted-foreground">Live on BSC Testnet</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${isContractPaused ? 'bg-destructive' : 'bg-success animate-pulse'}`} />
+                  <span className={`text-sm font-medium ${isContractPaused ? 'text-destructive' : 'text-success'}`}>
+                    {isContractPaused ? 'Paused' : 'Operational'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: 'Total value locked', value: `${Number(tvl).toFixed(2)} BNB` },
+                  { label: 'Copy trades executed', value: totalCopyTrades.toLocaleString() },
+                  { label: 'Volume processed', value: `${Number(totalVolume).toFixed(2)} BNB` },
+                  { label: 'Capacity used', value: `${utilizationPercent.toFixed(1)}%` },
+                ].map(({ label, value }) => (
+                  <div key={label} className="p-3 rounded-lg bg-surface text-center">
+                    <p className="text-lg font-bold">{value}</p>
+                    <p className="text-xs text-muted-foreground">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid md:grid-cols-2 gap-4">
+            {/* Security Features */}
             <Card className="border-border/50">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <div className="w-6 h-6 rounded-lg bg-success/20 flex items-center justify-center">
-                    <Shield className="w-3.5 h-3.5 text-success" />
+                    <Lock className="w-3.5 h-3.5 text-success" />
                   </div>
-                  Security features
+                  Security protections
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {[
-                  { icon: Clock, title: 'Time-locked withdrawals', desc: `${delayHours}-hour delay prevents attacks`, color: 'warning' },
-                  { icon: Lock, title: 'Vault size cap', desc: `Maximum ${maxSize} BNB limit`, color: 'primary' },
-                  { icon: Users, title: 'Allocation limits', desc: 'Max 50% per leader', color: 'purple-500' },
-                ].map(({ icon: Icon, title, desc, color }) => (
-                  <div key={title} className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-br from-surface to-surface-raised border border-border/30">
-                    <div className={`w-9 h-9 rounded-lg bg-${color}/15 flex items-center justify-center shrink-0`}>
-                      <Icon className={`h-4 w-4 text-${color}`} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold">{title}</p>
-                      <p className="text-xs text-muted-foreground">{desc}</p>
-                    </div>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-br from-surface to-surface-raised border border-border/30">
+                  <div className="w-9 h-9 rounded-lg bg-warning/15 flex items-center justify-center shrink-0">
+                    <Clock className="h-4 w-4 text-warning" />
                   </div>
-                ))}
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">Time-locked withdrawals</p>
+                      <Badge variant="outline" className="text-xs border-warning/30 text-warning">{delayHours}h delay</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Prevents flash loan attacks</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-br from-surface to-surface-raised border border-border/30">
+                  <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                    <Lock className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">Vault size cap</p>
+                      <Badge variant="outline" className="text-xs border-primary/30 text-primary">{maxSize} BNB max</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Limits exposure during beta</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-br from-surface to-surface-raised border border-border/30">
+                  <div className="w-9 h-9 rounded-lg bg-purple-500/15 flex items-center justify-center shrink-0">
+                    <Users className="h-4 w-4 text-purple-500" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">Allocation limits</p>
+                      <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-500">{maxAllocationPercent}% max</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Max per leader prevents concentration</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-br from-surface to-surface-raised border border-border/30">
+                  <div className="w-9 h-9 rounded-lg bg-success/15 flex items-center justify-center shrink-0">
+                    <Shield className="h-4 w-4 text-success" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">Reentrancy guard</p>
+                      <Badge variant="outline" className="text-xs border-success/30 text-success">OpenZeppelin</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Industry-standard protection</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
+            {/* Verified Contracts */}
             <Card className="border-border/50">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Contract addresses</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  Verified contracts
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="p-3 rounded-lg bg-surface">
-                  <p className="text-xs text-muted-foreground mb-1">Vault contract</p>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs text-muted-foreground">Copy Trading Vault</p>
+                    <Badge className="text-[10px] bg-success/20 text-success border-0">Verified</Badge>
+                  </div>
                   <div className="flex items-center gap-2">
                     <code className="text-xs font-mono">{shortenAddress(COPY_VAULT_ADDRESS)}</code>
                     <a
-                      href={`https://bscscan.com/address/${COPY_VAULT_ADDRESS}`}
+                      href={`https://testnet.bscscan.com/address/${COPY_VAULT_ADDRESS}#code`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:text-primary/80"
@@ -925,11 +1041,14 @@ export default function CopyTradingDashboard() {
                 </div>
                 {executorAddress && (
                   <div className="p-3 rounded-lg bg-surface">
-                    <p className="text-xs text-muted-foreground mb-1">Executor address</p>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-muted-foreground">Trade Executor</p>
+                      <Badge className="text-[10px] bg-warning/20 text-warning border-0">Hot wallet</Badge>
+                    </div>
                     <div className="flex items-center gap-2">
                       <code className="text-xs font-mono">{shortenAddress(executorAddress)}</code>
                       <a
-                        href={`https://bscscan.com/address/${executorAddress}`}
+                        href={`https://testnet.bscscan.com/address/${executorAddress}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:text-primary/80"
@@ -940,30 +1059,57 @@ export default function CopyTradingDashboard() {
                     <p className="text-xs text-muted-foreground mt-1">Executes copy trades on your behalf</p>
                   </div>
                 )}
+                {pancakeAddress && (
+                  <div className="p-3 rounded-lg bg-surface">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-muted-foreground">PancakeSwap Prediction</p>
+                      <Badge className="text-[10px] bg-primary/20 text-primary border-0">External</Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs font-mono">{shortenAddress(pancakeAddress)}</code>
+                      <a
+                        href={`https://testnet.bscscan.com/address/${pancakeAddress}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:text-primary/80"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          <Card className="border-border/50 mt-4">
+          {/* Protocol Parameters */}
+          <Card className="border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Vault statistics</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-secondary/20 flex items-center justify-center">
+                  <Activity className="w-3.5 h-3.5 text-secondary" />
+                </div>
+                Protocol parameters
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {[
-                  { label: 'TVL (BNB)', value: Number(tvl).toFixed(2) },
-                  { label: 'Copy trades', value: totalCopyTrades },
-                  { label: 'Volume (BNB)', value: Number(totalVolume).toFixed(2) },
-                  { label: 'Utilization', value: `${utilizationPercent.toFixed(1)}%` },
+                  { label: 'Min deposit', value: `${minDepositBNB} BNB` },
+                  { label: 'Max vault', value: `${maxSize} BNB` },
+                  { label: 'Withdrawal delay', value: `${delayHours} hour${delayHours !== 1 ? 's' : ''}` },
+                  { label: 'Max per leader', value: `${maxAllocationPercent}%` },
+                  { label: 'Protocol fee', value: `${protocolFeePercent}%` },
                 ].map(({ label, value }) => (
                   <div key={label} className="p-3 rounded-lg bg-surface text-center">
-                    <p className="text-lg font-bold">{value}</p>
+                    <p className="text-sm font-bold">{value}</p>
                     <p className="text-xs text-muted-foreground">{label}</p>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
+
         </TabsContent>
       </Tabs>
     </div>

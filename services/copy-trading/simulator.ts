@@ -508,6 +508,48 @@ CREATE INDEX idx_simulated_trades_outcome ON simulated_trades(outcome);
         // Silent fail
       }
     }, CONFIG.ROUND_CHECK_INTERVAL_MS);
+    // Run catch-up resolver every 2 minutes for any database pending trades
+    setInterval(() => this.resolvePendingFromDatabase(), 120000);
+    // Run once on startup after a short delay
+    setTimeout(() => this.resolvePendingFromDatabase(), 10000);
+  }
+
+  /**
+   * Catch-up resolver: finds pending trades in DB and resolves them
+   */
+  private async resolvePendingFromDatabase(): Promise<void> {
+    try {
+      const currentEpoch = await this.pancakeContract.currentEpoch();
+
+      // Get all pending trades from database
+      const { data: pendingTrades } = await this.supabase
+        .from('simulated_trades')
+        .select('epoch')
+        .eq('outcome', 'pending');
+
+      if (!pendingTrades || pendingTrades.length === 0) return;
+
+      // Get unique epochs
+      const uniqueEpochs = [...new Set(pendingTrades.map(t => t.epoch))];
+      let resolved = 0;
+
+      for (const epoch of uniqueEpochs) {
+        // Skip recent epochs (not closed yet)
+        if (currentEpoch - epoch < 2) continue;
+
+        const result = await this.getRoundResult(epoch);
+        if (result && result.oracleCalled) {
+          await this.resolveSimulatedTrades(epoch, result);
+          resolved++;
+        }
+      }
+
+      if (resolved > 0) {
+        console.log(`Catch-up resolver: resolved ${resolved} epochs`);
+      }
+    } catch (error) {
+      // Silent fail
+    }
   }
 
   /**
