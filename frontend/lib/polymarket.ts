@@ -278,34 +278,70 @@ export class PolymarketService {
   }
 
   /**
-   * Get trending markets (active markets with high volume)
+   * Get trending markets (from events, sorted by 24h volume)
    */
   async getTrendingMarkets(limit: number = 10): Promise<PolymarketMarket[]> {
-    const markets = await this.getMarkets({
-      active: true,
-      closed: false,
-      archived: false,
-      limit: 100,
-      enableOrderBook: true,
-    });
+    const cacheKey = `trending:${limit}`;
+    const cached = marketCache.get(cacheKey);
+    if (cached) return cached;
 
-    // Filter out old markets (older than 6 months) and sort by volume
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    try {
+      // Fetch trending events (these have the hot markets)
+      const eventsRes = await fetch(`/api/polymarket?endpoint=events&closed=false&limit=50`);
+      if (!eventsRes.ok) throw new Error('Failed to fetch events');
 
-    return markets
-      .filter(market => {
-        // Keep markets without endDate or with recent endDate
-        if (!market.endDate) return true;
-        const endDate = new Date(market.endDate);
-        return endDate > sixMonthsAgo;
-      })
-      .sort((a, b) => b.volumeNum - a.volumeNum)
-      .slice(0, limit);
+      const events = await eventsRes.json();
+
+      // Flatten markets from events and add event context
+      const allMarkets: PolymarketMarket[] = [];
+
+      for (const event of events) {
+        if (event.markets && Array.isArray(event.markets)) {
+          for (const market of event.markets) {
+            if (!market.closed && market.active) {
+              // Add 24h volume from event if market doesn't have it
+              if (!market.volume24hr && event.volume24hr) {
+                market.volume24hr = event.volume24hr / event.markets.length;
+              }
+              allMarkets.push(market);
+            }
+          }
+        }
+      }
+
+      // Also get some individual markets for variety
+      const marketsRes = await fetch(`/api/polymarket?endpoint=markets&closed=false&limit=30`);
+      if (marketsRes.ok) {
+        const markets = await marketsRes.json();
+        for (const market of markets) {
+          if (!market.closed && market.active) {
+            // Avoid duplicates
+            if (!allMarkets.some(m => m.conditionId === market.conditionId)) {
+              allMarkets.push(market);
+            }
+          }
+        }
+      }
+
+      // Sort by 24h volume (most active), fallback to total volume
+      const sorted = allMarkets.sort((a, b) => {
+        const aVol = a.volume24hr || a.volumeNum || 0;
+        const bVol = b.volume24hr || b.volumeNum || 0;
+        return bVol - aVol;
+      });
+
+      const result = sorted.slice(0, limit);
+      marketCache.set(cacheKey, result);
+      return result;
+    } catch (error) {
+      console.error('Error fetching trending markets:', error);
+      // Fallback to regular markets
+      return this.getActiveMarkets(limit);
+    }
   }
 
   /**
-   * Get active markets
+   * Get active markets (sorted by 24h volume for freshness)
    */
   async getActiveMarkets(limit: number = 20): Promise<PolymarketMarket[]> {
     const markets = await this.getMarkets({
@@ -315,32 +351,69 @@ export class PolymarketService {
       limit: 100,
     });
 
-    // Filter out old markets and sort by volume
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
+    // Sort by 24h volume first (most active today), then by total volume
     return markets
-      .filter(market => {
-        if (!market.endDate) return true;
-        const endDate = new Date(market.endDate);
-        return endDate > sixMonthsAgo;
+      .filter(market => market.active && !market.closed)
+      .sort((a, b) => {
+        const aVol24 = (a as any).volume24hr || 0;
+        const bVol24 = (b as any).volume24hr || 0;
+        if (aVol24 !== bVol24) return bVol24 - aVol24;
+        return b.volumeNum - a.volumeNum;
       })
-      .sort((a, b) => b.volumeNum - a.volumeNum)
       .slice(0, limit);
   }
 
   /**
-   * Search markets by keyword
+   * Search markets by keyword (searches both events and markets)
    */
   async searchMarkets(query: string, limit: number = 10): Promise<PolymarketMarket[]> {
-    const markets = await this.getActiveMarkets(100);
-
     const lowerQuery = query.toLowerCase();
-    return markets
-      .filter(market =>
-        market.question.toLowerCase().includes(lowerQuery) ||
-        market.description?.toLowerCase().includes(lowerQuery)
-      )
+    const results: PolymarketMarket[] = [];
+
+    try {
+      // Search in events first (has the trending stuff)
+      const eventsRes = await fetch(`/api/polymarket?endpoint=events&closed=false&limit=100`);
+      if (eventsRes.ok) {
+        const events = await eventsRes.json();
+        for (const event of events) {
+          // Check if event title matches
+          const eventMatches = event.title?.toLowerCase().includes(lowerQuery) ||
+                              event.description?.toLowerCase().includes(lowerQuery);
+
+          if (event.markets && Array.isArray(event.markets)) {
+            for (const market of event.markets) {
+              if (!market.closed && market.active) {
+                const marketMatches = market.question?.toLowerCase().includes(lowerQuery) ||
+                                     market.description?.toLowerCase().includes(lowerQuery);
+
+                if (eventMatches || marketMatches) {
+                  if (!results.some(m => m.conditionId === market.conditionId)) {
+                    results.push(market);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Also search regular markets
+      const markets = await this.getActiveMarkets(100);
+      for (const market of markets) {
+        if (market.question?.toLowerCase().includes(lowerQuery) ||
+            market.description?.toLowerCase().includes(lowerQuery)) {
+          if (!results.some(m => m.conditionId === market.conditionId)) {
+            results.push(market);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error searching markets:', error);
+    }
+
+    // Sort by 24h volume
+    return results
+      .sort((a, b) => ((b as any).volume24hr || b.volumeNum || 0) - ((a as any).volume24hr || a.volumeNum || 0))
       .slice(0, limit);
   }
 

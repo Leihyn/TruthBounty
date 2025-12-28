@@ -5,6 +5,10 @@
     {
       "path": "/api/resolve-bets",
       "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/polymarket/resolve",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

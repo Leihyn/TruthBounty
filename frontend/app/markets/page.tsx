@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAccount } from 'wagmi';
 import { MarketList } from '@/components/polymarket/MarketList';
 import { MarketDetailModal } from '@/components/polymarket/MarketDetailModal';
+import { SimulateBetModal } from '@/components/polymarket/SimulateBetModal';
 import { PancakeMarketCard } from '@/components/pancakeswap/PancakeMarketCard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,8 +17,11 @@ import { AlertTriangle, Timer, BarChart3, RefreshCw, TrendingUp, Clock, Zap, Act
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function MarketsPage() {
+  const { address } = useAccount();
   const [selectedMarket, setSelectedMarket] = useState<PolymarketMarket | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [simulateMarket, setSimulateMarket] = useState<PolymarketMarket | null>(null);
+  const [isSimulateModalOpen, setIsSimulateModalOpen] = useState(false);
   const [pancakeMarkets, setPancakeMarkets] = useState<PancakePredictionMarket[]>([]);
   const [pancakeLoading, setPancakeLoading] = useState(true);
   const [isMockData, setIsMockData] = useState(false);
@@ -50,6 +55,11 @@ export default function MarketsPage() {
   const handleSelectMarket = (market: PolymarketMarket) => {
     setSelectedMarket(market);
     setIsModalOpen(true);
+  };
+
+  const handleSimulateMarket = (market: PolymarketMarket) => {
+    setSimulateMarket(market);
+    setIsSimulateModalOpen(true);
   };
 
   // Stats
@@ -155,7 +165,18 @@ export default function MarketsPage() {
 
         {/* Polymarket Tab */}
         <TabsContent value="polymarket" className="mt-4">
-          <MarketList onSelectMarket={handleSelectMarket} limit={12} />
+          {/* Simulation info banner */}
+          <Alert className="mb-4 border-primary/30 bg-primary/5">
+            <Zap className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-sm">
+              <span className="font-medium">Simulation mode:</span> Place virtual bets on real Polymarket events. Track your performance with no real money at risk.
+            </AlertDescription>
+          </Alert>
+          <MarketList
+            onSelectMarket={handleSelectMarket}
+            onSimulateMarket={handleSimulateMarket}
+            limit={12}
+          />
         </TabsContent>
       </Tabs>
 
@@ -164,6 +185,17 @@ export default function MarketsPage() {
         market={selectedMarket}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+
+      {/* Simulate Bet Modal */}
+      <SimulateBetModal
+        market={simulateMarket}
+        isOpen={isSimulateModalOpen}
+        onClose={() => setIsSimulateModalOpen(false)}
+        walletAddress={address}
+        onSuccess={() => {
+          // Could refresh stats here if needed
+        }}
       />
     </div>
   );
