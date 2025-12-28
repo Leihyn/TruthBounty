@@ -43,6 +43,8 @@ export default function DashboardPage() {
   const account = useAccount();
   const [mounted, setMounted] = useState(false);
   const [showNFT, setShowNFT] = useState(false);
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [registerSuccess, setRegisterSuccess] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -56,6 +58,20 @@ export default function DashboardPage() {
     registerUser,
     isRegistering,
   } = useTruthBounty();
+
+  const handleRegister = async () => {
+    setRegisterError(null);
+    setRegisterSuccess(false);
+    try {
+      await registerUser?.();
+      setRegisterSuccess(true);
+      // Refresh after a short delay
+      setTimeout(() => window.location.reload(), 2000);
+    } catch (err: any) {
+      console.error('Registration error:', err);
+      setRegisterError(err?.message || err?.shortMessage || 'Transaction failed. Please try again.');
+    }
+  };
 
   const { updateState, startUpdate, isUpdating } = useUpdateScore();
 
@@ -102,9 +118,37 @@ export default function DashboardPage() {
                   <span className="text-muted-foreground">{item}</span>
                 </div>
               ))}
-              <Button onClick={() => registerUser?.()} disabled={isRegistering} className="w-full h-12 mt-2">
-                {isRegistering ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Registering...</> : <>Register for 0.0005 BNB<ArrowRight className="h-4 w-4 ml-2" /></>}
+
+              {registerError && (
+                <Alert variant="destructive" className="mt-4">
+                  <XCircle className="h-4 w-4" />
+                  <AlertDescription>{registerError}</AlertDescription>
+                </Alert>
+              )}
+
+              {registerSuccess && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+                  <div className="text-center space-y-4 p-8 rounded-2xl bg-gradient-to-br from-success/20 to-success/5 border border-success/30 shadow-2xl shadow-success/20 animate-in zoom-in-95 duration-300">
+                    <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mx-auto">
+                      <CheckCircle2 className="h-10 w-10 text-success" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-success">MINT SUCCESSFUL!</h2>
+                    <p className="text-muted-foreground">Your Reputation NFT has been minted</p>
+                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Refreshing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <Button onClick={handleRegister} disabled={isRegistering} className="w-full h-12 mt-2">
+                {isRegistering ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Minting NFT...</> : <>Register for 0.0005 BNB<ArrowRight className="h-4 w-4 ml-2" /></>}
               </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                Make sure you're on BSC Testnet (Chain ID: 97)
+              </p>
             </CardContent>
           </Card>
         </div>
