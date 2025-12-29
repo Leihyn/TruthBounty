@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Score Recalculation API
@@ -22,10 +22,20 @@ import { createClient } from '@supabase/supabase-js';
  * - Max Score: 1300
  */
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_KEY || ''
-);
+// Lazy-initialized Supabase client (avoids build-time errors when env vars aren't set)
+let supabase: SupabaseClient | null = null;
+
+function getSupabase(): SupabaseClient {
+  if (!supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) {
+      throw new Error('Supabase credentials not configured');
+    }
+    supabase = createClient(url, key);
+  }
+  return supabase;
+}
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -96,7 +106,7 @@ export async function GET() {
 
   try {
     // Get all user platform stats
-    const { data: stats, error: fetchError } = await supabase
+    const { data: stats, error: fetchError } = await getSupabase()
       .from('user_platform_stats')
       .select('id, user_id, platform_id, total_bets, wins, volume, score');
 
@@ -138,7 +148,7 @@ export async function GET() {
 
       // Update if score is different
       if (stat.score !== correctScore) {
-        const { error: updateError } = await supabase
+        const { error: updateError } = await getSupabase()
           .from('user_platform_stats')
           .update({ score: correctScore })
           .eq('id', stat.id);
