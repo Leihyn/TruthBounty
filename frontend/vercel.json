@@ -1,22 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
-  "crons": [
-    {
-      "path": "/api/resolve-bets",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/polymarket/resolve",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/polymarket/auto-copy",
-      "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/recalc-scores",
-      "schedule": "0 4 * * *"
-    }
-  ]
+  "framework": "nextjs"
 }
