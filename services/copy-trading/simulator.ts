@@ -547,8 +547,8 @@ CREATE INDEX idx_simulated_trades_outcome ON simulated_trades(outcome);
       if (resolved > 0) {
         console.log(`Catch-up resolver: resolved ${resolved} epochs`);
       }
-    } catch (error) {
-      // Silent fail
+    } catch (error: any) {
+      console.error('Catch-up resolver error:', error.message);
     }
   }
 
