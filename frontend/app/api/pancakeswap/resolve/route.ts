@@ -119,6 +119,7 @@ export async function GET() {
 
     let resolved = 0;
     let skipped = 0;
+    let updateFailed = 0;
     const errors: string[] = [];
 
     // Process each epoch
@@ -169,19 +170,24 @@ export async function GET() {
           // Convert PnL to wei string
           const pnlWei = BigInt(Math.floor(pnlBNB * 1e18)).toString();
 
-          const { error: updateError } = await supabase
+          const { data: updateData, error: updateError, count } = await supabase
             .from('simulated_trades')
             .update({
               outcome: won ? 'win' : 'loss',
               pnl: pnlWei,
               resolved_at: new Date().toISOString(),
             })
-            .eq('id', trade.id);
+            .eq('id', trade.id)
+            .select();
 
-          if (!updateError) {
-            resolved++;
-          } else {
+          if (updateError) {
             console.error(`Error updating trade ${trade.id}:`, updateError);
+            updateFailed++;
+          } else if (!updateData || updateData.length === 0) {
+            console.error(`Trade ${trade.id} not found or not updated`);
+            updateFailed++;
+          } else {
+            resolved++;
           }
         }
       } catch (err: any) {
@@ -202,6 +208,7 @@ export async function GET() {
     return NextResponse.json({
       resolved,
       skipped,
+      updateFailed,
       pending,
       wins,
       losses,
