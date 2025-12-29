@@ -491,7 +491,8 @@ CREATE INDEX idx_simulated_trades_outcome ON simulated_trades(outcome);
       if (this.pendingRounds.size === 0) return;
 
       try {
-        const currentEpoch = await this.pancakeContract.currentEpoch();
+        const currentEpochBigInt = await this.pancakeContract.currentEpoch();
+        const currentEpoch = Number(currentEpochBigInt);
 
         for (const epoch of Array.from(this.pendingRounds)) {
           // Round needs to be at least 2 epochs behind current to be resolved
