@@ -760,3 +760,59 @@
 2025-12-29 14:12:19: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
 2025-12-29 14:12:51: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
 2025-12-29 14:13:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 14:45:59: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 14:45:59: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 14:51:26: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 14:51:26: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 14:51:56: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 14:51:56: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:11:56: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:11:56: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:12:26: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:12:26: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:12:56: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:12:56: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:17:01: Round resolution error: read ECONNRESET
+2025-12-29 15:17:01: Catch-up resolver error: read ECONNRESET
+2025-12-29 15:17:26: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:17:26: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:43:56: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:43:56: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:44:26: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:44:27: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:44:57: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:44:57: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:45:27: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:45:27: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:45:57: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:45:57: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 15:46:22: Round resolution error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 15:46:22: Catch-up resolver error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 18:46:44: Round resolution error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 18:46:44: Catch-up resolver error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 20:52:24: Round resolution error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 20:52:24: Catch-up resolver error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 21:07:35: Round resolution error: read ECONNRESET
+2025-12-29 21:07:35: Catch-up resolver error: read ECONNRESET
+2025-12-29 21:07:58: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 21:07:58: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 21:08:28: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 21:08:28: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 21:08:58: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 21:08:58: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 21:09:28: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 21:09:28: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 21:09:58: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 21:09:58: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 21:14:35: Round resolution error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 21:14:35: Catch-up resolver error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 21:15:05: Round resolution error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 21:15:05: Catch-up resolver error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 21:15:35: Round resolution error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 21:15:35: Catch-up resolver error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 21:16:05: Round resolution error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 21:16:05: Catch-up resolver error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 21:51:14: Round resolution error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 21:51:14: Catch-up resolver error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 21:51:31:   Error simulating copy trades: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 21:51:36:   Error simulating copy trades: getaddrinfo ENOTFOUND bsc-testnet.publicnode.com
