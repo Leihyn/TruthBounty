@@ -4,15 +4,15 @@
   "crons": [
     {
       "path": "/api/resolve-bets",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/polymarket/resolve",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/polymarket/auto-copy",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 12 * * *"
     },
     {
       "path": "/api/recalc-scores",
