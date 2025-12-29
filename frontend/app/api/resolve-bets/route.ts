@@ -10,7 +10,13 @@ const supabase = createClient(
 
 // PancakeSwap Prediction contract on BSC Mainnet
 const PANCAKE_PREDICTION = '0x18B2A687610328590Bc8F2e5fEdDe3b582A49cdA';
-const BSC_RPC = 'https://bsc-dataseed1.binance.org';
+
+// Multiple RPC endpoints for reliability
+const BSC_RPCS = [
+  'https://bsc-dataseed1.binance.org',
+  'https://bsc.publicnode.com',
+  'https://bsc-dataseed2.binance.org',
+];
 
 const PREDICTION_ABI = [
   'function currentEpoch() view returns (uint256)',
@@ -18,14 +24,28 @@ const PREDICTION_ABI = [
 ];
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 10; // Vercel hobby limit
+export const maxDuration = 60; // Vercel Pro allows up to 60s
+
+async function getProvider(): Promise<ethers.JsonRpcProvider> {
+  for (const rpc of BSC_RPCS) {
+    try {
+      const provider = new ethers.JsonRpcProvider(rpc);
+      await provider.getBlockNumber(); // Test connection
+      return provider;
+    } catch {
+      continue;
+    }
+  }
+  throw new Error('All RPC endpoints failed');
+}
 
 export async function GET() {
   const startTime = Date.now();
+  console.log('[resolve-bets] Starting resolution at', new Date().toISOString());
 
   try {
-    // Initialize provider and contract
-    const provider = new ethers.JsonRpcProvider(BSC_RPC);
+    // Initialize provider and contract with failover
+    const provider = await getProvider();
     const contract = new ethers.Contract(PANCAKE_PREDICTION, PREDICTION_ABI, provider);
 
     // Get current epoch
@@ -63,9 +83,9 @@ export async function GET() {
         continue;
       }
 
-      // Check time to avoid timeout
-      if (Date.now() - startTime > 8000) {
-        console.log('Approaching timeout, stopping early');
+      // Check time to avoid timeout (50s limit for 60s max)
+      if (Date.now() - startTime > 50000) {
+        console.log('[resolve-bets] Approaching timeout, stopping early');
         break;
       }
 
@@ -118,6 +138,8 @@ export async function GET() {
     const wins = stats?.filter(t => t.outcome === 'win').length || 0;
     const losses = stats?.filter(t => t.outcome === 'loss').length || 0;
     const pending = stats?.filter(t => t.outcome === 'pending').length || 0;
+
+    console.log(`[resolve-bets] Completed: resolved=${resolved}, pending=${pending}, duration=${Date.now() - startTime}ms`);
 
     return NextResponse.json({
       resolved,

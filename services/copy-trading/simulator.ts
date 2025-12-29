@@ -504,14 +504,14 @@ CREATE INDEX idx_simulated_trades_outcome ON simulated_trades(outcome);
             this.pendingRounds.delete(epoch);
           }
         }
-      } catch (error) {
-        // Silent fail
+      } catch (error: any) {
+        console.error('Round resolution error:', error.message);
       }
     }, CONFIG.ROUND_CHECK_INTERVAL_MS);
-    // Run catch-up resolver every 2 minutes for any database pending trades
-    setInterval(() => this.resolvePendingFromDatabase(), 120000);
+    // Run catch-up resolver every 30 seconds for any database pending trades
+    setInterval(() => this.resolvePendingFromDatabase(), 30000);
     // Run once on startup after a short delay
-    setTimeout(() => this.resolvePendingFromDatabase(), 10000);
+    setTimeout(() => this.resolvePendingFromDatabase(), 5000);
   }
 
   /**
@@ -519,7 +519,8 @@ CREATE INDEX idx_simulated_trades_outcome ON simulated_trades(outcome);
    */
   private async resolvePendingFromDatabase(): Promise<void> {
     try {
-      const currentEpoch = await this.pancakeContract.currentEpoch();
+      const currentEpochBigInt = await this.pancakeContract.currentEpoch();
+      const currentEpoch = Number(currentEpochBigInt);
 
       // Get all pending trades from database
       const { data: pendingTrades } = await this.supabase
