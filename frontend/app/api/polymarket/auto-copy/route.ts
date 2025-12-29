@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Polymarket Auto-Copy Trading
@@ -16,10 +16,20 @@ import { createClient } from '@supabase/supabase-js';
  * Run via Vercel cron every 30 minutes
  */
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+// Lazy-initialized Supabase client (avoids build-time errors when env vars aren't set)
+let supabase: SupabaseClient | null = null;
+
+function getSupabase(): SupabaseClient {
+  if (!supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) {
+      throw new Error('Supabase credentials not configured');
+    }
+    supabase = createClient(url, key);
+  }
+  return supabase;
+}
 
 // Polymarket API endpoints
 const POLYMARKET_ACTIVITY_API = 'https://data-api.polymarket.com/activity';
@@ -96,7 +106,7 @@ async function fetchMarketDetails(marketId: string): Promise<{ question: string 
  * Check if we already have a simulated trade for this market/follower
  */
 async function hasExistingTrade(follower: string, marketId: string): Promise<boolean> {
-  const { data } = await supabase
+  const { data } = await getSupabase()
     .from('polymarket_simulated_trades')
     .select('id')
     .eq('follower', follower)
@@ -111,7 +121,7 @@ async function hasExistingTrade(follower: string, marketId: string): Promise<boo
  * (used to skip already-processed activities without needing separate table)
  */
 async function wasActivityAlreadyCopied(leader: string, marketId: string): Promise<boolean> {
-  const { data } = await supabase
+  const { data } = await getSupabase()
     .from('polymarket_simulated_trades')
     .select('id')
     .eq('leader', leader)
@@ -140,7 +150,7 @@ async function createSimulatedTrade(
     // Use follower's allocation or default to leader's amount (capped)
     const tradeAmount = Math.min(allocationUsd, position.amountUsd, 100);
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('polymarket_simulated_trades')
       .insert({
         follower,
@@ -173,7 +183,7 @@ export async function GET() {
   try {
 
     // Get all active follows with auto_copy enabled
-    const { data: follows, error: followsError } = await supabase
+    const { data: follows, error: followsError } = await getSupabase()
       .from('polymarket_follows')
       .select('follower, leader, leader_username, allocation_usd')
       .eq('is_active', true)
