@@ -75,7 +75,7 @@ export default function MarketsPage() {
             <Activity className="w-5 h-5 text-primary" />
             <h1 className="text-xl sm:text-2xl font-bold">Markets</h1>
           </div>
-          <p className="text-sm text-muted-foreground">Live prediction markets across platforms</p>
+          <p className="text-sm text-muted-foreground">Live prediction markets across platforms - Simulate bets on real events</p>
         </div>
         <div className="flex items-center gap-3">
           {liveCount > 0 && (
