@@ -98,7 +98,7 @@ export async function GET() {
     // Get all pending simulated trades
     const { data: pendingTrades, error: fetchError } = await supabase
       .from('simulated_trades')
-      .select('id, epoch, is_bull, amount, lock_price, follower')
+      .select('id, epoch, is_bull, amount, follower')
       .eq('outcome', 'pending');
 
     if (fetchError) {
@@ -175,7 +175,6 @@ export async function GET() {
               outcome: won ? 'win' : 'loss',
               pnl: pnlWei,
               resolved_at: new Date().toISOString(),
-              close_price: roundData.closePrice.toString(),
             })
             .eq('id', trade.id);
 

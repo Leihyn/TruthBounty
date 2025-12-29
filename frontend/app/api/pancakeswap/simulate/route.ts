@@ -67,7 +67,6 @@ export async function POST(request: NextRequest) {
         is_bull: position === 'Bull',
         outcome: 'pending',
         simulated_at: new Date().toISOString(),
-        lock_price: lockPrice || null,
         asset: asset,
       })
       .select()
