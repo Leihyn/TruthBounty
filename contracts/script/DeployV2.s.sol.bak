@@ -1,0 +1,257 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+import {Script, console} from "@forge-std/Script.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
+// NOTE: Before running this script, install OpenZeppelin upgradeable contracts:
+// cd contracts && forge install OpenZeppelin/openzeppelin-contracts-upgradeable --no-commit
+import {ReputationNFT} from "../src/core/ReputationNFT.sol";
+import {ScoreCalculator} from "../src/core/ScoreCalculator.sol";
+import {PlatformRegistry} from "../src/core/PlatformRegistry.sol";
+import {TruthBountyCoreV2} from "../src/core/TruthBountyCoreV2.sol";
+import {PancakePredictionAdapter} from "../src/adapters/PancakePredictionAdapter.sol";
+import {HelperConfig} from "./helpers/HelperConfig.s.sol";
+
+/**
+ * @title DeployV2
+ * @notice Deployment script for TruthBounty V2 with UUPS proxy pattern
+ * @dev Deploys upgradeable TruthBountyCoreV2 with timelock admin functions
+ * @author TruthBounty Team
+ *
+ * IMPROVEMENTS IN V2:
+ * - Gas-efficient O(1) platform connection lookups (vs O(n) in V1)
+ * - UUPS proxy pattern for future upgrades
+ * - 24-hour timelock on admin functions (pause, unpause, withdrawFees)
+ * - Emergency pause for critical situations
+ *
+ * USAGE:
+ * Deploy to BNB Testnet:
+ *   forge script script/DeployV2.s.sol:DeployV2 --rpc-url $BNB_TESTNET_RPC --broadcast --verify -vvvv
+ *
+ * Deploy to BNB Mainnet:
+ *   forge script script/DeployV2.s.sol:DeployV2 --rpc-url $BNB_MAINNET_RPC --broadcast --verify -vvvv
+ *
+ * Deploy locally (no verification):
+ *   forge script script/DeployV2.s.sol:DeployV2 --rpc-url http://localhost:8545 --broadcast -vvvv
+ */
+contract DeployV2 is Script {
+    // ============================================
+    // Deployed Contract Addresses
+    // ============================================
+
+    ReputationNFT public reputationNFT;
+    ScoreCalculator public scoreCalculator;
+    PlatformRegistry public platformRegistry;
+    TruthBountyCoreV2 public truthBountyCoreImplementation;
+    ERC1967Proxy public truthBountyCoreProxy;
+    TruthBountyCoreV2 public truthBountyCore; // Proxy cast to implementation
+    PancakePredictionAdapter public pancakeAdapter;
+
+    HelperConfig public helperConfig;
+
+    // ============================================
+    // Main Deployment Function
+    // ============================================
+
+    function run() external returns (address, address, address, address, address, address) {
+        // Load network configuration
+        helperConfig = new HelperConfig();
+        HelperConfig.NetworkConfig memory config = helperConfig.getActiveNetworkConfig();
+
+        console.log("\n==============================================");
+        console.log("TRUTHBOUNTY V2 DEPLOYMENT (UPGRADEABLE)");
+        console.log("==============================================");
+        console.log("Network:", config.networkName);
+        console.log("Chain ID:", config.chainId);
+        console.log("Deployer:", msg.sender);
+        console.log("==============================================\n");
+
+        // Start broadcasting transactions
+        vm.startBroadcast();
+
+        // 1. Deploy ReputationNFT
+        console.log("1/8 Deploying ReputationNFT...");
+        reputationNFT = new ReputationNFT();
+        console.log("   ReputationNFT deployed at:", address(reputationNFT));
+
+        // 2. Deploy ScoreCalculator
+        console.log("\n2/8 Deploying ScoreCalculator...");
+        scoreCalculator = new ScoreCalculator();
+        console.log("   ScoreCalculator deployed at:", address(scoreCalculator));
+
+        // 3. Deploy PlatformRegistry
+        console.log("\n3/8 Deploying PlatformRegistry...");
+        platformRegistry = new PlatformRegistry();
+        console.log("   PlatformRegistry deployed at:", address(platformRegistry));
+
+        // 4. Deploy TruthBountyCoreV2 Implementation
+        console.log("\n4/8 Deploying TruthBountyCoreV2 Implementation...");
+        truthBountyCoreImplementation = new TruthBountyCoreV2();
+        console.log("   Implementation deployed at:", address(truthBountyCoreImplementation));
+
+        // 5. Deploy ERC1967 Proxy and initialize
+        console.log("\n5/8 Deploying ERC1967 Proxy...");
+        bytes memory initData = abi.encodeWithSelector(
+            TruthBountyCoreV2.initialize.selector,
+            address(reputationNFT),
+            address(scoreCalculator),
+            address(platformRegistry)
+        );
+        truthBountyCoreProxy = new ERC1967Proxy(
+            address(truthBountyCoreImplementation),
+            initData
+        );
+        truthBountyCore = TruthBountyCoreV2(payable(address(truthBountyCoreProxy)));
+        console.log("   Proxy deployed at:", address(truthBountyCoreProxy));
+        console.log("   Version:", truthBountyCore.version());
+
+        // 6. Deploy PancakePredictionAdapter
+        console.log("\n6/8 Deploying PancakePredictionAdapter...");
+        if (config.pancakePredictionV2 == address(0)) {
+            console.log("   WARNING: No PancakePrediction address for this network!");
+            console.log("   Skipping adapter deployment.");
+        } else {
+            pancakeAdapter = new PancakePredictionAdapter(config.pancakePredictionV2);
+            console.log("   PancakePredictionAdapter deployed at:", address(pancakeAdapter));
+            console.log("   Connected to PancakePrediction:", config.pancakePredictionV2);
+        }
+
+        // 7. Register PancakePrediction platform in registry
+        console.log("\n7/8 Registering PancakePrediction platform...");
+        if (address(pancakeAdapter) != address(0)) {
+            uint256 platformId = platformRegistry.addPlatform(
+                "PancakePrediction V2",
+                address(pancakeAdapter),
+                config.explorerUrl,
+                PlatformRegistry.PlatformType.BINARY_PREDICTION
+            );
+            console.log("   Platform registered with ID:", platformId);
+            console.log("   Platform Name: PancakePrediction V2");
+            console.log("   Platform Type: BINARY_PREDICTION");
+        } else {
+            console.log("   Skipped (no adapter deployed)");
+        }
+
+        // 8. Set TruthBountyCore as NFT minter
+        console.log("\n8/8 Setting TruthBountyCore as NFT minter...");
+        reputationNFT.setCore(address(truthBountyCore));
+        console.log("   TruthBountyCore (proxy) set as minter");
+
+        vm.stopBroadcast();
+
+        // Print deployment summary
+        _printDeploymentSummary(config);
+
+        // Print upgrade instructions
+        _printUpgradeInstructions();
+
+        return (
+            address(reputationNFT),
+            address(scoreCalculator),
+            address(platformRegistry),
+            address(truthBountyCoreImplementation),
+            address(truthBountyCoreProxy),
+            address(pancakeAdapter)
+        );
+    }
+
+    // ============================================
+    // Helper Functions
+    // ============================================
+
+    /**
+     * @dev Prints formatted deployment summary
+     */
+    function _printDeploymentSummary(HelperConfig.NetworkConfig memory config) internal view {
+        console.log("\n==============================================");
+        console.log("DEPLOYMENT SUMMARY (V2 - UPGRADEABLE)");
+        console.log("==============================================");
+        console.log("Network:", config.networkName);
+        console.log("Chain ID:", config.chainId);
+        console.log("Deployer:", msg.sender);
+        console.log("----------------------------------------------");
+        console.log("Core Contracts:");
+        console.log("  ReputationNFT:            ", address(reputationNFT));
+        console.log("  ScoreCalculator:          ", address(scoreCalculator));
+        console.log("  PlatformRegistry:         ", address(platformRegistry));
+        console.log("----------------------------------------------");
+        console.log("Upgradeable Core (UUPS):");
+        console.log("  Implementation:           ", address(truthBountyCoreImplementation));
+        console.log("  Proxy (use this address): ", address(truthBountyCoreProxy));
+        console.log("  Version:                  ", truthBountyCore.version());
+        console.log("----------------------------------------------");
+        console.log("V2 Features:");
+        console.log("  - Gas-efficient O(1) platform lookups");
+        console.log("  - UUPS upgradeable proxy pattern");
+        console.log("  - 24-hour timelock on admin functions");
+        console.log("  - Emergency pause for critical situations");
+        console.log("----------------------------------------------");
+        console.log("Adapters:");
+        if (address(pancakeAdapter) != address(0)) {
+            console.log("  PancakeAdapter:           ", address(pancakeAdapter));
+        } else {
+            console.log("  PancakeAdapter:            Not deployed");
+        }
+        console.log("==============================================");
+    }
+
+    /**
+     * @dev Prints upgrade instructions
+     */
+    function _printUpgradeInstructions() internal view {
+        console.log("\n==============================================");
+        console.log("UPGRADE INSTRUCTIONS");
+        console.log("==============================================");
+        console.log("To upgrade the contract in the future:");
+        console.log("");
+        console.log("1. Deploy new implementation:");
+        console.log("   TruthBountyCoreV3 newImpl = new TruthBountyCoreV3();");
+        console.log("");
+        console.log("2. Call upgradeToAndCall on the proxy:");
+        console.log("   truthBountyCore.upgradeToAndCall(address(newImpl), \"\");");
+        console.log("");
+        console.log("IMPORTANT:");
+        console.log("- Only the owner can upgrade");
+        console.log("- Test thoroughly on testnet first");
+        console.log("- New implementation must be UUPS compatible");
+        console.log("- Storage layout must be preserved");
+        console.log("==============================================");
+
+        console.log("\n==============================================");
+        console.log("TIMELOCK ADMIN FUNCTIONS");
+        console.log("==============================================");
+        console.log("Admin actions now have a 24-hour timelock:");
+        console.log("");
+        console.log("To pause the contract:");
+        console.log("  1. bytes32 actionId = truthBountyCore.queuePause();");
+        console.log("  2. Wait 24 hours");
+        console.log("  3. truthBountyCore.executePause(actionId);");
+        console.log("");
+        console.log("To withdraw fees:");
+        console.log("  1. bytes32 actionId = truthBountyCore.queueWithdrawFees();");
+        console.log("  2. Wait 24 hours");
+        console.log("  3. truthBountyCore.executeWithdrawFees(actionId);");
+        console.log("");
+        console.log("Emergency pause (bypasses timelock):");
+        console.log("  truthBountyCore.emergencyPause();");
+        console.log("  (Use only when funds are at immediate risk)");
+        console.log("==============================================\n");
+    }
+
+    /**
+     * @dev Converts address to string
+     */
+    function addressToString(address addr) internal pure returns (string memory) {
+        bytes memory data = abi.encodePacked(addr);
+        bytes memory alphabet = "0123456789abcdef";
+        bytes memory str = new bytes(42);
+        str[0] = "0";
+        str[1] = "x";
+        for (uint256 i = 0; i < 20; i++) {
+            str[2 + i * 2] = alphabet[uint8(data[i] >> 4)];
+            str[3 + i * 2] = alphabet[uint8(data[i] & 0x0f)];
+        }
+        return string(str);
+    }
+}

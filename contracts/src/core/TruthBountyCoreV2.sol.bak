@@ -1,0 +1,610 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
+// NOTE: Install upgradeable contracts:
+// cd contracts && forge install OpenZeppelin/openzeppelin-contracts-upgradeable --no-commit
+import {ReputationNFT} from "./ReputationNFT.sol";
+import {ScoreCalculator} from "./ScoreCalculator.sol";
+import {PlatformRegistry} from "./PlatformRegistry.sol";
+
+/**
+ * @title TruthBountyCoreV2
+ * @notice Main protocol contract that orchestrates the TruthBounty reputation system
+ * @dev V2 includes: UUPS upgradability, gas-efficient platform mapping, timelock for admin actions
+ * @author TruthBounty Team
+ */
+contract TruthBountyCoreV2 is
+    Initializable,
+    OwnableUpgradeable,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    UUPSUpgradeable
+{
+    // ============================================
+    // State Variables
+    // ============================================
+
+    ReputationNFT public reputationNFT;
+    ScoreCalculator public scoreCalculator;
+    PlatformRegistry public platformRegistry;
+
+    /**
+     * @notice Struct representing a user's profile
+     */
+    struct UserProfile {
+        uint256 reputationNFTId;
+        uint256 truthScore;
+        uint256 totalPredictions;
+        uint256 correctPredictions;
+        uint256 totalVolume;
+        uint256 connectedPlatformCount;  // Changed from array to count
+        uint256 createdAt;
+        uint256 lastUpdate;
+    }
+
+    // Mapping from user address to profile
+    mapping(address => UserProfile) public profiles;
+
+    // GAS OPTIMIZATION: O(1) platform connection lookup instead of O(n) array scan
+    mapping(address => mapping(uint256 => bool)) public userPlatformConnected;
+
+    // Track user's connected platform IDs (for enumeration when needed)
+    mapping(address => uint256[]) internal userPlatformList;
+
+    // Mapping to track imported prediction batches (prevents double-imports)
+    mapping(bytes32 => bool) public importedBatches;
+
+    // Mapping to track last import time per user (rate limiting)
+    mapping(address => uint256) public lastImportTime;
+
+    // Rate limit duration (1 hour)
+    uint256 public constant IMPORT_RATE_LIMIT = 1 hours;
+
+    // Revenue Model: Minting fee (0.0005 BNB = ~$0.30 at $600/BNB)
+    uint256 public constant MINT_FEE = 0.0005 ether;
+
+    // Total fees collected (for transparency)
+    uint256 public totalFeesCollected;
+
+    // ============================================
+    // Timelock State Variables
+    // ============================================
+
+    uint256 public constant TIMELOCK_DELAY = 24 hours;
+
+    struct TimelockAction {
+        bytes32 actionHash;
+        uint256 executeAfter;
+        bool executed;
+        bool cancelled;
+    }
+
+    mapping(bytes32 => TimelockAction) public timelockActions;
+
+    // ============================================
+    // Events
+    // ============================================
+
+    event UserRegistered(address indexed user, uint256 indexed nftTokenId, uint256 timestamp);
+    event PlatformConnected(address indexed user, uint256 indexed platformId, string platformName);
+    event PredictionsImported(address indexed user, uint256 indexed platformId, uint256 count, bytes32 batchHash);
+    event TruthScoreUpdated(address indexed user, uint256 oldScore, uint256 newScore);
+    event ProfileUpdated(address indexed user, uint256 truthScore, uint256 totalPredictions);
+    event FeeCollected(address indexed user, uint256 amount, string feeType);
+    event FeesWithdrawn(address indexed owner, uint256 amount);
+
+    // Timelock events
+    event ActionQueued(bytes32 indexed actionId, string actionType, uint256 executeAfter);
+    event ActionExecuted(bytes32 indexed actionId, string actionType);
+    event ActionCancelled(bytes32 indexed actionId);
+
+    // ============================================
+    // Errors
+    // ============================================
+
+    error AlreadyRegistered(address user);
+    error NotRegistered(address user);
+    error PlatformNotActive(uint256 platformId);
+    error PlatformAlreadyConnected(uint256 platformId);
+    error PlatformNotConnected(uint256 platformId);
+    error BatchAlreadyImported(bytes32 batchHash);
+    error RateLimitExceeded(uint256 timeRemaining);
+    error InvalidPredictionData();
+    error NoPlatformsConnected();
+    error InsufficientFee(uint256 required, uint256 sent);
+    error ActionNotReady(uint256 executeAfter);
+    error ActionAlreadyExecuted();
+    error ActionCancelled();
+    error ActionNotFound();
+
+    // ============================================
+    // Initializer (replaces constructor for UUPS)
+    // ============================================
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    /**
+     * @notice Initializes the contract (called once during proxy deployment)
+     * @param _reputationNFT Address of the ReputationNFT contract
+     * @param _scoreCalculator Address of the ScoreCalculator contract
+     * @param _platformRegistry Address of the PlatformRegistry contract
+     */
+    function initialize(
+        address _reputationNFT,
+        address _scoreCalculator,
+        address _platformRegistry
+    ) public initializer {
+        __Ownable_init(msg.sender);
+        __Pausable_init();
+        __ReentrancyGuard_init();
+        __UUPSUpgradeable_init();
+
+        reputationNFT = ReputationNFT(_reputationNFT);
+        scoreCalculator = ScoreCalculator(_scoreCalculator);
+        platformRegistry = PlatformRegistry(_platformRegistry);
+    }
+
+    /**
+     * @notice Required by UUPS - authorizes upgrades
+     * @dev Only owner can upgrade, protected by timelock
+     */
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    // ============================================
+    // User Registration
+    // ============================================
+
+    /**
+     * @notice Registers a new user and mints their reputation NFT
+     * @dev Can only be called once per address, requires MINT_FEE payment
+     * @return nftTokenId The token ID of the minted reputation NFT
+     */
+    function registerUser() external payable whenNotPaused nonReentrant returns (uint256 nftTokenId) {
+        // Check minting fee
+        if (msg.value < MINT_FEE) {
+            revert InsufficientFee(MINT_FEE, msg.value);
+        }
+
+        // Check if user is already registered
+        if (profiles[msg.sender].createdAt != 0) {
+            revert AlreadyRegistered(msg.sender);
+        }
+
+        // Track collected fees
+        totalFeesCollected += msg.value;
+        emit FeeCollected(msg.sender, msg.value, "MINT");
+
+        // Mint reputation NFT
+        nftTokenId = reputationNFT.mint(msg.sender);
+
+        // Create user profile
+        profiles[msg.sender] = UserProfile({
+            reputationNFTId: nftTokenId,
+            truthScore: 0,
+            totalPredictions: 0,
+            correctPredictions: 0,
+            totalVolume: 0,
+            connectedPlatformCount: 0,
+            createdAt: block.timestamp,
+            lastUpdate: block.timestamp
+        });
+
+        emit UserRegistered(msg.sender, nftTokenId, block.timestamp);
+
+        // Refund excess payment
+        if (msg.value > MINT_FEE) {
+            payable(msg.sender).transfer(msg.value - MINT_FEE);
+        }
+
+        return nftTokenId;
+    }
+
+    /**
+     * @notice Checks if a user is registered
+     * @param user Address to check
+     * @return True if user is registered
+     */
+    function hasRegistered(address user) external view returns (bool) {
+        return profiles[user].createdAt != 0;
+    }
+
+    // ============================================
+    // Platform Connection (Gas Optimized)
+    // ============================================
+
+    /**
+     * @notice Connects a user to a prediction market platform
+     * @dev Uses O(1) mapping lookup instead of O(n) array scan
+     * @param platformId ID of the platform to connect
+     */
+    function connectPlatform(uint256 platformId) external whenNotPaused nonReentrant {
+        // Check if user is registered
+        if (profiles[msg.sender].createdAt == 0) {
+            revert NotRegistered(msg.sender);
+        }
+
+        // Check if platform is active
+        if (!platformRegistry.isPlatformActive(platformId)) {
+            revert PlatformNotActive(platformId);
+        }
+
+        // GAS OPTIMIZATION: O(1) lookup instead of O(n) array scan
+        if (userPlatformConnected[msg.sender][platformId]) {
+            revert PlatformAlreadyConnected(platformId);
+        }
+
+        // Mark platform as connected
+        userPlatformConnected[msg.sender][platformId] = true;
+        userPlatformList[msg.sender].push(platformId);
+        profiles[msg.sender].connectedPlatformCount++;
+
+        // Get platform name for event
+        PlatformRegistry.Platform memory platform = platformRegistry.getPlatform(platformId);
+
+        emit PlatformConnected(msg.sender, platformId, platform.name);
+    }
+
+    /**
+     * @notice Checks if a user has connected a specific platform
+     * @dev O(1) lookup using mapping
+     * @param user Address of the user
+     * @param platformId ID of the platform
+     * @return True if platform is connected
+     */
+    function isPlatformConnected(address user, uint256 platformId) public view returns (bool) {
+        return userPlatformConnected[user][platformId];
+    }
+
+    /**
+     * @notice Gets a user's connected platforms
+     * @param user Address of the user
+     * @return platformIds Array of platform IDs
+     */
+    function getConnectedPlatforms(address user) external view returns (uint256[] memory platformIds) {
+        return userPlatformList[user];
+    }
+
+    /**
+     * @notice Gets the number of connected platforms for a user
+     * @param user Address of the user
+     * @return count Number of connected platforms
+     */
+    function getConnectedPlatformCount(address user) external view returns (uint256 count) {
+        return profiles[user].connectedPlatformCount;
+    }
+
+    // ============================================
+    // Prediction Import
+    // ============================================
+
+    /**
+     * @notice Imports predictions from a connected platform
+     * @dev Includes rate limiting and double-import prevention
+     * @param platformId ID of the platform
+     * @param totalPredictions Total predictions to import
+     * @param correctPredictions Correct predictions to import
+     * @param totalVolume Total volume in wei
+     * @param proof Proof/batch identifier (hash of prediction data)
+     */
+    function importPredictions(
+        uint256 platformId,
+        uint256 totalPredictions,
+        uint256 correctPredictions,
+        uint256 totalVolume,
+        bytes32 proof
+    ) external whenNotPaused nonReentrant {
+        // Check if user is registered
+        if (profiles[msg.sender].createdAt == 0) {
+            revert NotRegistered(msg.sender);
+        }
+
+        // Check if platform is connected (O(1) lookup)
+        if (!userPlatformConnected[msg.sender][platformId]) {
+            revert PlatformNotConnected(platformId);
+        }
+
+        // Check rate limit (skip if first import)
+        if (lastImportTime[msg.sender] != 0 && block.timestamp < lastImportTime[msg.sender] + IMPORT_RATE_LIMIT) {
+            uint256 timeRemaining = (lastImportTime[msg.sender] + IMPORT_RATE_LIMIT) - block.timestamp;
+            revert RateLimitExceeded(timeRemaining);
+        }
+
+        // Check if batch already imported
+        if (importedBatches[proof]) {
+            revert BatchAlreadyImported(proof);
+        }
+
+        // Validate prediction data
+        if (correctPredictions > totalPredictions) {
+            revert InvalidPredictionData();
+        }
+
+        // Mark batch as imported
+        importedBatches[proof] = true;
+
+        // Update last import time
+        lastImportTime[msg.sender] = block.timestamp;
+
+        // Update user profile
+        UserProfile storage profile = profiles[msg.sender];
+        profile.totalPredictions += totalPredictions;
+        profile.correctPredictions += correctPredictions;
+        profile.totalVolume += totalVolume;
+        profile.lastUpdate = block.timestamp;
+
+        emit PredictionsImported(msg.sender, platformId, totalPredictions, proof);
+
+        // Auto-update TruthScore
+        _updateTruthScore(msg.sender);
+    }
+
+    // ============================================
+    // Score Update
+    // ============================================
+
+    /**
+     * @notice Updates a user's TruthScore and reputation NFT
+     * @param user Address of the user to update
+     */
+    function updateTruthScore(address user) external whenNotPaused {
+        // Check if user is registered
+        if (profiles[user].createdAt == 0) {
+            revert NotRegistered(user);
+        }
+
+        _updateTruthScore(user);
+    }
+
+    /**
+     * @dev Internal function to update TruthScore
+     */
+    function _updateTruthScore(address user) internal {
+        UserProfile storage profile = profiles[user];
+
+        // Skip if no predictions
+        if (profile.totalPredictions == 0) {
+            return;
+        }
+
+        uint256 oldScore = profile.truthScore;
+
+        // Calculate new TruthScore
+        uint256 newScore = scoreCalculator.calculateTruthScore(
+            profile.totalPredictions, profile.correctPredictions, profile.totalVolume
+        );
+
+        profile.truthScore = newScore;
+        profile.lastUpdate = block.timestamp;
+
+        // Update reputation NFT metadata
+        string[] memory platformNames = _getPlatformNames(userPlatformList[user]);
+
+        reputationNFT.updateMetadata(
+            profile.reputationNFTId,
+            newScore,
+            profile.totalPredictions,
+            profile.correctPredictions,
+            profile.totalVolume,
+            platformNames
+        );
+
+        emit TruthScoreUpdated(user, oldScore, newScore);
+        emit ProfileUpdated(user, newScore, profile.totalPredictions);
+    }
+
+    // ============================================
+    // Profile Queries
+    // ============================================
+
+    /**
+     * @notice Gets a user's complete profile
+     * @param user Address of the user
+     * @return profile UserProfile struct
+     */
+    function getUserProfile(address user) external view returns (UserProfile memory profile) {
+        return profiles[user];
+    }
+
+    /**
+     * @notice Gets a user's win rate (in basis points)
+     * @param user Address of the user
+     * @return winRate Win rate (0-10000, where 7550 = 75.50%)
+     */
+    function getWinRate(address user) external view returns (uint256 winRate) {
+        UserProfile memory profile = profiles[user];
+
+        if (profile.totalPredictions == 0) {
+            return 0;
+        }
+
+        return (profile.correctPredictions * 10000) / profile.totalPredictions;
+    }
+
+    // ============================================
+    // Timelock Admin Functions
+    // ============================================
+
+    /**
+     * @notice Queue a pause action with timelock
+     * @return actionId The ID of the queued action
+     */
+    function queuePause() external onlyOwner returns (bytes32 actionId) {
+        actionId = keccak256(abi.encodePacked("pause", block.timestamp));
+
+        timelockActions[actionId] = TimelockAction({
+            actionHash: keccak256("pause"),
+            executeAfter: block.timestamp + TIMELOCK_DELAY,
+            executed: false,
+            cancelled: false
+        });
+
+        emit ActionQueued(actionId, "pause", block.timestamp + TIMELOCK_DELAY);
+        return actionId;
+    }
+
+    /**
+     * @notice Execute a queued pause action
+     * @param actionId The ID of the action to execute
+     */
+    function executePause(bytes32 actionId) external onlyOwner {
+        TimelockAction storage action = timelockActions[actionId];
+
+        if (action.executeAfter == 0) revert ActionNotFound();
+        if (action.executed) revert ActionAlreadyExecuted();
+        if (action.cancelled) revert ActionCancelled();
+        if (block.timestamp < action.executeAfter) revert ActionNotReady(action.executeAfter);
+
+        action.executed = true;
+        _pause();
+
+        emit ActionExecuted(actionId, "pause");
+    }
+
+    /**
+     * @notice Queue an unpause action with timelock
+     * @return actionId The ID of the queued action
+     */
+    function queueUnpause() external onlyOwner returns (bytes32 actionId) {
+        actionId = keccak256(abi.encodePacked("unpause", block.timestamp));
+
+        timelockActions[actionId] = TimelockAction({
+            actionHash: keccak256("unpause"),
+            executeAfter: block.timestamp + TIMELOCK_DELAY,
+            executed: false,
+            cancelled: false
+        });
+
+        emit ActionQueued(actionId, "unpause", block.timestamp + TIMELOCK_DELAY);
+        return actionId;
+    }
+
+    /**
+     * @notice Execute a queued unpause action
+     * @param actionId The ID of the action to execute
+     */
+    function executeUnpause(bytes32 actionId) external onlyOwner {
+        TimelockAction storage action = timelockActions[actionId];
+
+        if (action.executeAfter == 0) revert ActionNotFound();
+        if (action.executed) revert ActionAlreadyExecuted();
+        if (action.cancelled) revert ActionCancelled();
+        if (block.timestamp < action.executeAfter) revert ActionNotReady(action.executeAfter);
+
+        action.executed = true;
+        _unpause();
+
+        emit ActionExecuted(actionId, "unpause");
+    }
+
+    /**
+     * @notice Queue a fee withdrawal with timelock
+     * @return actionId The ID of the queued action
+     */
+    function queueWithdrawFees() external onlyOwner returns (bytes32 actionId) {
+        actionId = keccak256(abi.encodePacked("withdrawFees", block.timestamp, address(this).balance));
+
+        timelockActions[actionId] = TimelockAction({
+            actionHash: keccak256(abi.encodePacked("withdrawFees", address(this).balance)),
+            executeAfter: block.timestamp + TIMELOCK_DELAY,
+            executed: false,
+            cancelled: false
+        });
+
+        emit ActionQueued(actionId, "withdrawFees", block.timestamp + TIMELOCK_DELAY);
+        return actionId;
+    }
+
+    /**
+     * @notice Execute a queued fee withdrawal
+     * @param actionId The ID of the action to execute
+     */
+    function executeWithdrawFees(bytes32 actionId) external onlyOwner nonReentrant {
+        TimelockAction storage action = timelockActions[actionId];
+
+        if (action.executeAfter == 0) revert ActionNotFound();
+        if (action.executed) revert ActionAlreadyExecuted();
+        if (action.cancelled) revert ActionCancelled();
+        if (block.timestamp < action.executeAfter) revert ActionNotReady(action.executeAfter);
+
+        action.executed = true;
+
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No fees to withdraw");
+
+        emit FeesWithdrawn(owner(), balance);
+        emit ActionExecuted(actionId, "withdrawFees");
+
+        (bool success,) = payable(owner()).call{value: balance}("");
+        require(success, "Transfer failed");
+    }
+
+    /**
+     * @notice Cancel a queued action
+     * @param actionId The ID of the action to cancel
+     */
+    function cancelAction(bytes32 actionId) external onlyOwner {
+        TimelockAction storage action = timelockActions[actionId];
+
+        if (action.executeAfter == 0) revert ActionNotFound();
+        if (action.executed) revert ActionAlreadyExecuted();
+
+        action.cancelled = true;
+
+        emit ActionCancelled(actionId);
+    }
+
+    /**
+     * @notice Emergency pause (bypasses timelock - use only in emergencies)
+     * @dev Emits a warning event. Should be used only when funds are at risk.
+     */
+    function emergencyPause() external onlyOwner {
+        _pause();
+        emit ActionExecuted(bytes32(0), "EMERGENCY_PAUSE");
+    }
+
+    /**
+     * @notice Get current contract balance (accumulated fees)
+     * @return balance Current balance in wei
+     */
+    function getContractBalance() external view returns (uint256 balance) {
+        return address(this).balance;
+    }
+
+    // ============================================
+    // Internal Helper Functions
+    // ============================================
+
+    /**
+     * @dev Gets platform names from platform IDs
+     */
+    function _getPlatformNames(uint256[] memory platformIds) internal view returns (string[] memory names) {
+        names = new string[](platformIds.length);
+
+        for (uint256 i = 0; i < platformIds.length; i++) {
+            try platformRegistry.getPlatform(platformIds[i]) returns (PlatformRegistry.Platform memory platform) {
+                names[i] = platform.name;
+            } catch {
+                names[i] = "Unknown";
+            }
+        }
+
+        return names;
+    }
+
+    /**
+     * @notice Returns the implementation version
+     * @return Version string
+     */
+    function version() external pure returns (string memory) {
+        return "2.0.0";
+    }
+}

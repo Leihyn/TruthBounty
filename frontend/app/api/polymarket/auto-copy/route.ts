@@ -36,7 +36,7 @@ const POLYMARKET_ACTIVITY_API = 'https://data-api.polymarket.com/activity';
 const POLYMARKET_MARKETS_API = 'https://gamma-api.polymarket.com/markets';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // Pro plan allows up to 60s
+export const maxDuration = 60; // Vercel Pro plan allows up to 60s
 
 interface PolymarketActivity {
   id: string;

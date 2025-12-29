@@ -32,7 +32,14 @@ contract TruthBountyCoreTest is Test {
     uint256 public pancakePlatformId;
     uint256 public polymarketPlatformId;
 
+    // Mint fee constant (must match TruthBountyCore.MINT_FEE)
+    uint256 public constant MINT_FEE = 0.0005 ether;
+
     function setUp() public {
+        // Fund test accounts
+        vm.deal(user1, 100 ether);
+        vm.deal(user2, 100 ether);
+        vm.deal(unauthorized, 100 ether);
         vm.startPrank(owner);
 
         // Deploy contracts
@@ -67,7 +74,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_RegisterUser() public {
         vm.prank(user1);
-        uint256 nftTokenId = core.registerUser();
+        uint256 nftTokenId = core.registerUser{value: MINT_FEE}();
 
         assertEq(nftTokenId, 1, "NFT token ID should be 1");
         assertTrue(core.hasRegistered(user1), "User should be registered");
@@ -82,10 +89,10 @@ contract TruthBountyCoreTest is Test {
 
     function test_RegisterUser_RevertWhen_AlreadyRegistered() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
 
         vm.expectRevert(abi.encodeWithSelector(TruthBountyCore.AlreadyRegistered.selector, user1));
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         vm.stopPrank();
     }
 
@@ -93,7 +100,7 @@ contract TruthBountyCoreTest is Test {
         assertFalse(core.hasRegistered(user1), "User should not be registered initially");
 
         vm.prank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
 
         assertTrue(core.hasRegistered(user1), "User should be registered after registration");
     }
@@ -104,7 +111,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_ConnectPlatform() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         core.connectPlatform(pancakePlatformId);
         vm.stopPrank();
 
@@ -117,7 +124,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_ConnectPlatform_Multiple() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         core.connectPlatform(pancakePlatformId);
         core.connectPlatform(polymarketPlatformId);
         vm.stopPrank();
@@ -135,7 +142,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_ConnectPlatform_RevertWhen_PlatformNotActive() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         vm.stopPrank();
 
         // Deactivate platform
@@ -149,7 +156,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_ConnectPlatform_RevertWhen_AlreadyConnected() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         core.connectPlatform(pancakePlatformId);
 
         vm.expectRevert(abi.encodeWithSelector(TruthBountyCore.PlatformAlreadyConnected.selector, pancakePlatformId));
@@ -163,7 +170,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_ImportPredictions() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         core.connectPlatform(pancakePlatformId);
 
         bytes32 proof = keccak256("batch1");
@@ -187,7 +194,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_ImportPredictions_UpdatesNFT() public {
         vm.startPrank(user1);
-        uint256 tokenId = core.registerUser();
+        uint256 tokenId = core.registerUser{value: MINT_FEE}();
         core.connectPlatform(pancakePlatformId);
 
         bytes32 proof = keccak256("batch1");
@@ -204,7 +211,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_ImportPredictions_MultipleBatches() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         core.connectPlatform(pancakePlatformId);
 
         // First import
@@ -228,7 +235,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_ImportPredictions_RevertWhen_NotConnected() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
 
         bytes32 proof = keccak256("batch1");
 
@@ -240,7 +247,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_ImportPredictions_RevertWhen_RateLimited() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         core.connectPlatform(pancakePlatformId);
 
         bytes32 proof1 = keccak256("batch1");
@@ -256,7 +263,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_ImportPredictions_RevertWhen_DuplicateBatch() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         core.connectPlatform(pancakePlatformId);
 
         bytes32 proof = keccak256("batch1");
@@ -272,7 +279,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_ImportPredictions_RevertWhen_InvalidData() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         core.connectPlatform(pancakePlatformId);
 
         bytes32 proof = keccak256("batch1");
@@ -295,7 +302,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_UpdateTruthScore() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         core.connectPlatform(pancakePlatformId);
 
         bytes32 proof = keccak256("batch1");
@@ -325,7 +332,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_GetUserProfile() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         core.connectPlatform(pancakePlatformId);
 
         bytes32 proof = keccak256("batch1");
@@ -344,7 +351,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_GetWinRate() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         core.connectPlatform(pancakePlatformId);
 
         bytes32 proof = keccak256("batch1");
@@ -357,7 +364,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_GetWinRate_ZeroWhenNoPredictions() public {
         vm.prank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
 
         uint256 winRate = core.getWinRate(user1);
         assertEq(winRate, 0, "Win rate should be 0 with no predictions");
@@ -383,7 +390,7 @@ contract TruthBountyCoreTest is Test {
         vm.stopPrank();
 
         vm.prank(user1);
-        core.registerUser(); // Should work now
+        core.registerUser{value: MINT_FEE}(); // Should work now
     }
 
     function test_Pause_RevertWhen_NotOwner() public {
@@ -398,7 +405,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_AdminUpdateScore() public {
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         core.connectPlatform(pancakePlatformId);
 
         bytes32 proof = keccak256("batch1");
@@ -413,7 +420,7 @@ contract TruthBountyCoreTest is Test {
 
     function test_AdminUpdateScore_RevertWhen_NotOwner() public {
         vm.prank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
 
         vm.expectRevert();
         vm.prank(unauthorized);
@@ -427,7 +434,7 @@ contract TruthBountyCoreTest is Test {
     function test_Integration_FullUserJourney() public {
         // 1. User registers
         vm.prank(user1);
-        uint256 nftTokenId = core.registerUser();
+        uint256 nftTokenId = core.registerUser{value: MINT_FEE}();
 
         assertEq(nftTokenId, 1, "NFT should be minted");
         assertTrue(core.hasRegistered(user1), "User should be registered");
@@ -486,14 +493,14 @@ contract TruthBountyCoreTest is Test {
     function test_MultipleUsers() public {
         // User 1 journey
         vm.startPrank(user1);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         core.connectPlatform(pancakePlatformId);
         core.importPredictions(pancakePlatformId, 100, 80, 10 ether, keccak256("user1batch1"));
         vm.stopPrank();
 
         // User 2 journey
         vm.startPrank(user2);
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         core.connectPlatform(polymarketPlatformId);
         core.importPredictions(polymarketPlatformId, 50, 30, 5 ether, keccak256("user2batch1"));
         vm.stopPrank();

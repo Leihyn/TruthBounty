@@ -1,0 +1,762 @@
+2025-12-27 18:42:00: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:42:00: :: Created by npm, please don't edit manually.
+2025-12-27 18:42:00: ^
+2025-12-27 18:42:00: 
+2025-12-27 18:42:00: SyntaxError: Unexpected token ':'
+2025-12-27 18:42:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:42:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:42:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:42:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:42:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:42:00:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:42:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:42:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:42:00:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:42:00: 
+2025-12-27 18:42:00: Node.js v22.21.1
+2025-12-27 18:42:05: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:42:05: :: Created by npm, please don't edit manually.
+2025-12-27 18:42:05: ^
+2025-12-27 18:42:05: 
+2025-12-27 18:42:05: SyntaxError: Unexpected token ':'
+2025-12-27 18:42:05:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:42:05:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:42:05:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:42:05:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:42:05:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:42:05:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:42:05:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:42:05:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:42:05:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:42:05: 
+2025-12-27 18:42:05: Node.js v22.21.1
+2025-12-27 18:42:10: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:42:10: :: Created by npm, please don't edit manually.
+2025-12-27 18:42:10: ^
+2025-12-27 18:42:10: 
+2025-12-27 18:42:10: SyntaxError: Unexpected token ':'
+2025-12-27 18:42:10:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:42:10:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:42:10:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:42:10:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:42:10:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:42:10:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:42:10:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:42:10:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:42:10:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:42:10: 
+2025-12-27 18:42:10: Node.js v22.21.1
+2025-12-27 18:42:15: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:42:15: :: Created by npm, please don't edit manually.
+2025-12-27 18:42:15: ^
+2025-12-27 18:42:15: 
+2025-12-27 18:42:15: SyntaxError: Unexpected token ':'
+2025-12-27 18:42:15:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:42:15:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:42:15:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:42:15:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:42:15:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:42:15:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:42:15:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:42:15:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:42:15:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:42:15: 
+2025-12-27 18:42:15: Node.js v22.21.1
+2025-12-27 18:42:20: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:42:20: :: Created by npm, please don't edit manually.
+2025-12-27 18:42:20: ^
+2025-12-27 18:42:20: 
+2025-12-27 18:42:20: SyntaxError: Unexpected token ':'
+2025-12-27 18:42:20:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:42:20:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:42:20:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:42:20:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:42:20:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:42:20:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:42:20:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:42:20:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:42:20:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:42:20: 
+2025-12-27 18:42:20: Node.js v22.21.1
+2025-12-27 18:42:25: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:42:25: :: Created by npm, please don't edit manually.
+2025-12-27 18:42:25: ^
+2025-12-27 18:42:25: 
+2025-12-27 18:42:25: SyntaxError: Unexpected token ':'
+2025-12-27 18:42:25:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:42:25:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:42:25:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:42:25:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:42:25:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:42:25:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:42:25:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:42:25:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:42:25:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:42:25: 
+2025-12-27 18:42:25: Node.js v22.21.1
+2025-12-27 18:42:30: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:42:30: :: Created by npm, please don't edit manually.
+2025-12-27 18:42:30: ^
+2025-12-27 18:42:30: 
+2025-12-27 18:42:30: SyntaxError: Unexpected token ':'
+2025-12-27 18:42:30:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:42:30:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:42:30:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:42:30:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:42:30:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:42:30:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:42:30:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:42:30:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:42:30:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:42:30: 
+2025-12-27 18:42:30: Node.js v22.21.1
+2025-12-27 18:42:35: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:42:35: :: Created by npm, please don't edit manually.
+2025-12-27 18:42:35: ^
+2025-12-27 18:42:35: 
+2025-12-27 18:42:35: SyntaxError: Unexpected token ':'
+2025-12-27 18:42:35:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:42:35:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:42:35:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:42:35:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:42:35:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:42:35:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:42:35:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:42:35:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:42:35:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:42:35: 
+2025-12-27 18:42:35: Node.js v22.21.1
+2025-12-27 18:42:40: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:42:40: :: Created by npm, please don't edit manually.
+2025-12-27 18:42:40: ^
+2025-12-27 18:42:40: 
+2025-12-27 18:42:40: SyntaxError: Unexpected token ':'
+2025-12-27 18:42:40:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:42:40:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:42:40:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:42:40:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:42:40:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:42:40:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:42:40:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:42:40:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:42:40:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:42:40: 
+2025-12-27 18:42:40: Node.js v22.21.1
+2025-12-27 18:42:46: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:42:46: :: Created by npm, please don't edit manually.
+2025-12-27 18:42:46: ^
+2025-12-27 18:42:46: 
+2025-12-27 18:42:46: SyntaxError: Unexpected token ':'
+2025-12-27 18:42:46:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:42:46:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:42:46:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:42:46:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:42:46:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:42:46:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:42:46:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:42:46:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:42:46:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:42:46: 
+2025-12-27 18:42:46: Node.js v22.21.1
+2025-12-27 18:42:51: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:42:51: :: Created by npm, please don't edit manually.
+2025-12-27 18:42:51: ^
+2025-12-27 18:42:51: 
+2025-12-27 18:42:51: SyntaxError: Unexpected token ':'
+2025-12-27 18:42:51:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:42:51:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:42:51:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:42:51:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:42:51:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:42:51:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:42:51:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:42:51:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:42:51:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:42:51: 
+2025-12-27 18:42:51: Node.js v22.21.1
+2025-12-27 18:42:56: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:42:56: :: Created by npm, please don't edit manually.
+2025-12-27 18:42:56: ^
+2025-12-27 18:42:56: 
+2025-12-27 18:42:56: SyntaxError: Unexpected token ':'
+2025-12-27 18:42:56:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:42:56:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:42:56:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:42:56:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:42:56:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:42:56:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:42:56:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:42:56:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:42:56:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:42:56: 
+2025-12-27 18:42:56: Node.js v22.21.1
+2025-12-27 18:43:01: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:43:01: :: Created by npm, please don't edit manually.
+2025-12-27 18:43:01: ^
+2025-12-27 18:43:01: 
+2025-12-27 18:43:01: SyntaxError: Unexpected token ':'
+2025-12-27 18:43:01:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:43:01:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:43:01:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:43:01:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:43:01:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:43:01:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:43:01:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:43:01:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:43:01:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:43:01: 
+2025-12-27 18:43:01: Node.js v22.21.1
+2025-12-27 18:43:06: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:43:06: :: Created by npm, please don't edit manually.
+2025-12-27 18:43:06: ^
+2025-12-27 18:43:06: 
+2025-12-27 18:43:06: SyntaxError: Unexpected token ':'
+2025-12-27 18:43:06:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:43:06:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:43:06:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:43:06:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:43:06:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:43:06:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:43:06:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:43:06:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:43:06:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:43:06: 
+2025-12-27 18:43:06: Node.js v22.21.1
+2025-12-27 18:43:11: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:43:11: :: Created by npm, please don't edit manually.
+2025-12-27 18:43:11: ^
+2025-12-27 18:43:11: 
+2025-12-27 18:43:11: SyntaxError: Unexpected token ':'
+2025-12-27 18:43:11:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:43:11:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:43:11:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:43:11:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:43:11:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:43:11:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:43:11:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:43:11:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:43:11:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:43:11: 
+2025-12-27 18:43:11: Node.js v22.21.1
+2025-12-27 18:43:16: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:43:16: :: Created by npm, please don't edit manually.
+2025-12-27 18:43:16: ^
+2025-12-27 18:43:16: 
+2025-12-27 18:43:16: SyntaxError: Unexpected token ':'
+2025-12-27 18:43:16:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:43:16:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:43:16:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:43:16:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:43:16:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:43:16:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:43:16:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:43:16:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:43:16:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:43:16: 
+2025-12-27 18:43:16: Node.js v22.21.1
+2025-12-27 18:43:21: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:43:21: :: Created by npm, please don't edit manually.
+2025-12-27 18:43:21: ^
+2025-12-27 18:43:21: 
+2025-12-27 18:43:21: SyntaxError: Unexpected token ':'
+2025-12-27 18:43:21:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:43:21:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:43:21:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:43:21:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:43:21:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:43:21:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:43:21:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:43:21:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:43:21:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:43:21: 
+2025-12-27 18:43:21: Node.js v22.21.1
+2025-12-27 18:43:26: C:\USERS\FARR\.NVM\VERSIONS\NODE\V22.21.1\BIN\NPX.CMD:1
+2025-12-27 18:43:26: :: Created by npm, please don't edit manually.
+2025-12-27 18:43:26: ^
+2025-12-27 18:43:26: 
+2025-12-27 18:43:26: SyntaxError: Unexpected token ':'
+2025-12-27 18:43:26:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2025-12-27 18:43:26:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2025-12-27 18:43:26:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2025-12-27 18:43:26:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2025-12-27 18:43:26:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2025-12-27 18:43:26:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-27 18:43:26:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2025-12-27 18:43:26:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-12-27 18:43:26:     at node:internal/main/run_main_module:36:49
+2025-12-27 18:43:26: 
+2025-12-27 18:43:26: Node.js v22.21.1
+2025-12-27 19:21:45:   Error simulating copy trades: read ECONNRESET
+2025-12-27 19:21:51:   Error simulating copy trades: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-27 19:21:56:   Error simulating copy trades: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-27 19:22:01:   Error simulating copy trades: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-27 19:22:06:   Error simulating copy trades: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-27 19:22:11:   Error simulating copy trades: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-27 19:22:16:   Error simulating copy trades: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-27 19:22:21:   Error simulating copy trades: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-27 19:22:26:   Error simulating copy trades: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-27 19:22:31:   Error simulating copy trades: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-27 19:22:36:   Error simulating copy trades: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-27 19:22:41:   Error simulating copy trades: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 07:45:50: Catch-up resolver error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:47:40: Catch-up resolver error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:49:40: Catch-up resolver error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:51:40: Catch-up resolver error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:53:40: Catch-up resolver error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:54:19: Catch-up resolver error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:54:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:54:42: Catch-up resolver error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:55:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:55:12: Catch-up resolver error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:55:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:55:42: Catch-up resolver error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:56:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:57:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:57:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:58:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:58:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:59:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 07:59:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:00:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:00:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:01:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:01:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:02:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:02:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:03:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:03:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:04:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:04:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:05:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:05:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:06:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:06:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:07:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:07:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:08:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:08:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:09:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:09:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:10:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:10:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:11:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:11:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:12:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:12:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:13:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:13:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:14:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:14:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:15:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:15:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:16:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:16:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:17:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:17:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:18:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:18:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:19:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:19:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:20:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:20:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:21:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:21:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:22:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:22:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:23:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:23:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:24:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:24:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:25:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:25:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:26:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:26:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:27:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:27:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:28:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:28:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:29:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:29:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:30:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:30:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:31:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:31:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:32:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:32:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:33:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:33:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:34:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:34:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:35:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:35:41: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:36:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:36:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:37:11: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:37:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:38:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:38:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:39:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:39:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:40:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:40:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:41:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:41:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:42:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:42:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:43:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:43:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:44:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:44:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:45:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:45:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:46:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:46:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:47:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:47:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:48:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:48:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:49:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:49:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:50:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:50:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:51:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:51:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:52:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:52:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:53:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:53:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:54:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:54:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:55:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:55:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:56:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:56:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:57:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:57:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:58:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:58:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:59:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 08:59:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:00:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:00:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:01:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:01:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:02:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:02:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:03:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:03:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:04:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:04:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:05:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:05:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:06:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:06:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:07:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:07:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:08:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:08:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:09:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:09:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:10:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:10:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:11:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:11:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:12:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:12:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:13:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:13:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:14:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:14:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:15:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:15:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:16:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:16:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:17:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:17:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:18:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:18:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:19:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:19:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:20:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:20:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:21:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:21:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:22:12: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:22:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:23:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:23:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:24:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:24:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:25:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:25:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:26:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:26:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:27:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:27:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:28:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:28:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:29:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:29:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:30:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:30:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:31:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:31:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:32:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:32:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:33:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:33:42: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:34:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:34:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:35:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:35:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:36:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:36:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:37:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:37:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:38:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:38:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:39:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:39:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:40:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:40:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:41:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:41:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:42:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:42:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:43:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:43:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:44:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:44:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:45:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:45:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:46:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:46:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:47:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:47:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:48:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:48:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:49:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:49:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:50:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:50:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:51:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:51:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:52:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:52:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:53:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:53:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:54:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:54:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:55:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:55:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:56:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:56:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:57:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:57:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:58:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:58:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:59:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 09:59:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:00:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:00:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:01:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:01:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:02:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:02:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:03:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:03:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:04:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:04:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:05:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:05:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:06:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:06:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:07:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:07:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:08:18: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:08:21: Round resolution error: read ECONNRESET
+2025-12-29 10:08:48: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:08:48: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:09:18: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:09:18: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:09:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:10:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:10:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:11:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:11:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:12:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:12:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:13:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:13:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:14:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:14:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:15:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:15:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:16:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:16:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:17:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:17:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:18:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:18:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:19:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:19:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:20:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:20:43: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:21:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:21:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:22:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:22:45: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:23:23: Round resolution error: read ECONNRESET
+2025-12-29 10:23:23: Catch-up resolver error: read ECONNRESET
+2025-12-29 10:23:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:24:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:24:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:25:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:25:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:26:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:26:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:27:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:27:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:28:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:28:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:29:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:29:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:30:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:30:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:31:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:31:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:32:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:32:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:33:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:33:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:34:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:34:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:35:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:35:48: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:35:48: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:36:18: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:36:18: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:36:48: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:36:48: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:37:18: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:37:18: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:37:48: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:37:48: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:38:16: Round resolution error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 10:38:16: Catch-up resolver error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 10:38:48: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:38:48: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 10:39:13: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:39:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:40:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:40:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:41:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:41:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:42:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:42:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:43:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:43:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:44:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:44:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:45:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:45:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:46:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:46:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:47:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:47:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:48:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:48:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:49:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:49:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:50:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:50:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:51:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:51:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:52:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:52:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:53:16: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:53:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:54:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:54:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:55:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:55:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:56:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:56:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:57:14: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:57:44: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:58:15: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:58:45: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:59:15: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 10:59:45: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:00:15: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:00:45: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:10:21: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 11:10:21: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 11:10:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:11:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:11:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:12:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:12:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:13:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:13:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:14:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:14:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:15:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:15:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:16:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:16:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:17:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:17:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:18:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:18:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:19:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:19:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:20:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:20:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:21:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:21:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:22:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:22:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:23:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:23:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:24:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:24:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:25:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:25:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:26:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:26:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:27:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:27:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:28:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:28:47: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:29:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 11:29:46: Catch-up resolver error: 
+2025-12-29 12:00:21:   Error simulating copy trades: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 12:00:21: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 12:00:25: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 12:00:25: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 12:00:51: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 12:01:21: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 12:01:51: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 12:02:21: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 12:02:51: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 12:03:21: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 12:03:51: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 12:04:21: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 12:04:51: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 12:05:21: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 12:05:51: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 14:07:47: Round resolution error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 14:07:47: Catch-up resolver error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-29 14:08:20: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 14:08:20: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-29 14:08:53: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 14:09:16: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 14:09:46: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 14:10:16: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 14:10:48: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 14:11:15: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 14:11:46: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 14:12:19: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 14:12:51: Round resolution error: Cannot mix BigInt and other types, use explicit conversions
+2025-12-29 14:13:17: Round resolution error: Cannot mix BigInt and other types, use explicit conversions

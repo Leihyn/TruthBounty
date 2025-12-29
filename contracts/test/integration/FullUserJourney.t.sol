@@ -40,6 +40,9 @@ contract FullUserJourneyTest is Test {
     // Platform ID
     uint256 public pancakePlatformId;
 
+    // Mint fee constant (must match TruthBountyCore.MINT_FEE)
+    uint256 public constant MINT_FEE = 0.0005 ether;
+
     // ============================================
     // Setup
     // ============================================
@@ -115,7 +118,7 @@ contract FullUserJourneyTest is Test {
 
         // Register Alice
         vm.prank(alice);
-        uint256 tokenId = core.registerUser();
+        uint256 tokenId = core.registerUser{value: MINT_FEE}();
 
         console.log("Alice registered with NFT Token ID:", tokenId);
 
@@ -347,7 +350,7 @@ contract FullUserJourneyTest is Test {
         // Verify can't register twice
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(TruthBountyCore.AlreadyRegistered.selector, alice));
-        core.registerUser();
+        core.registerUser{value: MINT_FEE}();
         console.log("Double registration blocked");
 
         // Verify can't connect same platform twice
@@ -402,11 +405,11 @@ contract FullUserJourneyTest is Test {
 
         // Register Alice and Bob
         vm.prank(alice);
-        uint256 aliceTokenId = core.registerUser();
+        uint256 aliceTokenId = core.registerUser{value: MINT_FEE}();
         console.log("Alice registered with token ID:", aliceTokenId);
 
         vm.prank(bob);
-        uint256 bobTokenId = core.registerUser();
+        uint256 bobTokenId = core.registerUser{value: MINT_FEE}();
         console.log("Bob registered with token ID:", bobTokenId);
 
         // Connect platforms
@@ -466,7 +469,7 @@ contract FullUserJourneyTest is Test {
 
         // Register Alice
         vm.prank(alice);
-        uint256 tokenId = core.registerUser();
+        uint256 tokenId = core.registerUser{value: MINT_FEE}();
 
         // Connect platform
         vm.prank(alice);
