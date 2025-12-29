@@ -32,9 +32,11 @@ import {
   Timer,
   ArrowUpRight,
   ArrowDownRight,
+  BarChart3,
 } from 'lucide-react';
 import Link from 'next/link';
 import { COPY_TRADING_VAULT_ABI, COPY_VAULT_ADDRESS } from '@/lib/contracts';
+import { PolymarketSimulationTab } from '@/components/PolymarketSimulation';
 
 function SimulationTab({ followerAddress }: { followerAddress?: string }) {
   const [stats, setStats] = useState<any>(null);
@@ -557,7 +559,7 @@ export default function CopyTradingDashboard() {
 
       {/* Tabs - Improved styling */}
       <Tabs defaultValue="deposit" className="space-y-4">
-        <TabsList className="w-full h-12 p-1 bg-surface/50 border border-border/50 grid grid-cols-4">
+        <TabsList className="w-full h-12 p-1 bg-surface/50 border border-border/50 grid grid-cols-5">
           <TabsTrigger
             value="deposit"
             className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/15 data-[state=active]:to-blue-600/10 data-[state=active]:border-primary/30"
@@ -577,7 +579,14 @@ export default function CopyTradingDashboard() {
             className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/15 data-[state=active]:to-purple-600/10 data-[state=active]:border-purple-500/30"
           >
             <FlaskConical className="w-4 h-4" />
-            <span className="hidden sm:inline">Simulation</span>
+            <span className="hidden sm:inline">PancakeSwap</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="polymarket"
+            className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500/15 data-[state=active]:to-blue-600/10 data-[state=active]:border-blue-500/30"
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span className="hidden sm:inline">Polymarket</span>
           </TabsTrigger>
           <TabsTrigger
             value="transparency"
@@ -906,6 +915,11 @@ export default function CopyTradingDashboard() {
         {/* Simulation Tab */}
         <TabsContent value="simulation" className="mt-4">
           <SimulationTab followerAddress={address} />
+        </TabsContent>
+
+        {/* Polymarket Tab */}
+        <TabsContent value="polymarket" className="mt-4">
+          <PolymarketSimulationTab followerAddress={address} />
         </TabsContent>
 
         {/* Transparency Tab */}

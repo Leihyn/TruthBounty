@@ -4,11 +4,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PolymarketMarket } from '@/lib/polymarket';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Zap } from 'lucide-react';
 
 interface MarketCardProps {
   market: PolymarketMarket;
   onSelect?: (market: PolymarketMarket) => void;
+  onSimulate?: (market: PolymarketMarket) => void;
   showActions?: boolean;
 }
 
@@ -25,7 +26,7 @@ function getPolymarketUrl(market: PolymarketMarket): string {
   return 'https://polymarket.com';
 }
 
-export function MarketCard({ market, onSelect, showActions = true }: MarketCardProps) {
+export function MarketCard({ market, onSelect, onSimulate, showActions = true }: MarketCardProps) {
   const outcomes = typeof market.outcomes === 'string' ? JSON.parse(market.outcomes) : market.outcomes;
   const prices = typeof market.outcomePrices === 'string' ? JSON.parse(market.outcomePrices) : market.outcomePrices;
   const probabilities = Array.isArray(prices) ? prices.map(price => parseFloat(price) * 100) : [];
@@ -95,6 +96,19 @@ export function MarketCard({ market, onSelect, showActions = true }: MarketCardP
         {/* Actions */}
         {showActions && (
           <div className="px-4 pb-4 pt-2 flex gap-2">
+            {onSimulate && (
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSimulate(market);
+                }}
+                size="sm"
+                className="flex-1 h-8 text-xs bg-primary hover:bg-primary/90"
+              >
+                <Zap className="w-3 h-3 mr-1.5" />
+                Simulate
+              </Button>
+            )}
             {onSelect && (
               <Button
                 onClick={(e) => {
@@ -110,14 +124,14 @@ export function MarketCard({ market, onSelect, showActions = true }: MarketCardP
             )}
             <Button
               size="sm"
-              className="flex-1 h-8 text-xs"
+              variant="outline"
+              className="h-8 text-xs"
               onClick={(e) => {
                 e.stopPropagation();
                 openPolymarket();
               }}
             >
-              <ExternalLink className="w-3 h-3 mr-1.5" />
-              Trade
+              <ExternalLink className="w-3 h-3" />
             </Button>
           </div>
         )}

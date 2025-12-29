@@ -54,21 +54,6 @@ interface LeaderboardEntry {
   username?: string;
 }
 
-// Calculate percentile-normalized score
-// Top 1% = 1300, Top 10% = 1100, Top 25% = 900, etc.
-function normalizeByPercentile(percentile: number): number {
-  // percentile is 0-100 where 100 = best
-  // Map to 0-1300 with curve favoring top performers
-  if (percentile >= 99) return 1300;
-  if (percentile >= 95) return 1200 + (percentile - 95) * 20;
-  if (percentile >= 90) return 1100 + (percentile - 90) * 20;
-  if (percentile >= 75) return 900 + (percentile - 75) * 13.3;
-  if (percentile >= 50) return 650 + (percentile - 50) * 10;
-  if (percentile >= 25) return 400 + (percentile - 25) * 10;
-  if (percentile >= 10) return 200 + (percentile - 10) * 13.3;
-  return percentile * 20;
-}
-
 const ITEMS_PER_PAGE = 20;
 
 function getTierFromScore(score: number): ReputationTier {
@@ -117,62 +102,37 @@ export default function LeaderboardPage() {
         polyRes.json(),
       ]);
 
-      // Process PancakeSwap data with percentile ranking
+      // Process PancakeSwap data - USE SCORES DIRECTLY (already calculated by API)
       const pancakeData = (pancakeResult.data || [])
         .map((entry: any) => ({
           ...entry,
           totalPredictions: entry.totalBets || entry.totalPredictions || 0,
           rawScore: entry.truthScore,
-        }))
-        .sort((a: any, b: any) => b.rawScore - a.rawScore);
+          normalizedScore: entry.truthScore, // Use API score directly
+          platforms: entry.platforms || ['PancakeSwap'],
+        }));
 
-      // Calculate percentile for each PancakeSwap trader
-      const pancakeCount = pancakeData.length;
-      const pancakeWithPercentile = pancakeData.map((entry: any, index: number) => {
-        const percentile = pancakeCount > 1
-          ? ((pancakeCount - index - 1) / (pancakeCount - 1)) * 100
-          : 100;
-        return {
-          ...entry,
-          percentileRank: percentile,
-          normalizedScore: Math.round(normalizeByPercentile(percentile)),
-        };
-      });
-
-      // Process Polymarket data with percentile ranking
+      // Process Polymarket data - USE SCORES DIRECTLY (already calculated by API)
       const polyData = (polyResult.data || [])
         .map((entry: any) => ({
           ...entry,
           totalPredictions: entry.totalBets || entry.totalPredictions || 0,
           rawScore: entry.truthScore,
-        }))
-        .sort((a: any, b: any) => b.rawScore - a.rawScore);
-
-      // Calculate percentile for each Polymarket trader
-      const polyCount = polyData.length;
-      const polyWithPercentile = polyData.map((entry: any, index: number) => {
-        const percentile = polyCount > 1
-          ? ((polyCount - index - 1) / (polyCount - 1)) * 100
-          : 100;
-        return {
-          ...entry,
-          percentileRank: percentile,
-          normalizedScore: Math.round(normalizeByPercentile(percentile)),
-        };
-      });
+          normalizedScore: entry.truthScore, // Use API score directly
+          platforms: entry.platforms || ['Polymarket'],
+        }));
 
       // Combine both datasets
-      const allData = [...pancakeWithPercentile, ...polyWithPercentile];
+      const allData = [...pancakeData, ...polyData];
 
-      // Sort by normalized score for global ranking
-      allData.sort((a, b) => b.normalizedScore - a.normalizedScore);
+      // Sort by score for global ranking
+      allData.sort((a, b) => b.truthScore - a.truthScore);
 
-      // Add global rank and tier based on normalized score
+      // Add global rank and tier based on score
       const dataWithTiers = allData.map((entry: any, index: number) => ({
         ...entry,
         rank: index + 1,
-        truthScore: entry.normalizedScore, // Use normalized for display in global view
-        tier: getTierFromScore(entry.normalizedScore),
+        tier: getTierFromScore(entry.truthScore),
       }));
 
       setLeaderboardData(dataWithTiers);

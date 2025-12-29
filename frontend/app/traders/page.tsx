@@ -174,19 +174,44 @@ export default function TraderSearchPage() {
 
     try {
       saveToHistory(targetAddress);
-      const statsRes = await fetch(`/api/traders/stats?address=${targetAddress}`);
-      if (statsRes.ok) {
-        const data = await statsRes.json();
-        if (data.stats) setTraderStats(data.stats);
-        else setSearchError('No data found for this address.');
+
+      // Fetch trader profile from correct API endpoint
+      const profileRes = await fetch(`/api/trader/${targetAddress}`);
+      if (profileRes.ok) {
+        const data = await profileRes.json();
+        if (data.profile) {
+          // Map profile to TraderStats format
+          setTraderStats({
+            wallet_address: data.profile.wallet_address,
+            username: data.profile.username,
+            total_bets: data.profile.total_bets,
+            wins: data.profile.wins,
+            losses: data.profile.losses,
+            win_rate: data.profile.win_rate,
+            total_score: data.profile.total_score,
+            total_volume: data.profile.total_volume,
+            platforms: data.profile.platforms?.map((p: any) => p.name) || [],
+            last_bet_at: data.profile.recent_bets?.[0]?.timestamp,
+          });
+
+          // Map recent bets
+          setBets((data.profile.recent_bets || []).map((bet: any) => ({
+            id: bet.id,
+            market_id: bet.market_id,
+            platform: bet.platform,
+            position: bet.position,
+            amount: bet.amount,
+            won: bet.won,
+            claimed_amount: bet.claimed_amount,
+            placed_at: bet.timestamp,
+          })));
+        } else {
+          setSearchError('No data found for this address.');
+        }
+      } else if (profileRes.status === 404) {
+        setSearchError('Trader not found. They may not have any indexed bets yet.');
       } else {
         setSearchError('Unable to fetch trader data.');
-      }
-
-      const betsRes = await fetch(`/api/traders/bets?address=${targetAddress}`);
-      if (betsRes.ok) {
-        const data = await betsRes.json();
-        setBets(data.bets || []);
       }
 
       if (isConnected && userAddress) {
