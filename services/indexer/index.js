@@ -242,6 +242,11 @@ async function updateUserStats(userId, betAmount, claimAmount) {
     volume: newVolume,
   });
 
+  // VALIDATION: Score should never exceed MAX_SCORE (1300)
+  if (newScore > SCORING_CONFIG.MAX_SCORE) {
+    console.error(`[SCORE ANOMALY] Score ${newScore} exceeds max ${SCORING_CONFIG.MAX_SCORE} for user ${userId}`);
+  }
+
   // Upsert stats
   await supabase
     .from('user_platform_stats')
