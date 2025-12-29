@@ -13,7 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { PolymarketMarket } from '@/lib/polymarket';
-import { TrendingUp, TrendingDown, Activity, Zap, DollarSign } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Zap, DollarSign, CheckCircle2, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 interface SimulateBetModalProps {
   market: PolymarketMarket | null;
@@ -84,11 +85,8 @@ export function SimulateBetModal({
 
       if (data.success) {
         setSuccess(true);
-        setTimeout(() => {
-          onSuccess?.();
-          onClose();
-          setSuccess(false);
-        }, 1500);
+        onSuccess?.();
+        // Don't auto-close - let user see confirmation and click Dashboard link
       } else {
         setError(data.message || 'Failed to place simulated bet');
       }
@@ -213,8 +211,31 @@ export function SimulateBetModal({
 
           {/* Success */}
           {success && (
-            <div className="text-center py-2">
-              <p className="text-success font-medium">Simulated bet placed!</p>
+            <div className="space-y-4 py-4">
+              <div className="text-center">
+                <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-2" />
+                <h3 className="font-semibold">Bet placed!</h3>
+              </div>
+              <div className="p-3 rounded-lg bg-surface border border-border/50 text-sm space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Position:</span>
+                  <span className={betOutcome === 'Yes' ? 'text-success font-medium' : 'text-destructive font-medium'}>{betOutcome}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Amount:</span>
+                  <span className="font-mono">${amount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Entry price:</span>
+                  <span className="font-mono">{(selectedPrice * 100).toFixed(0)}¢</span>
+                </div>
+              </div>
+              <Link href="/dashboard" className="block">
+                <Button variant="outline" className="w-full">
+                  View in Dashboard
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
             </div>
           )}
 

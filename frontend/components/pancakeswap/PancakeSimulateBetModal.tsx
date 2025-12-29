@@ -22,7 +22,9 @@ import {
   AlertTriangle,
   Timer,
   Zap,
+  ArrowRight,
 } from 'lucide-react';
+import Link from 'next/link';
 
 interface PancakeSimulateBetModalProps {
   market: PancakePredictionMarket | null;
@@ -99,14 +101,7 @@ export function PancakeSimulateBetModal({
 
       setSuccess(true);
       onSuccess?.();
-
-      // Close after showing success
-      setTimeout(() => {
-        setSuccess(false);
-        setSelectedPosition(null);
-        setAmount('0.01');
-        onClose();
-      }, 2000);
+      // Don't auto-close - let user click "View in Dashboard" or close manually
     } catch (err: any) {
       setError(err.message || 'Failed to place simulated bet');
     } finally {
@@ -157,12 +152,37 @@ export function PancakeSimulateBetModal({
         </DialogHeader>
 
         {success ? (
-          <div className="py-8 text-center">
-            <CheckCircle2 className="w-16 h-16 text-success mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Bet placed!</h3>
-            <p className="text-sm text-muted-foreground">
-              Your simulated {selectedPosition} bet has been recorded
-            </p>
+          <div className="py-6 text-center space-y-4">
+            <CheckCircle2 className="w-16 h-16 text-success mx-auto" />
+            <div>
+              <h3 className="text-lg font-semibold mb-1">Bet placed!</h3>
+              <p className="text-sm text-muted-foreground">
+                Your simulated <span className={selectedPosition === 'Bull' ? 'text-success' : 'text-destructive'}>{selectedPosition}</span> bet of {amount} BNB on Epoch #{market.epoch} has been recorded
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-surface border border-border/50 text-left">
+              <p className="text-xs text-muted-foreground mb-2">Your bet details:</p>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Position:</span>
+                  <span className={selectedPosition === 'Bull' ? 'text-success font-medium' : 'text-destructive font-medium'}>{selectedPosition}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Amount:</span>
+                  <span className="font-mono">{amount} BNB</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Epoch:</span>
+                  <span className="font-mono">#{market.epoch}</span>
+                </div>
+              </div>
+            </div>
+            <Link href="/dashboard" className="block">
+              <Button variant="outline" className="w-full">
+                View in Dashboard
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
           </div>
         ) : (
           <div className="space-y-4">
