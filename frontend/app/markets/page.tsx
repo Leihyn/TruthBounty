@@ -141,6 +141,13 @@ export default function MarketsPage() {
 
         {/* PancakeSwap Tab */}
         <TabsContent value="pancake" className="mt-4">
+          {/* Simulation info banner */}
+          <Alert className="mb-4 border-amber-500/30 bg-amber-500/5">
+            <Zap className="h-4 w-4 text-amber-500" />
+            <AlertDescription className="text-sm">
+              <span className="font-medium">Simulation mode:</span> Place virtual bets on live PancakeSwap prediction rounds. Track your performance risk-free.
+            </AlertDescription>
+          </Alert>
           {pancakeLoading ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {[...Array(4)].map((_, i) => (
@@ -157,7 +164,12 @@ export default function MarketsPage() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {pancakeMarkets.map((market) => (
-                <PancakeMarketCard key={market.id} market={market} />
+                <PancakeMarketCard
+                  key={market.id}
+                  market={market}
+                  walletAddress={address}
+                  onBetPlaced={loadPancakeMarkets}
+                />
               ))}
             </div>
           )}

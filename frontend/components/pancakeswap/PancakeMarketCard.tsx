@@ -5,11 +5,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PancakePredictionMarket } from '@/lib/pancakeswap';
-import { PancakeBetModal } from './PancakeBetModal';
+import { PancakeSimulateBetModal } from './PancakeSimulateBetModal';
 import { TrendingUp, TrendingDown, ExternalLink, Zap, Clock } from 'lucide-react';
 
 interface PancakeMarketCardProps {
   market: PancakePredictionMarket;
+  walletAddress?: string;
+  onBetPlaced?: () => void;
 }
 
 // Asset icon colors
@@ -20,7 +22,7 @@ const assetColors: Record<string, { bg: string; text: string; glow: string }> = 
   CAKEUSD: { bg: 'from-cyan-500 to-teal-500', text: 'text-cyan-400', glow: 'shadow-cyan-500/20' },
 };
 
-export function PancakeMarketCard({ market }: PancakeMarketCardProps) {
+export function PancakeMarketCard({ market, walletAddress, onBetPlaced }: PancakeMarketCardProps) {
   const [isBetModalOpen, setIsBetModalOpen] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(market.timeRemaining);
 
@@ -161,7 +163,7 @@ export function PancakeMarketCard({ market }: PancakeMarketCardProps) {
             disabled={!isLive}
             className={`flex-1 h-10 font-semibold transition-all ${
               isLive
-                ? 'bg-gradient-to-r from-success to-emerald-500 hover:from-success hover:to-emerald-400 shadow-lg shadow-success/25'
+                ? 'bg-gradient-to-r from-primary to-blue-500 hover:from-primary hover:to-blue-400 shadow-lg shadow-primary/25'
                 : ''
             }`}
             size="sm"
@@ -169,7 +171,7 @@ export function PancakeMarketCard({ market }: PancakeMarketCardProps) {
             {isLive ? (
               <>
                 <Zap className="w-4 h-4 mr-1.5" />
-                Place Bet
+                Simulate Bet
               </>
             ) : (
               'Closed'
@@ -186,10 +188,12 @@ export function PancakeMarketCard({ market }: PancakeMarketCardProps) {
         </div>
       </CardContent>
 
-      <PancakeBetModal
+      <PancakeSimulateBetModal
         market={market}
         isOpen={isBetModalOpen}
         onClose={() => setIsBetModalOpen(false)}
+        walletAddress={walletAddress}
+        onSuccess={onBetPlaced}
       />
     </Card>
   );
