@@ -4,7 +4,7 @@
   "crons": [
     {
       "path": "/api/resolve-all",
-      "schedule": "0 */4 * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
