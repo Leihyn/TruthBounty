@@ -351,11 +351,15 @@ export async function GET(request: NextRequest) {
       );
 
       // Estimate win rate from position (top traders have higher win rates)
-      const estimatedWinRate = trader.leaderboardPosition <= 1000
-        ? 65 + Math.random() * 15
-        : trader.leaderboardPosition <= 10000
-          ? 55 + Math.random() * 15
-          : 45 + Math.random() * 15;
+      // Deterministic formula: higher position = higher estimated win rate
+      const position = trader.leaderboardPosition;
+      const estimatedWinRate = position <= 100
+        ? 75 + (100 - position) * 0.1  // 75-85% for top 100
+        : position <= 1000
+          ? 65 + (1000 - position) * 0.01  // 65-75% for top 1000
+          : position <= 10000
+            ? 55 + (10000 - position) * 0.001  // 55-65% for top 10000
+            : 50 + Math.min(5, 50000 / position);  // 50-55% for rest
 
       const wins = Math.floor(trader.trades * (estimatedWinRate / 100));
       const losses = trader.trades - wins;
