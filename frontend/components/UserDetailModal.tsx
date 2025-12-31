@@ -31,6 +31,7 @@ interface PlatformBreakdown {
   winRate: number;
   score: number;
   volume?: string;
+  pnl?: number;
 }
 
 interface UserBet {
@@ -53,9 +54,12 @@ interface UserData {
   losses?: number;
   winRate: number;
   totalVolume: string;
+  pnl?: number;
   platforms?: string[];
   platformBreakdown?: PlatformBreakdown[];
   bets?: UserBet[];
+  username?: string;
+  profileImage?: string;
 }
 
 interface UserDetailModalProps {
@@ -69,6 +73,9 @@ const PLATFORM_ICONS: Record<string, string> = {
   'Polymarket': '🔮',
   'Azuro Protocol': '⚡',
   'Thales': '🎯',
+  'Overtime': '⚽',
+  'Speed Markets': '⚡',
+  'Limitless': '♾️',
 };
 
 const PLATFORM_CHAINS: Record<string, string> = {
@@ -76,7 +83,26 @@ const PLATFORM_CHAINS: Record<string, string> = {
   'Polymarket': 'Polygon',
   'Azuro Protocol': 'Polygon',
   'Thales': 'Optimism',
+  'Overtime': 'Optimism',
+  'Speed Markets': 'Optimism',
+  'Limitless': 'Base',
 };
+
+const PLATFORM_EXPLORERS: Record<string, string> = {
+  'PancakeSwap Prediction': 'https://bscscan.com/address/',
+  'Polymarket': 'https://polygonscan.com/address/',
+  'Azuro Protocol': 'https://polygonscan.com/address/',
+  'Thales': 'https://optimistic.etherscan.io/address/',
+  'Overtime': 'https://optimistic.etherscan.io/address/',
+  'Speed Markets': 'https://optimistic.etherscan.io/address/',
+  'Limitless': 'https://basescan.org/address/',
+};
+
+// All platforms now return volume as decimal strings (not wei)
+// Polymarket/Limitless = USD, PancakeSwap = BNB, Overtime/Speed = ETH
+const USD_VOLUME_PLATFORMS = ['Polymarket', 'Limitless'];
+const BNB_VOLUME_PLATFORMS = ['PancakeSwap Prediction'];
+const ETH_VOLUME_PLATFORMS = ['Overtime', 'Speed Markets'];
 
 function getTierFromScore(score: number): ReputationTier {
   if (score >= TIER_THRESHOLDS[ReputationTier.DIAMOND]) return ReputationTier.DIAMOND;
@@ -100,14 +126,65 @@ export function UserDetailModal({ isOpen, onClose, userData }: UserDetailModalPr
 
   const formatAddress = (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`;
 
-  const formatVolume = (volume: string) => {
+  // Determine volume currency based on platform
+  const primaryPlatform = userData.platforms?.[0] || '';
+  const isUSDPlatform = USD_VOLUME_PLATFORMS.includes(primaryPlatform);
+  const isBNBPlatform = BNB_VOLUME_PLATFORMS.includes(primaryPlatform);
+  const isETHPlatform = ETH_VOLUME_PLATFORMS.includes(primaryPlatform);
+
+  const formatVolume = (volume: string, platformOverride?: string) => {
     try {
-      const volumeNum = Number(formatEther(BigInt(volume)));
-      if (volumeNum > 1000) return `${(volumeNum / 1000).toFixed(1)}K`;
-      return volumeNum.toFixed(2);
+      // All platforms now return decimal strings (not wei)
+      const v = parseFloat(volume) || 0;
+      const platform = platformOverride || primaryPlatform;
+
+      // Determine currency symbol
+      let symbol = '$';
+      let suffix = '';
+      if (BNB_VOLUME_PLATFORMS.includes(platform)) {
+        symbol = '';
+        suffix = ' BNB';
+      } else if (ETH_VOLUME_PLATFORMS.includes(platform)) {
+        symbol = '';
+        suffix = ' ETH';
+      }
+
+      if (v >= 1000000) return `${symbol}${(v / 1000000).toFixed(1)}M${suffix}`;
+      if (v >= 1000) return `${symbol}${(v / 1000).toFixed(1)}K${suffix}`;
+      if (v >= 1) return `${symbol}${v.toFixed(1)}${suffix}`;
+      return `${symbol}${v.toFixed(2)}${suffix}`;
     } catch {
-      return '0.00';
+      return '0';
     }
+  };
+
+  const formatPnL = (pnl: number, platformOverride?: string) => {
+    const prefix = pnl >= 0 ? '+' : '';
+    const platform = platformOverride || primaryPlatform;
+
+    // Determine currency
+    let symbol = '$';
+    let suffix = '';
+    if (BNB_VOLUME_PLATFORMS.includes(platform)) {
+      symbol = '';
+      suffix = ' BNB';
+    } else if (ETH_VOLUME_PLATFORMS.includes(platform)) {
+      symbol = '';
+      suffix = ' ETH';
+    }
+
+    const abs = Math.abs(pnl);
+    if (abs >= 1000000) return `${prefix}${symbol}${(pnl / 1000000).toFixed(1)}M${suffix}`;
+    if (abs >= 1000) return `${prefix}${symbol}${(pnl / 1000).toFixed(1)}K${suffix}`;
+    if (abs >= 1) return `${prefix}${symbol}${pnl.toFixed(1)}${suffix}`;
+    return `${prefix}${symbol}${pnl.toFixed(2)}${suffix}`;
+  };
+
+  // Get the explorer URL based on user's primary platform
+  const getExplorerUrl = () => {
+    const primaryPlatform = userData.platforms?.[0] || 'PancakeSwap Prediction';
+    const baseUrl = PLATFORM_EXPLORERS[primaryPlatform] || 'https://bscscan.com/address/';
+    return `${baseUrl}${userData.address}`;
   };
 
   const tier = getTierFromScore(userData.truthScore);
@@ -146,8 +223,11 @@ export function UserDetailModal({ isOpen, onClose, userData }: UserDetailModalPr
               </AvatarFallback>
             </Avatar>
             <div>
+              {userData.username && (
+                <p className="font-semibold text-base mb-0.5">{userData.username}</p>
+              )}
               <div className="flex items-center gap-2">
-                <code className="text-sm font-mono font-semibold">{formatAddress(userData.address)}</code>
+                <code className="text-sm font-mono">{formatAddress(userData.address)}</code>
                 <button
                   onClick={handleCopyAddress}
                   className="p-1.5 rounded-md hover:bg-surface/50 transition-colors"
@@ -155,10 +235,11 @@ export function UserDetailModal({ isOpen, onClose, userData }: UserDetailModalPr
                   {copiedAddress ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
                 </button>
                 <a
-                  href={`https://bscscan.com/address/${userData.address}`}
+                  href={getExplorerUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-1.5 rounded-md hover:bg-surface/50 transition-colors"
+                  title={`View on ${PLATFORM_CHAINS[userData.platforms?.[0] || 'PancakeSwap Prediction']} explorer`}
                 >
                   <ExternalLink className="w-4 h-4 text-muted-foreground" />
                 </a>
@@ -177,7 +258,7 @@ export function UserDetailModal({ isOpen, onClose, userData }: UserDetailModalPr
         <div className="relative -mt-8 mx-4">
           <Card className="border-border/50 shadow-lg">
             <CardContent className="p-0">
-              <div className="grid grid-cols-4 divide-x divide-border/50">
+              <div className={`grid ${userData.pnl !== undefined ? 'grid-cols-5' : 'grid-cols-4'} divide-x divide-border/50`}>
                 <div className="p-3 text-center">
                   <p className="text-xl font-bold text-secondary">{userData.truthScore}</p>
                   <p className="text-[10px] text-muted-foreground">TruthScore</p>
@@ -187,13 +268,21 @@ export function UserDetailModal({ isOpen, onClose, userData }: UserDetailModalPr
                   <p className="text-[10px] text-muted-foreground">Win Rate</p>
                 </div>
                 <div className="p-3 text-center">
-                  <p className="text-xl font-bold">{totalBets}</p>
+                  <p className="text-xl font-bold">{totalBets.toLocaleString()}</p>
                   <p className="text-[10px] text-muted-foreground">Bets</p>
                 </div>
                 <div className="p-3 text-center">
-                  <p className="text-xl font-bold text-secondary">{formatVolume(userData.totalVolume)}</p>
+                  <p className="text-lg font-bold text-primary">{formatVolume(userData.totalVolume)}</p>
                   <p className="text-[10px] text-muted-foreground">Volume</p>
                 </div>
+                {userData.pnl !== undefined && (
+                  <div className="p-3 text-center">
+                    <p className={`text-lg font-bold ${userData.pnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+                      {formatPnL(userData.pnl)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">PnL</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -252,31 +341,44 @@ export function UserDetailModal({ isOpen, onClose, userData }: UserDetailModalPr
               {userData.platformBreakdown && userData.platformBreakdown.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Platform Breakdown</p>
-                  {userData.platformBreakdown.map((platform) => (
-                    <div
-                      key={platform.platform}
-                      className="flex items-center justify-between p-3 rounded-lg bg-surface/50 border border-border/30 hover:border-border/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">{PLATFORM_ICONS[platform.platform] || '📊'}</span>
-                        <div>
-                          <p className="font-medium text-sm">{platform.platform}</p>
-                          <p className="text-xs text-muted-foreground">{platform.bets} bets</p>
+                  {userData.platformBreakdown.map((platform) => {
+                    const hasPnL = platform.pnl !== undefined && platform.pnl !== 0;
+                    return (
+                      <div
+                        key={platform.platform}
+                        className="flex items-center justify-between p-3 rounded-lg bg-surface/50 border border-border/30 hover:border-border/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">{PLATFORM_ICONS[platform.platform] || '📊'}</span>
+                          <div>
+                            <p className="font-medium text-sm">{platform.platform}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {platform.bets.toLocaleString()} bets
+                              {platform.volume && ` · ${formatVolume(platform.volume, platform.platform)}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-right">
+                          <div>
+                            <p className="text-sm font-semibold text-success">{platform.winRate.toFixed(1)}%</p>
+                            <p className="text-[10px] text-muted-foreground">win rate</p>
+                          </div>
+                          {hasPnL && platform.pnl !== undefined && (
+                            <div>
+                              <p className={`text-sm font-semibold ${platform.pnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+                                {formatPnL(platform.pnl, platform.platform)}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">pnl</p>
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-sm font-semibold text-secondary">{platform.score}</p>
+                            <p className="text-[10px] text-muted-foreground">score</p>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4 text-right">
-                        <div>
-                          <p className="text-sm font-semibold text-success">{platform.winRate.toFixed(1)}%</p>
-                          <p className="text-xs text-muted-foreground">win rate</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-secondary">{platform.score}</p>
-                          <p className="text-xs text-muted-foreground">score</p>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 

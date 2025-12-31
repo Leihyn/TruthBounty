@@ -47,11 +47,15 @@ interface LeaderboardEntry {
   totalPredictions: number;
   totalBets?: number;
   wins?: number;
+  losses?: number;
   correctPredictions: number;
   totalVolume: string;
   nftTokenId: number;
   platforms?: string[];
   username?: string;
+  pnl?: number;
+  platformBreakdown?: any[];
+  profileImage?: string;
 }
 
 const ITEMS_PER_PAGE = 20;
@@ -91,39 +95,125 @@ export default function LeaderboardPage() {
   const fetchLeaderboard = async () => {
     setIsLoading(true);
     try {
-      // Fetch both PancakeSwap and Polymarket data in parallel
-      const [pancakeRes, polyRes] = await Promise.all([
-        fetch(`/api/leaderboard-db?sortBy=${sortBy}&search=${searchQuery}&limit=100`),
-        fetch(`/api/leaderboard-db?platform=Polymarket&limit=100`),
+      // Fetch all platform leaderboards in parallel
+      const [polyRes, pancakeRes, overtimeRes, speedRes, limitlessRes] = await Promise.all([
+        fetch(`/api/polymarket-leaderboard?limit=100`),
+        fetch(`/api/pancakeswap-leaderboard?limit=100`),
+        fetch(`/api/overtime-leaderboard?limit=100`),
+        fetch(`/api/speedmarkets-leaderboard?limit=100`),
+        fetch(`/api/limitless-leaderboard?limit=100`),
       ]);
 
-      const [pancakeResult, polyResult] = await Promise.all([
-        pancakeRes.json(),
+      const [polyResult, pancakeResult, overtimeResult, speedResult, limitlessResult] = await Promise.all([
         polyRes.json(),
+        pancakeRes.json(),
+        overtimeRes.json(),
+        speedRes.json(),
+        limitlessRes.json(),
       ]);
 
-      // Process PancakeSwap data - USE SCORES DIRECTLY (already calculated by API)
-      const pancakeData = (pancakeResult.data || [])
-        .map((entry: any) => ({
-          ...entry,
-          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
-          rawScore: entry.truthScore,
-          normalizedScore: entry.truthScore, // Use API score directly
-          platforms: entry.platforms || ['PancakeSwap'],
-        }));
-
-      // Process Polymarket data - USE SCORES DIRECTLY (already calculated by API)
+      // Process Polymarket data
       const polyData = (polyResult.data || [])
         .map((entry: any) => ({
           ...entry,
           totalPredictions: entry.totalBets || entry.totalPredictions || 0,
           rawScore: entry.truthScore,
-          normalizedScore: entry.truthScore, // Use API score directly
-          platforms: entry.platforms || ['Polymarket'],
+          normalizedScore: entry.truthScore,
+          platforms: ['Polymarket'],
+          pnl: entry.pnl,
+          losses: entry.losses,
+          platformBreakdown: entry.platformBreakdown || [{
+            platform: 'Polymarket',
+            bets: entry.totalBets || 0,
+            winRate: entry.winRate || 0,
+            score: entry.truthScore || 0,
+            volume: entry.totalVolume,
+            pnl: entry.pnl,
+          }],
         }));
 
-      // Combine both datasets
-      const allData = [...pancakeData, ...polyData];
+      // Process PancakeSwap data
+      const pancakeData = (pancakeResult.data || [])
+        .map((entry: any) => ({
+          ...entry,
+          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
+          rawScore: entry.truthScore,
+          normalizedScore: entry.truthScore,
+          platforms: ['PancakeSwap Prediction'],
+          pnl: entry.pnl,
+          losses: entry.losses,
+          platformBreakdown: entry.platformBreakdown || [{
+            platform: 'PancakeSwap Prediction',
+            bets: entry.totalBets || 0,
+            winRate: entry.winRate || 0,
+            score: entry.truthScore || 0,
+            volume: entry.totalVolume,
+            pnl: entry.pnl,
+          }],
+        }));
+
+      // Process Overtime data
+      const overtimeData = (overtimeResult.data || [])
+        .map((entry: any) => ({
+          ...entry,
+          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
+          rawScore: entry.truthScore,
+          normalizedScore: entry.truthScore,
+          platforms: ['Overtime'],
+          pnl: entry.pnl,
+          losses: entry.losses,
+          platformBreakdown: entry.platformBreakdown || [{
+            platform: 'Overtime',
+            bets: entry.totalBets || 0,
+            winRate: entry.winRate || 0,
+            score: entry.truthScore || 0,
+            volume: entry.totalVolume,
+            pnl: entry.pnl,
+          }],
+        }));
+
+      // Process Speed Markets data
+      const speedData = (speedResult.data || [])
+        .map((entry: any) => ({
+          ...entry,
+          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
+          rawScore: entry.truthScore,
+          normalizedScore: entry.truthScore,
+          platforms: ['Speed Markets'],
+          pnl: entry.pnl,
+          losses: entry.losses,
+          platformBreakdown: entry.platformBreakdown || [{
+            platform: 'Speed Markets',
+            bets: entry.totalBets || 0,
+            winRate: entry.winRate || 0,
+            score: entry.truthScore || 0,
+            volume: entry.totalVolume,
+            pnl: entry.pnl,
+          }],
+        }));
+
+      // Process Limitless data
+      const limitlessData = (limitlessResult.data || [])
+        .map((entry: any) => ({
+          ...entry,
+          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
+          rawScore: entry.truthScore,
+          normalizedScore: entry.truthScore,
+          platforms: ['Limitless'],
+          pnl: entry.pnl,
+          losses: entry.losses,
+          platformBreakdown: entry.platformBreakdown || [{
+            platform: 'Limitless',
+            bets: entry.totalBets || 0,
+            winRate: entry.winRate || 0,
+            score: entry.truthScore || 0,
+            volume: entry.totalVolume,
+            pnl: entry.pnl,
+          }],
+        }));
+
+      // Combine all datasets
+      const allData = [...polyData, ...pancakeData, ...overtimeData, ...speedData, ...limitlessData];
 
       // Sort by score for global ranking
       allData.sort((a, b) => b.truthScore - a.truthScore);
@@ -146,7 +236,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     fetchLeaderboard();
-  }, [sortBy, searchQuery]);
+  }, []); // Fetch once on mount, filtering/sorting is client-side
 
   // When filtering by platform, use raw scores and re-rank within platform
   const filteredData = (() => {
@@ -158,21 +248,27 @@ export default function LeaderboardPage() {
         const platforms = entry.platforms || [];
         if (platformFilter === 'polymarket') return platforms.includes('Polymarket');
         if (platformFilter === 'pancakeswap') return platforms.includes('PancakeSwap Prediction');
+        if (platformFilter === 'overtime') return platforms.includes('Overtime');
+        if (platformFilter === 'speedmarkets') return platforms.includes('Speed Markets');
+        if (platformFilter === 'limitless') return platforms.includes('Limitless');
         return true;
       });
 
       // When filtering by platform, use raw scores and re-rank
-      data = data
-        .map(entry => ({
-          ...entry,
-          truthScore: entry.rawScore, // Show raw platform score
-          tier: getTierFromScore(entry.rawScore),
-        }))
-        .sort((a, b) => b.truthScore - a.truthScore)
-        .map((entry, index) => ({
-          ...entry,
-          rank: index + 1,
-        }));
+      data = data.map(entry => ({
+        ...entry,
+        truthScore: entry.rawScore, // Show raw platform score
+        tier: getTierFromScore(entry.rawScore),
+      }));
+    }
+
+    // Search filter - by address or username
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      data = data.filter(entry =>
+        entry.address.toLowerCase().includes(query) ||
+        (entry.username && entry.username.toLowerCase().includes(query))
+      );
     }
 
     // Tier filter (applied after platform filter)
@@ -180,12 +276,31 @@ export default function LeaderboardPage() {
       data = data.filter(entry => entry.tier === TIER_FILTER_MAP[tierFilter]);
     }
 
+    // Apply sorting
+    data = [...data].sort((a, b) => {
+      switch (sortBy) {
+        case 'winRate':
+          return b.winRate - a.winRate;
+        case 'predictions':
+          return b.totalPredictions - a.totalPredictions;
+        case 'score':
+        default:
+          return b.truthScore - a.truthScore;
+      }
+    });
+
+    // Re-rank after all filters and sorting
+    data = data.map((entry, index) => ({
+      ...entry,
+      rank: index + 1,
+    }));
+
     return data;
   })();
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [tierFilter, platformFilter]);
+  }, [tierFilter, platformFilter, sortBy, searchQuery]);
 
   const handleCopyAddress = (address: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -197,10 +312,26 @@ export default function LeaderboardPage() {
 
   const shortenAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
-  const formatVolume = (vol: string) => {
+  const formatVolume = (vol: string, platforms?: string[]) => {
     try {
-      const v = Number(formatEther(BigInt(vol)));
-      return v > 1000 ? `${(v/1000).toFixed(1)}K` : v.toFixed(1);
+      // All platforms now return decimal strings (not wei)
+      const v = parseFloat(vol) || 0;
+      const platform = platforms?.[0] || '';
+
+      // Determine currency symbol based on platform
+      const isUSD = platform === 'Polymarket' || platform === 'Limitless';
+      const isBNB = platform === 'PancakeSwap Prediction';
+      const isETH = platform === 'Overtime' || platform === 'Speed Markets';
+
+      let symbol = '$';
+      let suffix = '';
+      if (isBNB) { symbol = ''; suffix = ' BNB'; }
+      else if (isETH) { symbol = ''; suffix = ' ETH'; }
+
+      if (v >= 1000000) return `${symbol}${(v/1000000).toFixed(1)}M${suffix}`;
+      if (v >= 1000) return `${symbol}${(v/1000).toFixed(1)}K${suffix}`;
+      if (v >= 1) return `${symbol}${v.toFixed(1)}${suffix}`;
+      return `${symbol}${v.toFixed(2)}${suffix}`;
     } catch { return '0'; }
   };
 
@@ -220,12 +351,16 @@ export default function LeaderboardPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             {platformFilter === 'all' ? 'Global Leaderboard' :
-             platformFilter === 'polymarket' ? 'Polymarket Leaderboard' : 'PancakeSwap Leaderboard'}
+             platformFilter === 'polymarket' ? 'Polymarket Leaderboard' :
+             platformFilter === 'pancakeswap' ? 'PancakeSwap Leaderboard' :
+             platformFilter === 'overtime' ? 'Overtime Leaderboard' :
+             platformFilter === 'speedmarkets' ? 'Speed Markets Leaderboard' :
+             platformFilter === 'limitless' ? 'Limitless Leaderboard' : 'Leaderboard'}
           </h1>
           <p className="text-sm text-muted-foreground">
             {platformFilter === 'all'
-              ? 'Cross-platform ranking by percentile-normalized TruthScore'
-              : `Platform ranking by raw TruthScore`}
+              ? 'Cross-platform ranking by TruthScore'
+              : `Platform ranking by TruthScore`}
           </p>
         </div>
         <div className="flex items-center gap-4 text-sm">
@@ -264,6 +399,9 @@ export default function LeaderboardPage() {
               <SelectItem value="all">All Platforms</SelectItem>
               <SelectItem value="polymarket">Polymarket</SelectItem>
               <SelectItem value="pancakeswap">PancakeSwap</SelectItem>
+              <SelectItem value="overtime">Overtime</SelectItem>
+              <SelectItem value="speedmarkets">Speed Markets</SelectItem>
+              <SelectItem value="limitless">Limitless</SelectItem>
             </SelectContent>
           </Select>
 
@@ -354,10 +492,19 @@ export default function LeaderboardPage() {
                           {entry.platforms?.includes('PancakeSwap Prediction') && (
                             <span className="px-1 py-0 rounded bg-amber-500/20 text-amber-400 text-[8px]">Cake</span>
                           )}
+                          {entry.platforms?.includes('Overtime') && (
+                            <span className="px-1 py-0 rounded bg-blue-500/20 text-blue-400 text-[8px]">OT</span>
+                          )}
+                          {entry.platforms?.includes('Speed Markets') && (
+                            <span className="px-1 py-0 rounded bg-green-500/20 text-green-400 text-[8px]">Speed</span>
+                          )}
+                          {entry.platforms?.includes('Limitless') && (
+                            <span className="px-1 py-0 rounded bg-pink-500/20 text-pink-400 text-[8px]">LMT</span>
+                          )}
                         </div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-1 mt-auto">
+                    <div className="grid grid-cols-3 gap-1 mt-auto">
                       <div className="p-1.5 rounded-lg bg-surface/50 text-center">
                         <p className="text-base sm:text-lg font-bold">{entry.truthScore}</p>
                         <p className="text-[9px] text-muted-foreground">Score</p>
@@ -365,6 +512,10 @@ export default function LeaderboardPage() {
                       <div className="p-1.5 rounded-lg bg-surface/50 text-center">
                         <p className="text-base sm:text-lg font-bold text-success">{entry.winRate.toFixed(0)}%</p>
                         <p className="text-[9px] text-muted-foreground">Win</p>
+                      </div>
+                      <div className="p-1.5 rounded-lg bg-surface/50 text-center">
+                        <p className="text-xs sm:text-sm font-bold text-primary">{formatVolume(entry.totalVolume, entry.platforms)}</p>
+                        <p className="text-[9px] text-muted-foreground">Vol</p>
                       </div>
                     </div>
                   </button>
@@ -407,10 +558,19 @@ export default function LeaderboardPage() {
                           {entry.platforms?.includes('PancakeSwap Prediction') && (
                             <span className="px-1 py-0 rounded bg-amber-500/20 text-amber-400 text-[9px]">Cake</span>
                           )}
+                          {entry.platforms?.includes('Overtime') && (
+                            <span className="px-1 py-0 rounded bg-blue-500/20 text-blue-400 text-[9px]">OT</span>
+                          )}
+                          {entry.platforms?.includes('Speed Markets') && (
+                            <span className="px-1 py-0 rounded bg-green-500/20 text-green-400 text-[9px]">Speed</span>
+                          )}
+                          {entry.platforms?.includes('Limitless') && (
+                            <span className="px-1 py-0 rounded bg-pink-500/20 text-pink-400 text-[9px]">LMT</span>
+                          )}
                         </div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 mt-auto">
+                    <div className="grid grid-cols-3 gap-2 mt-auto">
                       <div className="p-2 rounded-lg bg-surface/50 text-center">
                         <p className="text-lg sm:text-2xl font-bold text-secondary">{entry.truthScore}</p>
                         <p className="text-[10px] text-muted-foreground">Score</p>
@@ -418,6 +578,10 @@ export default function LeaderboardPage() {
                       <div className="p-2 rounded-lg bg-surface/50 text-center">
                         <p className="text-lg sm:text-2xl font-bold text-success">{entry.winRate.toFixed(0)}%</p>
                         <p className="text-[10px] text-muted-foreground">Win</p>
+                      </div>
+                      <div className="p-2 rounded-lg bg-surface/50 text-center">
+                        <p className="text-sm sm:text-lg font-bold text-primary">{formatVolume(entry.totalVolume, entry.platforms)}</p>
+                        <p className="text-[10px] text-muted-foreground">Vol</p>
                       </div>
                     </div>
                   </button>
@@ -460,10 +624,19 @@ export default function LeaderboardPage() {
                           {entry.platforms?.includes('PancakeSwap Prediction') && (
                             <span className="px-1 py-0 rounded bg-amber-500/20 text-amber-400 text-[8px]">Cake</span>
                           )}
+                          {entry.platforms?.includes('Overtime') && (
+                            <span className="px-1 py-0 rounded bg-blue-500/20 text-blue-400 text-[8px]">OT</span>
+                          )}
+                          {entry.platforms?.includes('Speed Markets') && (
+                            <span className="px-1 py-0 rounded bg-green-500/20 text-green-400 text-[8px]">Speed</span>
+                          )}
+                          {entry.platforms?.includes('Limitless') && (
+                            <span className="px-1 py-0 rounded bg-pink-500/20 text-pink-400 text-[8px]">LMT</span>
+                          )}
                         </div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-1 mt-auto">
+                    <div className="grid grid-cols-3 gap-1 mt-auto">
                       <div className="p-1.5 rounded-lg bg-surface/50 text-center">
                         <p className="text-base sm:text-lg font-bold">{entry.truthScore}</p>
                         <p className="text-[9px] text-muted-foreground">Score</p>
@@ -471,6 +644,10 @@ export default function LeaderboardPage() {
                       <div className="p-1.5 rounded-lg bg-surface/50 text-center">
                         <p className="text-base sm:text-lg font-bold text-success">{entry.winRate.toFixed(0)}%</p>
                         <p className="text-[9px] text-muted-foreground">Win</p>
+                      </div>
+                      <div className="p-1.5 rounded-lg bg-surface/50 text-center">
+                        <p className="text-xs sm:text-sm font-bold text-primary">{formatVolume(entry.totalVolume, entry.platforms)}</p>
+                        <p className="text-[9px] text-muted-foreground">Vol</p>
                       </div>
                     </div>
                   </button>
@@ -537,12 +714,21 @@ export default function LeaderboardPage() {
                               {entry.winRate.toFixed(1)}%
                             </span>
                             <span>{entry.totalPredictions.toLocaleString()} bets</span>
-                            <span className="hidden sm:inline">{formatVolume(entry.totalVolume)} vol</span>
+                            <span className="hidden sm:inline">{formatVolume(entry.totalVolume, entry.platforms)} vol</span>
                             {entry.platforms?.includes('Polymarket') && (
                               <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 text-[10px]">Poly</span>
                             )}
                             {entry.platforms?.includes('PancakeSwap Prediction') && (
                               <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px]">Cake</span>
+                            )}
+                            {entry.platforms?.includes('Overtime') && (
+                              <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[10px]">Overtime</span>
+                            )}
+                            {entry.platforms?.includes('Speed Markets') && (
+                              <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 text-[10px]">Speed</span>
+                            )}
+                            {entry.platforms?.includes('Limitless') && (
+                              <span className="px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-400 text-[10px]">Limitless</span>
                             )}
                           </div>
                         </div>

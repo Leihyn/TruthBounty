@@ -56,7 +56,13 @@ export async function GET() {
 
       try {
         // Fetch market data from Polymarket
-        const marketRes = await fetch(`${POLYMARKET_API}/markets/${marketId}`, {
+        // Market IDs stored are condition IDs (0x...), need to query by conditionId param
+        const isConditionId = marketId.startsWith('0x');
+        const apiUrl = isConditionId
+          ? `${POLYMARKET_API}/markets?conditionId=${marketId}`
+          : `${POLYMARKET_API}/markets/${marketId}`;
+
+        const marketRes = await fetch(apiUrl, {
           headers: { 'Accept': 'application/json' },
         });
 
@@ -65,7 +71,14 @@ export async function GET() {
           continue;
         }
 
-        const market = await marketRes.json();
+        const marketData = await marketRes.json();
+        // If queried by conditionId, result is array - take first match
+        const market = isConditionId ? (marketData[0] || null) : marketData;
+
+        if (!market) {
+          skipped++;
+          continue;
+        }
 
         // Check if market is resolved
         // Polymarket markets have 'closed' field and outcome tokens have 'winner' field
@@ -77,29 +90,59 @@ export async function GET() {
         }
 
         // Determine winning outcome
-        // For binary markets, check outcome tokens
         let winningOutcome: 'Yes' | 'No' | null = null;
 
-        if (market.outcomes && Array.isArray(market.outcomes)) {
-          // Find the winning outcome
-          const yesToken = market.outcomes.find((o: any) =>
-            o.value === 'Yes' || o.outcome === 'Yes'
+        // Parse outcomes and outcomePrices (they're JSON strings in the API)
+        let outcomes = market.outcomes;
+        let outcomePrices = market.outcomePrices;
+
+        // Parse if they're strings
+        if (typeof outcomes === 'string') {
+          try { outcomes = JSON.parse(outcomes); } catch (e) { outcomes = []; }
+        }
+        if (typeof outcomePrices === 'string') {
+          try { outcomePrices = JSON.parse(outcomePrices); } catch (e) { outcomePrices = []; }
+        }
+
+        // For resolved binary markets, the winning outcome has price close to 1
+        if (Array.isArray(outcomes) && Array.isArray(outcomePrices) && outcomes.length === 2) {
+          const price0 = parseFloat(outcomePrices[0]) || 0;
+          const price1 = parseFloat(outcomePrices[1]) || 0;
+
+          // If one price is very close to 1 (>0.95), that's the winner
+          if (price0 > 0.95) {
+            winningOutcome = outcomes[0] as 'Yes' | 'No';
+          } else if (price1 > 0.95) {
+            winningOutcome = outcomes[1] as 'Yes' | 'No';
+          }
+          // If both are 0, market might be very old - check bestAsk/bestBid
+          else if (price0 === 0 && price1 === 0) {
+            if (market.bestAsk === 1 && market.bestBid === 0) {
+              winningOutcome = 'No';
+            } else if (market.bestAsk === 0 && market.bestBid === 1) {
+              winningOutcome = 'Yes';
+            }
+          }
+        }
+
+        // Legacy: Check if outcomes is array of objects with winner field
+        if (!winningOutcome && Array.isArray(outcomes)) {
+          const yesToken = outcomes.find((o: any) =>
+            o?.value === 'Yes' || o?.outcome === 'Yes' || o === 'Yes'
           );
-          const noToken = market.outcomes.find((o: any) =>
-            o.value === 'No' || o.outcome === 'No'
+          const noToken = outcomes.find((o: any) =>
+            o?.value === 'No' || o?.outcome === 'No' || o === 'No'
           );
 
-          // Check winner flag or price = 1.00
-          if (yesToken?.winner === true || yesToken?.price === 1) {
+          if (yesToken?.winner === true) {
             winningOutcome = 'Yes';
-          } else if (noToken?.winner === true || noToken?.price === 1) {
+          } else if (noToken?.winner === true) {
             winningOutcome = 'No';
           }
         }
 
-        // Alternative: Check resolution source if available
+        // Fallback: Check resolution source if available
         if (!winningOutcome && market.resolutionSource) {
-          // Parse from resolution
           if (market.resolutionSource.toLowerCase().includes('yes')) {
             winningOutcome = 'Yes';
           } else if (market.resolutionSource.toLowerCase().includes('no')) {

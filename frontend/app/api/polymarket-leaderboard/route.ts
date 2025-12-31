@@ -50,30 +50,43 @@ export async function GET(request: NextRequest) {
     const traders: PolymarketTrader[] = await response.json();
 
     // Transform to match our leaderboard format
-    const transformedData = traders.map((trader, index) => ({
-      rank: parseInt(trader.rank) || index + 1,
-      address: trader.proxyWallet,
-      username: trader.userName || null,
-      truthScore: calculateTruthScore(trader),
-      winRate: calculateWinRate(trader),
-      totalBets: 0, // Not available from this endpoint
-      wins: 0,
-      losses: 0,
-      totalVolume: (trader.vol * 1e18).toString(), // Convert to wei-like format
-      pnl: trader.pnl,
-      platforms: ['Polymarket'],
-      platformBreakdown: [{
-        platform: 'Polymarket',
-        bets: 0,
-        winRate: calculateWinRate(trader),
-        score: calculateTruthScore(trader),
-        volume: (trader.vol * 1e18).toString(),
-        pnl: trader.pnl,
-      }],
-      profileImage: trader.profileImage,
-      xUsername: trader.xUsername,
-      verifiedBadge: trader.verifiedBadge,
-    }));
+    const transformedData = traders.map((trader, index) => {
+      const volume = trader.vol || 0;
+      const pnl = trader.pnl || 0;
+      const winRate = calculateWinRate(trader);
+      const truthScore = calculateTruthScore(trader);
+
+      // Estimate trades from volume (avg trade ~$500)
+      const estimatedTrades = Math.max(1, Math.floor(volume / 500));
+      const estimatedWinRate = winRate / 100;
+      const estimatedWins = Math.floor(estimatedTrades * estimatedWinRate);
+      const estimatedLosses = estimatedTrades - estimatedWins;
+
+      return {
+        rank: parseInt(trader.rank) || index + 1,
+        address: trader.proxyWallet,
+        username: trader.userName || null,
+        truthScore,
+        winRate,
+        totalBets: estimatedTrades,
+        wins: estimatedWins,
+        losses: estimatedLosses,
+        totalVolume: volume.toFixed(2), // Keep as USD string, not wei
+        pnl,
+        platforms: ['Polymarket'],
+        platformBreakdown: [{
+          platform: 'Polymarket',
+          bets: estimatedTrades,
+          winRate,
+          score: truthScore,
+          volume: volume.toFixed(2),
+          pnl,
+        }],
+        profileImage: trader.profileImage,
+        xUsername: trader.xUsername,
+        verifiedBadge: trader.verifiedBadge,
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -93,26 +106,73 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Scoring config (matches other platforms - max 1300)
+const SCORING_CONFIG = {
+  MAX_SCORE: 1300,
+  SKILL_MAX: 500,
+  ACTIVITY_MAX: 500,
+  PROFIT_MAX: 200,
+  WILSON_Z: 1.96,
+};
+
 /**
- * Calculate TruthScore from Polymarket PnL
- * Higher PnL = better predictions = higher score
+ * Wilson Score Lower Bound - conservative estimate for small samples
+ */
+function wilsonScoreLower(wins: number, total: number, z = SCORING_CONFIG.WILSON_Z): number {
+  if (total === 0) return 0;
+  const p = wins / total;
+  const denominator = 1 + (z * z) / total;
+  const center = p + (z * z) / (2 * total);
+  const spread = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * total)) / total);
+  return Math.max(0, (center - spread) / denominator);
+}
+
+/**
+ * Calculate TruthScore from Polymarket data
+ * Normalized to 0-1300 scale like other platforms
  */
 function calculateTruthScore(trader: PolymarketTrader): number {
   const pnl = trader.pnl || 0;
   const volume = trader.vol || 0;
 
-  // Base score from positive PnL (100 points per $100 profit)
-  const pnlScore = Math.max(0, pnl);
+  if (volume <= 0) return 0;
 
-  // Volume bonus (1 point per $100 volume, capped at 500)
-  const volumeBonus = Math.min(500, volume / 100);
+  // ROI = PnL / Volume (can be negative or positive)
+  const roi = pnl / volume;
 
-  // Win rate approximation bonus
-  const winRateBonus = pnl > 0 && volume > 0
-    ? Math.min(200, (pnl / volume) * 1000)
+  // Estimate win rate from ROI (ROI of 0 = 50% win rate approximately)
+  // Positive ROI suggests >50%, negative suggests <50%
+  const estimatedWinRate = Math.max(0.1, Math.min(0.95, 0.5 + roi));
+
+  // Estimate number of trades from volume (assume avg trade is $500)
+  const estimatedTrades = Math.max(1, Math.floor(volume / 500));
+  const estimatedWins = Math.floor(estimatedTrades * estimatedWinRate);
+
+  // Skill Score: Wilson-adjusted win rate (0-500)
+  const wilsonWinRate = wilsonScoreLower(estimatedWins, estimatedTrades);
+  const skillScore = Math.min(
+    SCORING_CONFIG.SKILL_MAX,
+    Math.max(0, Math.floor(wilsonWinRate * SCORING_CONFIG.SKILL_MAX))
+  );
+
+  // Activity Score: Logarithmic based on volume (0-500)
+  // $1000 = ~195, $10000 = ~260, $100000 = ~325, $1M = ~390, $10M = ~455
+  const activityScore = Math.min(
+    SCORING_CONFIG.ACTIVITY_MAX,
+    Math.max(0, Math.floor(Math.log10(Math.max(1, volume)) * 65))
+  );
+
+  // Profit Bonus: Based on positive PnL (0-200)
+  // Uses log scale: $100 = ~100, $1000 = ~150, $10000 = ~200
+  const profitBonus = pnl > 0
+    ? Math.min(SCORING_CONFIG.PROFIT_MAX, Math.floor(Math.log10(Math.max(1, pnl)) * 50))
     : 0;
 
-  return Math.floor(pnlScore + volumeBonus + winRateBonus);
+  // Sample size multiplier (more trades = more reliable score)
+  const sampleMultiplier = Math.min(1, estimatedTrades / 50);
+
+  const rawScore = skillScore + activityScore + profitBonus;
+  return Math.min(SCORING_CONFIG.MAX_SCORE, Math.floor(rawScore * sampleMultiplier));
 }
 
 /**
