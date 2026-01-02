@@ -30,6 +30,8 @@ const CONFIG = {
     { name: 'Overtime', endpoint: '/api/overtime/resolve' },
     { name: 'Limitless', endpoint: '/api/limitless/resolve' },
     { name: 'Speed Markets', endpoint: '/api/speedmarkets/resolve' },
+    { name: 'Azuro', endpoint: '/api/azuro/resolve' },
+    { name: 'SX Bet', endpoint: '/api/sxbet/resolve' },
   ],
 };
 

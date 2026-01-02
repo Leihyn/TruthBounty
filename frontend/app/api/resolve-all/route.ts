@@ -26,6 +26,8 @@ export async function GET(request: NextRequest) {
     { name: 'overtime', path: '/api/overtime/resolve' },
     { name: 'limitless', path: '/api/limitless/resolve' },
     { name: 'speedmarkets', path: '/api/speedmarkets/resolve' },
+    { name: 'azuro', path: '/api/azuro/resolve' },
+    { name: 'sxbet', path: '/api/sxbet/resolve' },
   ];
 
   // Call each platform's resolve endpoint

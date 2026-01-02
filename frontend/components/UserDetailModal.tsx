@@ -72,30 +72,36 @@ const PLATFORM_ICONS: Record<string, string> = {
   'PancakeSwap Prediction': '🥞',
   'Polymarket': '🔮',
   'Azuro Protocol': '⚡',
+  'Azuro': '⚡',
   'Thales': '🎯',
   'Overtime': '⚽',
   'Speed Markets': '⚡',
   'Limitless': '♾️',
+  'SX Bet': '🎰',
 };
 
 const PLATFORM_CHAINS: Record<string, string> = {
   'PancakeSwap Prediction': 'BSC',
   'Polymarket': 'Polygon',
   'Azuro Protocol': 'Polygon',
+  'Azuro': 'Polygon',
   'Thales': 'Optimism',
   'Overtime': 'Optimism',
   'Speed Markets': 'Optimism',
   'Limitless': 'Base',
+  'SX Bet': 'SX Network',
 };
 
 const PLATFORM_EXPLORERS: Record<string, string> = {
   'PancakeSwap Prediction': 'https://bscscan.com/address/',
   'Polymarket': 'https://polygonscan.com/address/',
   'Azuro Protocol': 'https://polygonscan.com/address/',
+  'Azuro': 'https://polygonscan.com/address/',
   'Thales': 'https://optimistic.etherscan.io/address/',
   'Overtime': 'https://optimistic.etherscan.io/address/',
   'Speed Markets': 'https://optimistic.etherscan.io/address/',
   'Limitless': 'https://basescan.org/address/',
+  'SX Bet': 'https://explorer.sx.technology/address/',
 };
 
 // All platforms now return volume as decimal strings (not wei)
