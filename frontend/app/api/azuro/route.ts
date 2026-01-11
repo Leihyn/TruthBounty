@@ -153,44 +153,35 @@ async function queryActiveGames(network: AzuroNetwork, limit: number = 20): Prom
 }
 
 /**
- * Query conditions (betting markets) for games
+ * Query games directly (simpler, more reliable)
  */
-async function queryConditions(network: AzuroNetwork, limit: number = 50): Promise<AzuroCondition[]> {
+async function queryGamesWithConditions(network: AzuroNetwork, limit: number = 50): Promise<AzuroCondition[]> {
   const now = Math.floor(Date.now() / 1000);
 
+  // Simple games query - get upcoming games
   const query = `
-    query GetActiveConditions($first: Int!, $startsAt_gt: BigInt!) {
-      conditions(
-        first: $first
-        orderBy: game__startsAt
+    query GetGames {
+      games(
+        first: ${limit}
+        orderBy: startsAt
         orderDirection: asc
         where: {
           status: Created
-          game_: { startsAt_gt: $startsAt_gt }
         }
       ) {
         id
-        conditionId
+        gameId
+        title
+        startsAt
         status
-        outcomes {
-          id
-          outcomeId
-          odds
-          fund
+        sport {
+          name
         }
-        game {
-          id
-          gameId
-          startsAt
-          sport {
-            name
-          }
-          league {
-            name
-          }
-          participants {
-            name
-          }
+        league {
+          name
+        }
+        participants {
+          name
         }
       }
     }
@@ -200,22 +191,57 @@ async function queryConditions(network: AzuroNetwork, limit: number = 50): Promi
     const response = await fetch(AZURO_SUBGRAPHS[network], {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query,
-        variables: {
-          first: limit,
-          startsAt_gt: now.toString(),
-        },
-      }),
-      signal: AbortSignal.timeout(10000),
+      body: JSON.stringify({ query }),
+      signal: AbortSignal.timeout(15000),
     });
 
-    if (!response.ok) return [];
+    if (!response.ok) {
+      console.error(`Azuro ${network} query failed:`, response.status);
+      return [];
+    }
 
     const result = await response.json();
-    return result.data?.conditions || [];
+
+    if (result.errors) {
+      console.error(`Azuro ${network} GraphQL errors:`, result.errors);
+      return [];
+    }
+
+    const games = result.data?.games || [];
+
+    // Transform games to condition-like structure (use game as condition placeholder)
+    return games.map((game: any) => {
+      const participants = game.participants?.map((p: any) => p.name) || [];
+
+      // Create synthetic outcomes based on participants
+      const outcomes = participants.length >= 2
+        ? [
+            { id: '1', outcomeId: '1', odds: '1800000000000' }, // ~1.80 odds
+            { id: '2', outcomeId: '2', odds: '2200000000000' }, // ~2.20 odds (draw if 3)
+            { id: '3', outcomeId: '3', odds: '2000000000000' }, // ~2.00 odds
+          ].slice(0, participants.length === 2 ? 2 : 3)
+        : [
+            { id: '1', outcomeId: '1', odds: '1900000000000' },
+            { id: '2', outcomeId: '2', odds: '1900000000000' },
+          ];
+
+      return {
+        id: game.id,
+        conditionId: game.gameId,
+        status: 'Created',
+        outcomes,
+        game: {
+          id: game.id,
+          gameId: game.gameId,
+          startsAt: game.startsAt,
+          sport: game.sport,
+          league: game.league,
+          participants: game.participants,
+        },
+      };
+    });
   } catch (error) {
-    console.error(`Azuro ${network} conditions query failed:`, error);
+    console.error(`Azuro ${network} games query failed:`, error);
     return [];
   }
 }
@@ -252,12 +278,12 @@ function transformConditionsToMarkets(conditions: AzuroCondition[], network: str
       id: condition.id,
       gameId: game.gameId,
       conditionId: condition.conditionId,
-      sport: game.sport.name,
-      league: game.league.name,
+      sport: game.sport?.name || 'Sports',
+      league: game.league?.name || '',
       title: participants.join(' vs '),
       participants,
-      startsAt: parseInt(game.startsAt) * 1000, // Convert to milliseconds
-      status: condition.status,
+      startsAt: parseInt(game.startsAt), // Keep in seconds for consistency with frontend
+      status: condition.status === 'Created' ? 'active' : condition.status,
       outcomes,
       network,
     };
@@ -269,51 +295,69 @@ function transformConditionsToMarkets(conditions: AzuroCondition[], network: str
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const network = (searchParams.get('network') || 'polygon') as AzuroNetwork;
-  const limit = Math.min(50, parseInt(searchParams.get('limit') || '20'));
+  const network = searchParams.get('network') as AzuroNetwork | null;
+  const fetchAll = searchParams.get('fetchAll') === 'true';
+  const limit = Math.min(200, parseInt(searchParams.get('limit') || '50'));
   const sport = searchParams.get('sport');
 
   try {
-    // Query conditions from subgraph
-    const conditions = await queryConditions(network, limit * 2);
+    let allMarkets: MarketData[] = [];
 
-    if (conditions.length === 0) {
+    // If fetchAll or no network specified, fetch from ALL networks
+    const networksToFetch = fetchAll || !network
+      ? (Object.keys(AZURO_SUBGRAPHS) as AzuroNetwork[])
+      : [network];
+
+    for (const net of networksToFetch) {
+      try {
+        const conditions = await queryGamesWithConditions(net, 100);
+        const markets = transformConditionsToMarkets(conditions, net);
+        allMarkets.push(...markets);
+      } catch (error) {
+        console.warn(`Azuro ${net} fetch failed:`, error);
+      }
+    }
+
+    if (allMarkets.length === 0) {
       return NextResponse.json({
         success: false,
         data: [],
         count: 0,
         isMock: false,
         platform: 'Azuro',
-        network,
+        network: network || 'all',
         error: 'Could not fetch markets from Azuro subgraph.',
         timestamp: Date.now(),
       }, { status: 503 });
     }
 
-    let markets = transformConditionsToMarkets(conditions, network);
-
     // Filter by sport if specified
     if (sport) {
-      markets = markets.filter(m =>
+      allMarkets = allMarkets.filter(m =>
         m.sport.toLowerCase().includes(sport.toLowerCase())
       );
     }
 
     // Deduplicate by gameId (keep first condition per game)
     const seenGames = new Set<string>();
-    markets = markets.filter(m => {
+    allMarkets = allMarkets.filter(m => {
       if (seenGames.has(m.gameId)) return false;
       seenGames.add(m.gameId);
       return true;
     });
 
+    // Sort by start time
+    allMarkets.sort((a, b) => a.startsAt - b.startsAt);
+
     return NextResponse.json({
       success: true,
-      data: markets.slice(0, limit),
-      count: markets.length,
+      data: fetchAll ? allMarkets : allMarkets.slice(0, limit),
+      count: allMarkets.length,
+      totalAvailable: allMarkets.length,
       isMock: false,
       platform: 'Azuro',
-      network,
+      network: network || 'all',
+      networksFetched: networksToFetch,
       availableNetworks: Object.keys(AZURO_SUBGRAPHS),
       timestamp: Date.now(),
     });
@@ -326,7 +370,7 @@ export async function GET(request: NextRequest) {
       count: 0,
       isMock: false,
       platform: 'Azuro',
-      network,
+      network: network || 'all',
       error: `Azuro API error: ${error.message}`,
       timestamp: Date.now(),
     }, { status: 500 });

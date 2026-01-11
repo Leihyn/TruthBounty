@@ -120,9 +120,9 @@ export async function GET() {
 
     console.log('[PancakeSwap API] Current epoch:', currentEpoch.toString());
 
-    // Fetch last 4 rounds
+    // Fetch last 20 rounds (includes live, next, and recent history)
     const epochs: bigint[] = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 20; i++) {
       const epoch = currentEpoch - BigInt(i);
       if (epoch > BigInt(0)) {
         epochs.push(epoch);

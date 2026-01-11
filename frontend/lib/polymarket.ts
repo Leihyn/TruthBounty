@@ -343,12 +343,12 @@ export class PolymarketService {
   /**
    * Get active markets (sorted by 24h volume for freshness)
    */
-  async getActiveMarkets(limit: number = 20): Promise<PolymarketMarket[]> {
+  async getActiveMarkets(limit: number = 100): Promise<PolymarketMarket[]> {
     const markets = await this.getMarkets({
       active: true,
       closed: false,
       archived: false,
-      limit: 100,
+      limit: 200,
     });
 
     // Sort by 24h volume first (most active today), then by total volume

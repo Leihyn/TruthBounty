@@ -56,9 +56,13 @@ export function MarketList({
       const url = `/api/polymarket/search?q=${encodeURIComponent(query)}&limit=${limit}`;
       const res = await fetch(url);
 
-      if (!res.ok) throw new Error('Failed to fetch markets');
-
       const data = await res.json();
+
+      // Check for API error response (success: false or non-ok status)
+      if (!res.ok || data.success === false) {
+        throw new Error(data.error || 'Failed to fetch markets from Polymarket API');
+      }
+
       setTotalResults(data.total || 0);
 
       // Transform to PolymarketMarket format
@@ -89,9 +93,9 @@ export function MarketList({
       }));
 
       setMarkets(transformed);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading markets:', err);
-      setError('Failed to load markets');
+      setError(err.message || 'Failed to load markets');
     } finally {
       setLoading(false);
       setRefreshing(false);

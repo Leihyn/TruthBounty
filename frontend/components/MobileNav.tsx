@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Home, LayoutDashboard, Trophy, TrendingUp, Users, Copy } from 'lucide-react';
+import { Menu, X, Home, LayoutDashboard, Trophy, TrendingUp, Users, Copy, FileText } from 'lucide-react';
 
 const navLinks = [
   { href: '/', label: 'Home', icon: Home },
@@ -12,6 +12,7 @@ const navLinks = [
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
   { href: '/traders', label: 'Traders', icon: Users },
   { href: '/copy-trading', label: 'Copy Trading', icon: Copy },
+  { href: '/case-study', label: 'Case Study', icon: FileText },
 ];
 
 export function MobileNav() {

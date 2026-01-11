@@ -29,6 +29,8 @@ import {
   Users,
   ExternalLink,
   Crown,
+  Radio,
+  FlaskConical,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UserDetailModal } from '@/components/UserDetailModal';
@@ -77,15 +79,34 @@ const TIER_FILTER_MAP: Record<string, ReputationTier | null> = {
   bronze: ReputationTier.BRONZE,
 };
 
+// Platforms available for simulated leaderboard
+const SIMULATED_PLATFORMS = [
+  { value: 'polymarket', label: 'Polymarket' },
+  { value: 'pancakeswap', label: 'PancakeSwap' },
+  { value: 'azuro', label: 'Azuro' },
+  { value: 'sxbet', label: 'SX Bet' },
+  { value: 'limitless', label: 'Limitless' },
+  { value: 'overtime', label: 'Overtime' },
+  { value: 'speedmarkets', label: 'Speed Markets' },
+  { value: 'gnosis', label: 'Gnosis/Omen' },
+  { value: 'drift', label: 'Drift' },
+  { value: 'kalshi', label: 'Kalshi' },
+  { value: 'manifold', label: 'Manifold' },
+  { value: 'metaculus', label: 'Metaculus' },
+];
+
 export default function LeaderboardPage() {
   const router = useRouter();
   const { toast } = useToast();
 
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+  const [simulatedData, setSimulatedData] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [leaderboardMode, setLeaderboardMode] = useState<'live' | 'simulated'>('live');
   const [sortBy, setSortBy] = useState('score');
   const [tierFilter, setTierFilter] = useState('all');
   const [platformFilter, setPlatformFilter] = useState('all');
+  const [simulatedPlatform, setSimulatedPlatform] = useState('polymarket');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
@@ -95,21 +116,36 @@ export default function LeaderboardPage() {
   const fetchLeaderboard = async () => {
     setIsLoading(true);
     try {
-      // Fetch all platform leaderboards in parallel
-      const [polyRes, pancakeRes, overtimeRes, speedRes, limitlessRes] = await Promise.all([
-        fetch(`/api/polymarket-leaderboard?limit=100`),
-        fetch(`/api/pancakeswap-leaderboard?limit=100`),
-        fetch(`/api/overtime-leaderboard?limit=100`),
-        fetch(`/api/speedmarkets-leaderboard?limit=100`),
-        fetch(`/api/limitless-leaderboard?limit=100`),
+      // Fetch all platform leaderboards in parallel (12 platforms)
+      const [polyRes, pancakeRes, overtimeRes, speedRes, limitlessRes, azuroRes, sxbetRes, gnosisRes, driftRes, kalshiRes, manifoldRes, metaculusRes] = await Promise.all([
+        fetch(`/api/polymarket-leaderboard?limit=100`).catch(() => null),
+        fetch(`/api/pancakeswap-leaderboard?limit=100`).catch(() => null),
+        fetch(`/api/overtime-leaderboard?limit=100`).catch(() => null),
+        fetch(`/api/speedmarkets-leaderboard?limit=100`).catch(() => null),
+        fetch(`/api/limitless-leaderboard?limit=100`).catch(() => null),
+        fetch(`/api/azuro-leaderboard?limit=100`).catch(() => null),
+        fetch(`/api/sxbet-leaderboard?limit=100`).catch(() => null),
+        fetch(`/api/gnosis-leaderboard?limit=100`).catch(() => null),
+        fetch(`/api/drift-leaderboard?limit=100`).catch(() => null),
+        fetch(`/api/kalshi-leaderboard?limit=100`).catch(() => null),
+        fetch(`/api/manifold-leaderboard?limit=100`).catch(() => null),
+        fetch(`/api/metaculus-leaderboard?limit=100`).catch(() => null),
       ]);
 
-      const [polyResult, pancakeResult, overtimeResult, speedResult, limitlessResult] = await Promise.all([
-        polyRes.json(),
-        pancakeRes.json(),
-        overtimeRes.json(),
-        speedRes.json(),
-        limitlessRes.json(),
+      // Parse JSON responses with error handling
+      const [polyResult, pancakeResult, overtimeResult, speedResult, limitlessResult, azuroResult, sxbetResult, gnosisResult, driftResult, kalshiResult, manifoldResult, metaculusResult] = await Promise.all([
+        polyRes?.ok ? polyRes.json().catch(() => ({ data: [] })) : { data: [] },
+        pancakeRes?.ok ? pancakeRes.json().catch(() => ({ data: [] })) : { data: [] },
+        overtimeRes?.ok ? overtimeRes.json().catch(() => ({ data: [] })) : { data: [] },
+        speedRes?.ok ? speedRes.json().catch(() => ({ data: [] })) : { data: [] },
+        limitlessRes?.ok ? limitlessRes.json().catch(() => ({ data: [] })) : { data: [] },
+        azuroRes?.ok ? azuroRes.json().catch(() => ({ data: [] })) : { data: [] },
+        sxbetRes?.ok ? sxbetRes.json().catch(() => ({ data: [] })) : { data: [] },
+        gnosisRes?.ok ? gnosisRes.json().catch(() => ({ data: [] })) : { data: [] },
+        driftRes?.ok ? driftRes.json().catch(() => ({ data: [] })) : { data: [] },
+        kalshiRes?.ok ? kalshiRes.json().catch(() => ({ data: [] })) : { data: [] },
+        manifoldRes?.ok ? manifoldRes.json().catch(() => ({ data: [] })) : { data: [] },
+        metaculusRes?.ok ? metaculusRes.json().catch(() => ({ data: [] })) : { data: [] },
       ]);
 
       // Process Polymarket data
@@ -212,8 +248,154 @@ export default function LeaderboardPage() {
           }],
         }));
 
-      // Combine all datasets
-      const allData = [...polyData, ...pancakeData, ...overtimeData, ...speedData, ...limitlessData];
+      // Process Azuro data
+      const azuroData = (azuroResult.data || [])
+        .map((entry: any) => ({
+          ...entry,
+          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
+          rawScore: entry.truthScore,
+          normalizedScore: entry.truthScore,
+          platforms: ['Azuro'],
+          pnl: entry.pnl,
+          losses: entry.losses,
+          platformBreakdown: entry.platformBreakdown || [{
+            platform: 'Azuro',
+            bets: entry.totalBets || 0,
+            winRate: entry.winRate || 0,
+            score: entry.truthScore || 0,
+            volume: entry.totalVolume,
+            pnl: entry.pnl,
+          }],
+        }));
+
+      // Process SX Bet data with volume sanity check
+      // (volumes over $10M per user are likely data errors from decimal handling)
+      const sxbetData = (sxbetResult.data || [])
+        .map((entry: any) => {
+          let volume = parseFloat(entry.totalVolume) || 0;
+          let pnl = entry.pnl || 0;
+
+          // Sanity check: if volume is over $10M, it's likely a decimal error
+          // Real SX Bet volumes are typically under $1M per user
+          if (volume > 10000000) {
+            // This indicates the API returned raw stake instead of betTimeValue
+            // Divide by 1e12 to correct (difference between 1e18 and 1e6 decimals)
+            volume = volume / 1e12;
+            pnl = pnl / 1e12;
+          }
+
+          return {
+            ...entry,
+            totalVolume: volume.toFixed(2),
+            totalPredictions: entry.totalBets || entry.totalPredictions || 0,
+            rawScore: entry.truthScore,
+            normalizedScore: entry.truthScore,
+            platforms: ['SX Bet'],
+            pnl: pnl,
+            losses: entry.losses,
+            platformBreakdown: entry.platformBreakdown || [{
+              platform: 'SX Bet',
+              bets: entry.totalBets || 0,
+              winRate: entry.winRate || 0,
+              score: entry.truthScore || 0,
+              volume: volume.toFixed(2),
+              pnl: pnl,
+            }],
+          };
+        });
+
+      // Process Gnosis/Omen data
+      const gnosisData = (gnosisResult.data || [])
+        .map((entry: any) => ({
+          ...entry,
+          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
+          rawScore: entry.truthScore,
+          normalizedScore: entry.truthScore,
+          platforms: ['Gnosis/Omen'],
+          platformBreakdown: [{
+            platform: 'Gnosis/Omen',
+            bets: entry.totalBets || 0,
+            winRate: entry.winRate || 0,
+            score: entry.truthScore || 0,
+            volume: entry.totalVolume,
+            pnl: entry.pnl || 0,
+          }],
+        }));
+
+      // Process Drift data
+      const driftData = (driftResult.data || [])
+        .map((entry: any) => ({
+          ...entry,
+          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
+          rawScore: entry.truthScore,
+          normalizedScore: entry.truthScore,
+          platforms: ['Drift BET'],
+          platformBreakdown: [{
+            platform: 'Drift BET',
+            bets: entry.totalBets || 0,
+            winRate: entry.winRate || 0,
+            score: entry.truthScore || 0,
+            volume: entry.totalVolume,
+            pnl: entry.pnl || 0,
+          }],
+        }));
+
+      // Process Kalshi data
+      const kalshiData = (kalshiResult.data || [])
+        .map((entry: any) => ({
+          ...entry,
+          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
+          rawScore: entry.truthScore,
+          normalizedScore: entry.truthScore,
+          platforms: ['Kalshi'],
+          platformBreakdown: [{
+            platform: 'Kalshi',
+            bets: entry.totalBets || 0,
+            winRate: entry.winRate || 0,
+            score: entry.truthScore || 0,
+            volume: entry.totalVolume,
+            pnl: entry.pnl || 0,
+          }],
+        }));
+
+      // Process Manifold data
+      const manifoldData = (manifoldResult.data || [])
+        .map((entry: any) => ({
+          ...entry,
+          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
+          rawScore: entry.truthScore,
+          normalizedScore: entry.truthScore,
+          platforms: ['Manifold Markets'],
+          platformBreakdown: [{
+            platform: 'Manifold Markets',
+            bets: entry.totalBets || 0,
+            winRate: entry.winRate || 0,
+            score: entry.truthScore || 0,
+            volume: entry.totalVolume,
+            pnl: entry.pnl || 0,
+          }],
+        }));
+
+      // Process Metaculus data
+      const metaculusData = (metaculusResult.data || [])
+        .map((entry: any) => ({
+          ...entry,
+          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
+          rawScore: entry.truthScore,
+          normalizedScore: entry.truthScore,
+          platforms: ['Metaculus'],
+          platformBreakdown: [{
+            platform: 'Metaculus',
+            bets: entry.totalBets || 0,
+            winRate: entry.winRate || 0,
+            score: entry.truthScore || 0,
+            volume: entry.totalVolume,
+            pnl: entry.pnl || 0,
+          }],
+        }));
+
+      // Combine all 12 platform datasets
+      const allData = [...polyData, ...pancakeData, ...overtimeData, ...speedData, ...limitlessData, ...azuroData, ...sxbetData, ...gnosisData, ...driftData, ...kalshiData, ...manifoldData, ...metaculusData];
 
       // Sort by score for global ranking
       allData.sort((a, b) => b.truthScore - a.truthScore);
@@ -234,13 +416,56 @@ export default function LeaderboardPage() {
     }
   };
 
+  const fetchSimulatedLeaderboard = async (platform: string) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/simulated-leaderboard?platform=${platform}&limit=100`);
+      if (!res.ok) throw new Error('Failed to fetch');
+
+      const result = await res.json();
+      const data = (result.data || []).map((entry: any, index: number) => ({
+        ...entry,
+        rank: entry.rank || index + 1,
+        totalPredictions: entry.totalBets || 0,
+        correctPredictions: entry.wins || 0,
+        rawScore: entry.truthScore,
+        normalizedScore: entry.truthScore,
+        tier: getTierFromScore(entry.truthScore),
+        nftTokenId: 0,
+        platforms: entry.platforms || [result.platform],
+        platformBreakdown: [{
+          platform: result.platform,
+          bets: entry.totalBets || 0,
+          winRate: entry.winRate || 0,
+          score: entry.truthScore || 0,
+          volume: entry.totalVolume,
+          pnl: entry.pnl || 0,
+        }],
+      }));
+
+      setSimulatedData(data);
+    } catch (err) {
+      console.error('Simulated leaderboard fetch error:', err);
+      setSimulatedData([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchLeaderboard();
   }, []); // Fetch once on mount, filtering/sorting is client-side
 
+  useEffect(() => {
+    if (leaderboardMode === 'simulated') {
+      fetchSimulatedLeaderboard(simulatedPlatform);
+    }
+  }, [leaderboardMode, simulatedPlatform]);
+
   // When filtering by platform, use raw scores and re-rank within platform
   const filteredData = (() => {
-    let data = leaderboardData;
+    // Use simulated data when in simulated mode
+    let data = leaderboardMode === 'simulated' ? simulatedData : leaderboardData;
 
     // Platform filter
     if (platformFilter !== 'all') {
@@ -251,6 +476,13 @@ export default function LeaderboardPage() {
         if (platformFilter === 'overtime') return platforms.includes('Overtime');
         if (platformFilter === 'speedmarkets') return platforms.includes('Speed Markets');
         if (platformFilter === 'limitless') return platforms.includes('Limitless');
+        if (platformFilter === 'azuro') return platforms.includes('Azuro');
+        if (platformFilter === 'sxbet') return platforms.includes('SX Bet');
+        if (platformFilter === 'gnosis') return platforms.includes('Gnosis/Omen') || platforms.includes('Gnosis') || platforms.includes('Omen');
+        if (platformFilter === 'drift') return platforms.includes('Drift BET') || platforms.includes('Drift');
+        if (platformFilter === 'kalshi') return platforms.includes('Kalshi');
+        if (platformFilter === 'manifold') return platforms.includes('Manifold Markets') || platforms.includes('Manifold');
+        if (platformFilter === 'metaculus') return platforms.includes('Metaculus');
         return true;
       });
 
@@ -300,7 +532,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [tierFilter, platformFilter, sortBy, searchQuery]);
+  }, [tierFilter, platformFilter, sortBy, searchQuery, leaderboardMode, simulatedPlatform]);
 
   const handleCopyAddress = (address: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -319,9 +551,9 @@ export default function LeaderboardPage() {
       const platform = platforms?.[0] || '';
 
       // Determine currency symbol based on platform
-      const isUSD = platform === 'Polymarket' || platform === 'Limitless';
+      const isUSD = platform === 'Polymarket' || platform === 'Limitless' || platform === 'SX Bet' || platform === 'Gnosis/Omen' || platform === 'Gnosis' || platform === 'Drift BET' || platform === 'Drift' || platform === 'Kalshi';
       const isBNB = platform === 'PancakeSwap Prediction';
-      const isETH = platform === 'Overtime' || platform === 'Speed Markets';
+      const isETH = platform === 'Overtime' || platform === 'Speed Markets' || platform === 'Azuro';
 
       let symbol = '$';
       let suffix = '';
@@ -346,21 +578,53 @@ export default function LeaderboardPage() {
 
   return (
     <div className="container px-4 sm:px-6 py-6 max-w-6xl mx-auto space-y-6">
+      {/* Mode Toggle Tabs */}
+      <div className="flex items-center gap-1 p-1 bg-surface rounded-lg border border-border/50 w-fit">
+        <button
+          onClick={() => setLeaderboardMode('live')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            leaderboardMode === 'live'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-surface-raised'
+          }`}
+        >
+          <Radio className="w-4 h-4" />
+          Live
+        </button>
+        <button
+          onClick={() => setLeaderboardMode('simulated')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            leaderboardMode === 'simulated'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-surface-raised'
+          }`}
+        >
+          <FlaskConical className="w-4 h-4" />
+          Simulated
+        </button>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {platformFilter === 'all' ? 'Global Leaderboard' :
-             platformFilter === 'polymarket' ? 'Polymarket Leaderboard' :
-             platformFilter === 'pancakeswap' ? 'PancakeSwap Leaderboard' :
-             platformFilter === 'overtime' ? 'Overtime Leaderboard' :
-             platformFilter === 'speedmarkets' ? 'Speed Markets Leaderboard' :
-             platformFilter === 'limitless' ? 'Limitless Leaderboard' : 'Leaderboard'}
+            {leaderboardMode === 'simulated'
+              ? `${SIMULATED_PLATFORMS.find(p => p.value === simulatedPlatform)?.label || 'Simulated'} Leaderboard`
+              : platformFilter === 'all' ? 'Global Leaderboard' :
+                platformFilter === 'polymarket' ? 'Polymarket Leaderboard' :
+                platformFilter === 'pancakeswap' ? 'PancakeSwap Leaderboard' :
+                platformFilter === 'overtime' ? 'Overtime Leaderboard' :
+                platformFilter === 'speedmarkets' ? 'Speed Markets Leaderboard' :
+                platformFilter === 'limitless' ? 'Limitless Leaderboard' :
+                platformFilter === 'azuro' ? 'Azuro Leaderboard' :
+                platformFilter === 'sxbet' ? 'SX Bet Leaderboard' : platformFilter === 'gnosis' ? 'Gnosis/Omen Leaderboard' : platformFilter === 'drift' ? 'Drift BET Leaderboard' : platformFilter === 'kalshi' ? 'Kalshi Leaderboard' : platformFilter === 'manifold' ? 'Manifold Leaderboard' : platformFilter === 'metaculus' ? 'Metaculus Leaderboard' : 'Leaderboard'}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {platformFilter === 'all'
-              ? 'Cross-platform ranking by TruthScore'
-              : `Platform ranking by TruthScore`}
+            {leaderboardMode === 'simulated'
+              ? 'Rankings from simulated paper trades'
+              : platformFilter === 'all'
+                ? 'Cross-platform ranking by TruthScore'
+                : `Platform ranking by TruthScore`}
           </p>
         </div>
         <div className="flex items-center gap-4 text-sm">
@@ -391,19 +655,39 @@ export default function LeaderboardPage() {
             </SelectContent>
           </Select>
 
-          <Select value={platformFilter} onValueChange={setPlatformFilter}>
-            <SelectTrigger className="w-[140px] h-9 text-sm">
-              <SelectValue placeholder="Platform" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Platforms</SelectItem>
-              <SelectItem value="polymarket">Polymarket</SelectItem>
-              <SelectItem value="pancakeswap">PancakeSwap</SelectItem>
-              <SelectItem value="overtime">Overtime</SelectItem>
-              <SelectItem value="speedmarkets">Speed Markets</SelectItem>
-              <SelectItem value="limitless">Limitless</SelectItem>
-            </SelectContent>
-          </Select>
+          {leaderboardMode === 'simulated' ? (
+            <Select value={simulatedPlatform} onValueChange={setSimulatedPlatform}>
+              <SelectTrigger className="w-[140px] h-9 text-sm">
+                <SelectValue placeholder="Platform" />
+              </SelectTrigger>
+              <SelectContent>
+                {SIMULATED_PLATFORMS.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Select value={platformFilter} onValueChange={setPlatformFilter}>
+              <SelectTrigger className="w-[140px] h-9 text-sm">
+                <SelectValue placeholder="Platform" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Platforms</SelectItem>
+                <SelectItem value="polymarket">Polymarket</SelectItem>
+                <SelectItem value="pancakeswap">PancakeSwap</SelectItem>
+                <SelectItem value="overtime">Overtime</SelectItem>
+                <SelectItem value="speedmarkets">Speed Markets</SelectItem>
+                <SelectItem value="limitless">Limitless</SelectItem>
+                <SelectItem value="azuro">Azuro</SelectItem>
+                <SelectItem value="sxbet">SX Bet</SelectItem>
+                <SelectItem value="gnosis">Gnosis/Omen</SelectItem>
+                <SelectItem value="drift">Drift BET</SelectItem>
+                <SelectItem value="kalshi">Kalshi</SelectItem>
+                <SelectItem value="manifold">Manifold</SelectItem>
+                <SelectItem value="metaculus">Metaculus</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
 
           <Select value={tierFilter} onValueChange={setTierFilter}>
             <SelectTrigger className="w-[120px] h-9 text-sm">
@@ -429,7 +713,13 @@ export default function LeaderboardPage() {
             />
           </div>
 
-          <Button variant="outline" size="icon" onClick={fetchLeaderboard} disabled={isLoading} className="h-9 w-9 shrink-0">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => leaderboardMode === 'simulated' ? fetchSimulatedLeaderboard(simulatedPlatform) : fetchLeaderboard()}
+            disabled={isLoading}
+            className="h-9 w-9 shrink-0"
+          >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
@@ -501,6 +791,12 @@ export default function LeaderboardPage() {
                           {entry.platforms?.includes('Limitless') && (
                             <span className="px-1 py-0 rounded bg-pink-500/20 text-pink-400 text-[8px]">LMT</span>
                           )}
+                          {entry.platforms?.includes('Azuro') && (
+                            <span className="px-1 py-0 rounded bg-cyan-500/20 text-cyan-400 text-[8px]">AZR</span>
+                          )}
+                          {entry.platforms?.includes('SX Bet') && (
+                            <span className="px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 text-[8px]">SX</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -567,6 +863,12 @@ export default function LeaderboardPage() {
                           {entry.platforms?.includes('Limitless') && (
                             <span className="px-1 py-0 rounded bg-pink-500/20 text-pink-400 text-[9px]">LMT</span>
                           )}
+                          {entry.platforms?.includes('Azuro') && (
+                            <span className="px-1 py-0 rounded bg-cyan-500/20 text-cyan-400 text-[9px]">AZR</span>
+                          )}
+                          {entry.platforms?.includes('SX Bet') && (
+                            <span className="px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 text-[9px]">SX</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -632,6 +934,12 @@ export default function LeaderboardPage() {
                           )}
                           {entry.platforms?.includes('Limitless') && (
                             <span className="px-1 py-0 rounded bg-pink-500/20 text-pink-400 text-[8px]">LMT</span>
+                          )}
+                          {entry.platforms?.includes('Azuro') && (
+                            <span className="px-1 py-0 rounded bg-cyan-500/20 text-cyan-400 text-[8px]">AZR</span>
+                          )}
+                          {entry.platforms?.includes('SX Bet') && (
+                            <span className="px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 text-[8px]">SX</span>
                           )}
                         </div>
                       </div>
@@ -729,6 +1037,12 @@ export default function LeaderboardPage() {
                             )}
                             {entry.platforms?.includes('Limitless') && (
                               <span className="px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-400 text-[10px]">Limitless</span>
+                            )}
+                            {entry.platforms?.includes('Azuro') && (
+                              <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 text-[10px]">Azuro</span>
+                            )}
+                            {entry.platforms?.includes('SX Bet') && (
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px]">SX Bet</span>
                             )}
                           </div>
                         </div>

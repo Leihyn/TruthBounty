@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { calculateTruthScore, TRUTHSCORE_CONFIG } from '@/lib/truthscore';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,23 +9,10 @@ export const dynamic = 'force-dynamic';
  * Limitless is a prediction market on Base chain with CLOB trading.
  * API: https://api.limitless.exchange
  *
- * Strategy: Aggregate trader data from market events since the /profiles/top
- * endpoint requires authentication. Each trade event includes the trader's
- * profile with their leaderboard position, points, and rank.
+ * Uses unified TruthScore v2.0 system (odds-based market scoring with ROI).
  */
 
 const LIMITLESS_API = 'https://api.limitless.exchange';
-
-// Scoring config (matches main leaderboard)
-const SCORING_CONFIG = {
-  MAX_SCORE: 1300,
-  MIN_BETS_FOR_LEADERBOARD: 5, // Lower threshold for Limitless
-  MIN_BETS_FOR_FULL_SCORE: 50,
-  SKILL_MAX: 500,
-  ACTIVITY_MAX: 500,
-  VOLUME_MAX: 200,
-  WILSON_Z: 1.96,
-};
 
 interface TraderProfile {
   account: string;
@@ -64,56 +52,17 @@ interface LeaderboardEntry {
 }
 
 /**
- * Wilson Score Lower Bound
+ * Calculate TruthScore using unified system
  */
-function wilsonScoreLower(wins: number, total: number, z = SCORING_CONFIG.WILSON_Z): number {
-  if (total === 0) return 0;
-  const p = wins / total;
-  const denominator = 1 + (z * z) / total;
-  const center = p + (z * z) / (2 * total);
-  const spread = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * total)) / total);
-  return Math.max(0, (center - spread) / denominator);
-}
-
-/**
- * Calculate TruthScore using Limitless leaderboard position
- */
-function calculateLimitlessScore(position: number, points: number, volume: number, trades: number): number {
-  if (trades < SCORING_CONFIG.MIN_BETS_FOR_LEADERBOARD) {
-    return 0;
-  }
-
-  // Skill Score: Based on leaderboard position (lower is better)
-  // Top 100 = 500 points, Top 1000 = 400, Top 10000 = 300, etc.
-  let skillScore = 0;
-  if (position <= 100) {
-    skillScore = SCORING_CONFIG.SKILL_MAX;
-  } else if (position <= 1000) {
-    skillScore = Math.floor(400 + (100 / position) * 100);
-  } else if (position <= 10000) {
-    skillScore = Math.floor(300 + (1000 / position) * 100);
-  } else if (position <= 100000) {
-    skillScore = Math.floor(200 + (10000 / position) * 100);
-  } else {
-    skillScore = Math.floor(100 + (100000 / position) * 100);
-  }
-  skillScore = Math.min(SCORING_CONFIG.SKILL_MAX, skillScore);
-
-  // Activity Score: Logarithmic based on volume
-  const activityScore = volume > 0
-    ? Math.min(SCORING_CONFIG.ACTIVITY_MAX, Math.max(0, Math.floor(Math.log10(volume) * 65)))
-    : 0;
-
-  // Points Bonus: Based on Limitless points
-  const pointsBonus = points > 0
-    ? Math.min(SCORING_CONFIG.VOLUME_MAX, Math.floor(points * 20))
-    : 0;
-
-  // Sample size multiplier
-  const sampleMultiplier = Math.min(1, trades / SCORING_CONFIG.MIN_BETS_FOR_FULL_SCORE);
-
-  const rawScore = skillScore + activityScore + pointsBonus;
-  return Math.min(SCORING_CONFIG.MAX_SCORE, Math.floor(rawScore * sampleMultiplier));
+function calculateLimitlessScore(trader: TraderStats): number {
+  // Use unified TruthScore system (odds-based market)
+  const scoreResult = calculateTruthScore({
+    pnl: trader.pnl,
+    volume: trader.volume,
+    trades: trader.trades,
+    platform: 'Limitless',
+  });
+  return scoreResult.score;
 }
 
 /**
@@ -343,12 +292,7 @@ export async function GET(request: NextRequest) {
 
     // Transform to leaderboard entries
     const leaderboard: LeaderboardEntry[] = traders.map((trader, index) => {
-      const score = calculateLimitlessScore(
-        trader.leaderboardPosition,
-        trader.points,
-        trader.volume,
-        trader.trades
-      );
+      const score = calculateLimitlessScore(trader);
 
       // Estimate win rate from position (top traders have higher win rates)
       // Deterministic formula: higher position = higher estimated win rate

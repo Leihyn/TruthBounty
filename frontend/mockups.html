@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TruthBounty - Merger Options</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0a0b0f;
+      color: #f1f5f9;
+      padding: 40px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 32px;
+      margin-bottom: 60px;
+      background: linear-gradient(90deg, #3b82f6, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .option {
+      margin-bottom: 80px;
+      background: #12141a;
+      border-radius: 24px;
+      padding: 32px;
+      border: 1px solid #1e2129;
+    }
+    .option-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .option-number {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+    }
+    .option h2 { font-size: 24px; }
+    .option h3 {
+      color: #94a3b8;
+      font-weight: normal;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    .wireframe {
+      background: #1a1d24;
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid #282d3a;
+    }
+    .section {
+      background: #0d0f14;
+      border: 1px dashed #3b82f6;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    .section-label {
+      position: absolute;
+      top: -10px;
+      left: 16px;
+      background: #3b82f6;
+      color: white;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .section-content {
+      color: #64748b;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .highlight {
+      color: #f59e0b;
+      font-weight: 600;
+    }
+    .new-badge {
+      background: #10b981;
+      color: white;
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+      text-transform: uppercase;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+    .benefits {
+      margin-top: 24px;
+      padding: 16px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 12px;
+    }
+    .benefits h4 {
+      color: #10b981;
+      font-size: 12px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .benefits ul {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .benefits li {
+      background: rgba(16, 185, 129, 0.15);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #10b981;
+    }
+    .split-hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    .split-left {
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      padding: 40px;
+      border-radius: 12px 0 0 12px;
+    }
+    .split-right {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      padding: 40px;
+      border-radius: 0 12px 12px 0;
+    }
+    .recommended {
+      border: 2px solid #f59e0b;
+      position: relative;
+    }
+    .recommended::before {
+      content: "RECOMMENDED";
+      position: absolute;
+      top: -12px;
+      right: 24px;
+      background: #f59e0b;
+      color: black;
+      font-size: 11px;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+    .flow-arrow {
+      text-align: center;
+      color: #3b82f6;
+      font-size: 24px;
+      margin: 8px 0;
+    }
+    .mini-card {
+      background: #0d0f14;
+      border: 1px solid #282d3a;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .mini-card .icon {
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+    .mini-card .label {
+      font-size: 11px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+  <h1>TruthBounty - Page Merger Options</h1>
+
+  <!-- Option 1 -->
+  <div class="option recommended">
+    <div class="option-header">
+      <div class="option-number">1</div>
+      <div>
+        <h2>Proof-First Landing</h2>
+        <h3>Lead with real trader data, explain product second</h3>
+      </div>
+    </div>
+    <div class="wireframe">
+      <div class="section">
+        <span class="section-label">Hero</span>
+        <div class="section-content">
+          <span class="highlight">"This trader made $47K last month."</span><br>
+          Live rotating trader spotlight with real stats<br>
+          CTAs: "See How" | "Build Your Reputation"
+        </div>
+      </div>
+      <div class="section">
+        <span class="section-label">Social Proof Bar</span>
+        <div class="section-content">
+          2,847 traders | 156K verified bets | $4.2M volume | 7 chains
+        </div>
+      </div>
+      <div class="section">
+        <span class="section-label">Platform Tabs + Live Leaderboard <span class="new-badge">From Case Study</span></span>
+        <div class="section-content">
+          [Polymarket] [PancakeSwap] [Azuro] [Overtime] [Limitless] [SX Bet] [Speed]<br>
+          Bento grid of top 3-5 traders per platform with real data
+        </div>
+      </div>
+      <div class="section">
+        <span class="section-label">Verification Timeline <span class="new-badge">From Case Study</span></span>
+        <div class="section-content">
+          On-chain Data → Immutable Records → Publicly Auditable
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="section">
+          <span class="section-label">Problem/Solution</span>
+          <div class="section-content">Condensed from Home page</div>
+        </div>
+        <div class="section">
+          <span class="section-label">Wilson Score</span>
+          <div class="section-content">Visual comparison demo</div>
+        </div>
+      </div>
+      <div class="section">
+        <span class="section-label">Features Bento</span>
+        <div class="section-content">TruthScore Algorithm | Soulbound NFT | Copy Trading | Tiers</div>
+      </div>
+      <div class="section">
+        <span class="section-label">Supported Platforms</span>
+        <div class="section-content">7 platform cards with volume stats</div>
+      </div>
+      <div class="section">
+        <span class="section-label">FAQ + CTA</span>
+        <div class="section-content">Top 3 questions + "Join 500+ traders"</div>
+      </div>
+    </div>
+    <div class="benefits">
+      <h4>Why This Works</h4>
+      <ul>
+        <li>Immediate credibility</li>
+        <li>Shows real results first</li>
+        <li>Differentiates from competitors</li>
+        <li>Single powerful landing page</li>
+        <li>Better SEO</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Option 2 -->
+  <div class="option">
+    <div class="option-header">
+      <div class="option-number">2</div>
+      <div>
+        <h2>Interactive Story Scroll</h2>
+        <h3>GSAP-animated narrative that unfolds as user scrolls</h3>
+      </div>
+    </div>
+    <div class="wireframe">
+      <div class="section">
+        <span class="section-label">Scene 1: The Hook</span>
+        <div class="section-content">
+          <span class="highlight">"Meet Theo4"</span> - Camera zooms into a real trader's card
+        </div>
+      </div>
+      <div class="flow-arrow">↓ scroll</div>
+      <div class="section">
+        <span class="section-label">Scene 2: The Stats</span>
+        <div class="section-content">
+          "88.5K bets. 95% win rate." - Numbers animate and count up
+        </div>
+      </div>
+      <div class="flow-arrow">↓ scroll</div>
+      <div class="section">
+        <span class="section-label">Scene 3: The Question</span>
+        <div class="section-content">
+          <span class="highlight">"How do we know this is real?"</span> - Verification timeline reveals
+        </div>
+      </div>
+      <div class="flow-arrow">↓ scroll</div>
+      <div class="section">
+        <span class="section-label">Scene 4: The Problem</span>
+        <div class="section-content">
+          "The problem with prediction markets..." - Pain points fade in one by one
+        </div>
+      </div>
+      <div class="flow-arrow">↓ scroll</div>
+      <div class="section">
+        <span class="section-label">Scene 5: The Solution</span>
+        <div class="section-content">
+          "TruthScore: Your verifiable reputation" - Algorithm explanation with animations
+        </div>
+      </div>
+      <div class="flow-arrow">↓ scroll</div>
+      <div class="section">
+        <span class="section-label">Scene 6: The Ecosystem</span>
+        <div class="section-content">
+          "Every prediction. Every chain. One score." - Platforms fly in
+        </div>
+      </div>
+      <div class="flow-arrow">↓ scroll</div>
+      <div class="section">
+        <span class="section-label">Scene 7: The CTA</span>
+        <div class="section-content">
+          <span class="highlight">"Ready to prove your skills?"</span> - Wallet connect button pulses
+        </div>
+      </div>
+    </div>
+    <div class="benefits">
+      <h4>Why This Works</h4>
+      <ul>
+        <li>Highly engaging</li>
+        <li>Memorable experience</li>
+        <li>Tells a story</li>
+        <li>Premium feel</li>
+        <li>Reduces cognitive load</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Option 3 -->
+  <div class="option">
+    <div class="option-header">
+      <div class="option-number">3</div>
+      <div>
+        <h2>Split-Screen Experience</h2>
+        <h3>Two parallel user journeys that converge</h3>
+      </div>
+    </div>
+    <div class="wireframe">
+      <div class="split-hero">
+        <div class="split-left">
+          <div style="font-size: 14px; opacity: 0.8; margin-bottom: 8px;">I'm a</div>
+          <div style="font-size: 28px; font-weight: bold; margin-bottom: 16px;">TRADER</div>
+          <div style="font-size: 13px; opacity: 0.9; margin-bottom: 20px;">
+            Build your verifiable<br>on-chain reputation
+          </div>
+          <div style="background: white; color: #1d4ed8; padding: 10px 20px; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 13px;">
+            Get Started →
+          </div>
+        </div>
+        <div class="split-right">
+          <div style="font-size: 14px; opacity: 0.8; margin-bottom: 8px;">I'm an</div>
+          <div style="font-size: 28px; font-weight: bold; margin-bottom: 16px;">INVESTOR</div>
+          <div style="font-size: 13px; opacity: 0.9; margin-bottom: 20px;">
+            Find proven traders<br>to copy trade
+          </div>
+          <div style="background: white; color: #d97706; padding: 10px 20px; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 13px;">
+            See Leaderboard →
+          </div>
+        </div>
+      </div>
+      <div class="flow-arrow" style="margin: 20px 0;">↓ Both paths converge ↓</div>
+      <div class="section">
+        <span class="section-label">Shared Content</span>
+        <div class="section-content">
+          Both journeys lead to the same product explanation:<br>
+          How It Works → Features → Platforms → CTA
+        </div>
+      </div>
+    </div>
+    <div class="benefits">
+      <h4>Why This Works</h4>
+      <ul>
+        <li>Personalized experience</li>
+        <li>Clear user segmentation</li>
+        <li>Faster time to relevance</li>
+        <li>A/B testable</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Option 4 -->
+  <div class="option">
+    <div class="option-header">
+      <div class="option-number">4</div>
+      <div>
+        <h2>Floating Proof Widget</h2>
+        <h3>Keep current home, add live social proof overlay</h3>
+      </div>
+    </div>
+    <div class="wireframe">
+      <div class="section" style="min-height: 200px; position: relative;">
+        <span class="section-label">Current Home Page</span>
+        <div class="section-content">
+          Existing home page stays exactly as-is...<br><br>
+          Hero, Problem/Solution, How It Works, Features, Tiers, Platforms, FAQ, CTA
+        </div>
+        <div style="position: absolute; bottom: 20px; right: 20px; background: linear-gradient(135deg, #1a1d24, #12141a); border: 1px solid #3b82f6; border-radius: 16px; padding: 16px; width: 280px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">🔮</div>
+            <div>
+              <div style="font-size: 13px; font-weight: 600;">Theo4</div>
+              <div style="font-size: 11px; color: #64748b;">Just hit 95% win rate</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; font-size: 11px;">
+            <div style="background: #0d0f14; padding: 6px 10px; border-radius: 6px;"><span style="color: #f59e0b; font-weight: bold;">1170</span> Score</div>
+            <div style="background: #0d0f14; padding: 6px 10px; border-radius: 6px;"><span style="color: #10b981; font-weight: bold;">95%</span> Win</div>
+          </div>
+          <div style="text-align: center; margin-top: 12px; font-size: 11px; color: #3b82f6; cursor: pointer;">View All Top Traders →</div>
+        </div>
+      </div>
+      <div class="section">
+        <span class="section-label">On Click: Expand to Modal</span>
+        <div class="section-content">
+          Clicking widget opens full case study content as a modal/drawer<br>
+          Platform tabs, leaderboard grid, verification info
+        </div>
+      </div>
+    </div>
+    <div class="benefits">
+      <h4>Why This Works</h4>
+      <ul>
+        <li>Minimal changes</li>
+        <li>Non-intrusive</li>
+        <li>Social proof without clutter</li>
+        <li>Easy to implement</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Option 5 -->
+  <div class="option">
+    <div class="option-header">
+      <div class="option-number">5</div>
+      <div>
+        <h2>Mega Landing Page</h2>
+        <h3>Everything in one epic scrolling experience</h3>
+      </div>
+    </div>
+    <div class="wireframe">
+      <div class="grid-3">
+        <div class="mini-card">
+          <div class="icon">1</div>
+          <div class="label">Hero + Live Trader</div>
+        </div>
+        <div class="mini-card">
+          <div class="icon">2</div>
+          <div class="label">Platform Tabs</div>
+        </div>
+        <div class="mini-card">
+          <div class="icon">3</div>
+          <div class="label">Problem/Solution</div>
+        </div>
+        <div class="mini-card">
+          <div class="icon">4</div>
+          <div class="label">How It Works</div>
+        </div>
+        <div class="mini-card">
+          <div class="icon">5</div>
+          <div class="label">Verification</div>
+        </div>
+        <div class="mini-card">
+          <div class="icon">6</div>
+          <div class="label">Wilson Score</div>
+        </div>
+        <div class="mini-card">
+          <div class="icon">7</div>
+          <div class="label">Features Bento</div>
+        </div>
+        <div class="mini-card">
+          <div class="icon">8</div>
+          <div class="label">Reputation Tiers</div>
+        </div>
+        <div class="mini-card">
+          <div class="icon">9</div>
+          <div class="label">Platforms Grid</div>
+        </div>
+        <div class="mini-card">
+          <div class="icon">10</div>
+          <div class="label">FAQ</div>
+        </div>
+        <div class="mini-card">
+          <div class="icon">11</div>
+          <div class="label">Final CTA</div>
+        </div>
+        <div class="mini-card" style="border-color: #f59e0b;">
+          <div class="icon" style="color: #f59e0b;">✓</div>
+          <div class="label" style="color: #f59e0b;">Complete!</div>
+        </div>
+      </div>
+      <div style="margin-top: 20px; padding: 16px; background: #0d0f14; border-radius: 12px; font-size: 13px; color: #64748b;">
+        <strong style="color: #f1f5f9;">Section Flow:</strong><br>
+        Home Hero (merged) → Case Study Leaderboard → Home Problem → Home How It Works → Case Study Verification → Case Study Wilson → Home Features → Home Tiers → Home Platforms → Home FAQ → Merged CTA
+      </div>
+    </div>
+    <div class="benefits">
+      <h4>Why This Works</h4>
+      <ul>
+        <li>Comprehensive</li>
+        <li>One URL to share</li>
+        <li>Full story in one page</li>
+        <li>No navigation needed</li>
+        <li>Mobile-friendly scroll</li>
+      </ul>
+    </div>
+  </div>
+
+</body>
+</html>

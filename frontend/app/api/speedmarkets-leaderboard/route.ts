@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { calculateTruthScore, TRUTHSCORE_CONFIG } from '@/lib/truthscore';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
  * within a short timeframe (5 min to 24 hours) on Optimism.
  *
  * Uses Thales subgraph via The Graph's decentralized network.
- * API keys and subgraph IDs from thales-data library.
+ * Uses unified TruthScore v2.0 system (binary market scoring).
  */
 
 // Graph API key for DigitalOptions/Thales Markets (from thales-data)
@@ -25,17 +26,6 @@ const THALES_SPEED_SUBGRAPHS = {
   optimism: `https://gateway-arbitrum.network.thegraph.com/api/${GRAPH_API_KEY}/subgraphs/id/${SUBGRAPH_IDS.optimism}`,
   arbitrum: `https://gateway-arbitrum.network.thegraph.com/api/${GRAPH_API_KEY}/subgraphs/id/${SUBGRAPH_IDS.arbitrum}`,
 } as const;
-
-// Scoring config (adjusted for Speed Markets which has fewer transactions in subgraph)
-const SCORING_CONFIG = {
-  MAX_SCORE: 1300,
-  MIN_BETS_FOR_LEADERBOARD: 1, // Lower threshold since Speed Markets has fewer indexed transactions
-  MIN_BETS_FOR_FULL_SCORE: 20,
-  SKILL_MAX: 500,
-  ACTIVITY_MAX: 500,
-  VOLUME_MAX: 200,
-  WILSON_Z: 1.96,
-};
 
 interface SpeedMarketUser {
   id: string;
@@ -62,58 +52,6 @@ interface LeaderboardEntry {
   asset?: string;
 }
 
-/**
- * Wilson Score Lower Bound
- */
-function wilsonScoreLower(wins: number, total: number, z = SCORING_CONFIG.WILSON_Z): number {
-  if (total === 0) return 0;
-  const p = wins / total;
-  const denominator = 1 + (z * z) / total;
-  const center = p + (z * z) / (2 * total);
-  const spread = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * total)) / total);
-  return Math.max(0, (center - spread) / denominator);
-}
-
-/**
- * Calculate TruthScore for Speed Markets user
- *
- * Uses baseline-adjusted scoring: Since binary UP/DOWN prediction has 50% random chance,
- * skill score is based on performance ABOVE the 50% baseline.
- */
-function calculateSpeedScore(pnl: number, volume: number, wins: number, totalBets: number): number {
-  if (volume <= 0 || totalBets < SCORING_CONFIG.MIN_BETS_FOR_LEADERBOARD) {
-    return 0;
-  }
-
-  // Wilson Score adjusted win rate (conservative estimate for sample size)
-  const wilsonWinRate = wilsonScoreLower(wins, totalBets);
-
-  // Skill Score: Based on Wilson-adjusted win rate MINUS 50% baseline
-  // Binary UP/DOWN prediction has 50% random chance, only reward above that
-  // - 50% win rate → 0 points
-  // - 55% win rate → 50 points
-  // - 60% win rate → 100 points
-  const skillScore = Math.min(
-    SCORING_CONFIG.SKILL_MAX,
-    Math.max(0, Math.floor((wilsonWinRate - 0.5) * 1000))
-  );
-
-  // Activity Score: Logarithmic based on number of WINS
-  const activityScore = wins > 0
-    ? Math.min(SCORING_CONFIG.ACTIVITY_MAX, Math.floor(Math.log10(wins) * 166))
-    : 0;
-
-  // Volume Bonus: Logarithmic based on volume
-  const volumeBonus = volume >= 1
-    ? Math.min(SCORING_CONFIG.VOLUME_MAX, Math.floor(Math.log10(volume) * 50))
-    : 0;
-
-  // Sample size multiplier
-  const sampleMultiplier = Math.min(1, totalBets / SCORING_CONFIG.MIN_BETS_FOR_FULL_SCORE);
-
-  const rawScore = skillScore + activityScore + volumeBonus;
-  return Math.min(SCORING_CONFIG.MAX_SCORE, Math.floor(rawScore * sampleMultiplier));
-}
 
 /**
  * Query Thales subgraph for speed market users using PositionBalance entity
@@ -265,7 +203,14 @@ export async function GET(request: NextRequest) {
       const wins = user.wins || 0;
       const losses = user.losses || trades - wins;
 
-      const score = calculateSpeedScore(pnl, volume, wins, trades);
+      // Use unified TruthScore system (binary market)
+      const scoreResult = calculateTruthScore({
+        wins,
+        losses,
+        totalBets: trades,
+        platform: 'Speed Markets',
+      });
+      const score = scoreResult.score;
       const winRate = trades > 0 ? (wins / trades) * 100 : 0;
 
       return {
@@ -291,9 +236,9 @@ export async function GET(request: NextRequest) {
       entry.rank = idx + 1;
     });
 
-    // Filter only users with enough bets
+    // Filter only users with enough bets (allow lower threshold for Speed Markets since it has fewer indexed transactions)
     const qualifiedUsers = leaderboard.filter(
-      entry => entry.totalBets >= SCORING_CONFIG.MIN_BETS_FOR_LEADERBOARD
+      entry => entry.totalBets >= 1
     );
 
     // Apply search filter

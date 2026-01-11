@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TruthBounty - Case Study Video</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            background: '#0a0d12',
+            surface: '#0d1117',
+            'surface-raised': '#161b22',
+            border: '#30363d',
+            primary: '#3b82f6',
+            secondary: '#f59e0b',
+            success: '#10b981',
+            destructive: '#ef4444',
+            muted: '#6b7280',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0a0d12;
+      color: white;
+      overflow: hidden;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #f59e0b, #fbbf24, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .gradient-blue {
+      background: linear-gradient(135deg, #3b82f6, #60a5fa, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Scene container */
+    .scene {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: scale(0.95);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+      pointer-events: none;
+    }
+    .scene.active {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
+    }
+
+    /* Animated elements */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-up.show { opacity: 1; transform: translateY(0); }
+
+    .fade-in {
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+    .fade-in.show { opacity: 1; }
+
+    .scale-in {
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .scale-in.show { opacity: 1; transform: scale(1); }
+
+    .slide-left {
+      opacity: 0;
+      transform: translateX(-60px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .slide-left.show { opacity: 1; transform: translateX(0); }
+
+    .slide-right {
+      opacity: 0;
+      transform: translateX(60px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .slide-right.show { opacity: 1; transform: translateX(0); }
+
+    /* Trader card */
+    .trader-card {
+      background: linear-gradient(135deg, rgba(13, 17, 23, 0.9), rgba(22, 27, 34, 0.9));
+      border: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    /* Problem cards */
+    .problem-card {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    /* Solution card */
+    .solution-card {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    /* Progress bar */
+    .progress-bar {
+      width: 0;
+      transition: width 1s ease;
+    }
+    .progress-bar.animate {
+      width: var(--target);
+    }
+
+    /* Platform logos */
+    .platform-logo {
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .platform-logo.show {
+      animation: popIn 0.4s ease forwards;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0); opacity: 0; }
+      70% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Pulse glow */
+    .pulse-glow {
+      animation: pulseGlow 2s ease-in-out infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+      50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.6); }
+    }
+
+    /* Checkmark animation */
+    .check-item {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    .check-item.show {
+      opacity: 1;
+      transform: translateX(0);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    /* Logo */
+    .logo-mark {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-mark svg {
+      width: 100%;
+      height: 100%;
+    }
+    .logo-mark-sm {
+      width: 40px;
+      height: 40px;
+    }
+    .logo-mark-lg {
+      width: 64px;
+      height: 64px;
+    }
+
+    /* CTA button */
+    .cta-btn {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      padding: 16px 48px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 18px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .cta-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px rgba(59, 130, 246, 0.4);
+    }
+
+    /* Video controls */
+    #controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      z-index: 9999;
+      background: rgba(0,0,0,0.8);
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    #controls button {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+    }
+    #controls .play-btn { background: #10b981; color: white; }
+    #controls .reset-btn { background: #6b7280; color: white; }
+    #controls .hide-btn { background: #ef4444; color: white; }
+    #controls .voice-btn-on { background: #3b82f6; color: white; }
+    #controls .voice-btn-off { background: #1f2937; color: #9ca3af; }
+    #timer {
+      color: #f59e0b;
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Voiceover script panel */
+    #script-panel {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 320px;
+      max-height: 90vh;
+      overflow-y: auto;
+      background: rgba(0,0,0,0.9);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 9998;
+      font-size: 13px;
+    }
+    #script-panel h3 {
+      color: #f59e0b;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .script-line {
+      padding: 8px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      border-left: 3px solid #30363d;
+      color: #9ca3af;
+    }
+    .script-line.active {
+      background: rgba(59, 130, 246, 0.1);
+      border-left-color: #3b82f6;
+      color: white;
+    }
+    .script-line .time {
+      font-size: 10px;
+      color: #6b7280;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SCENE 1: Logo Intro (0-3s) -->
+  <div id="scene-1" class="scene">
+    <div class="text-center">
+      <div class="fade-up logo-mark logo-mark-lg mx-auto mb-6">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALIAAADGCAYAAAB2Odq/AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAA0tSURBVHgB7Z3rldy4EYXv+vi/5QgWG8GuI1g4gpUjEB2B5QgGikByBGxHIDkCciPQOgJyI5AcgdwQG6fZVM8MQLLw4v3OqdPT82IRuF0svL8D2Qt1Nn22ny+vP3j8zXC2/my/Xl5HkFV8B7KWnzAJ9sezvTzbi8XPfcr2y+L9CAp7FRSyH1akP13sl8vri2f+Zo2Ql4y4Cvu3i5E7UMj3ccJ1ovUR7pI9hLxkxCTm/4DCvoFCnrAitemBTRM0JuFuRULIS0ZQ2F85qpAVbhtmCvsTQ8hLRhxU2EcRsmuYOeGGpglrSCHkJSMOIuwahbymYSZBDkJeMmISs+sVqUbYNQjZilRjirZrG2YS5CjkJZ9x291XrLBLFLJEw0yCEoS8pFhhlyBkBfmGmQQlCnlJMcLOUcgpGmYS1CDkJdkKO7WQXcPMiTaX/HYPahTyEivsea9Ij0TEFvKyYaZRL0cQ8pJkwpYWssJ1Yo19zbVhJsERhbwkmrD3FrLCbY+CwnGhkL9FTNhbhaxxm+PWkt/uAYX8PLsJO0TINTfMJKCQw3HCdr0ive8fPlXYR2qYSUAh70MPD2HPC1vhdsWDAtkChSxDjzvCtoXdgg0zCSjkOPRne2MLm4UpA4Ucjzd/ACEVQCGTKqCQSRVQyKQK/giSkr/itq+eA0wrObKQe0z9ka7fPJUP/ey9FbPC7UQr4sGRut/s8OcHTOL9cHlvMWd7wP7sNSFL4zo1wAmd3PKm9ojcY8W4fWb0F3t3ea9wu+8cUxLUl1o8FnVrYrzYh9n33Opxjau4D0UNQu5RftTdym8XO13eu5mKGtdcu+qoXaKQjxB1t+IWifaz7yl8K+5qKEXIPRh1tzLi25RE49qQVCg4JclVyIy6cehx25CcpyRF9W3nJOQejLqpuZeSFNGQTClkRt0yeKwhmVXfdmwh92DUnfMSk0hGlMM8aj/Wt60RGWkhM+o+zfvL64jrosuoG5vsxIj7fdv68iqekkgL+c8gPihc9wRx9LgV94iycCmJw6YknyAEZ7/li77Y68v7EWVv0i36NKaQy0HhNmq7PSDm4j5s6lbrxHqFaySrFbfviL1Pm2vbx/bHy9f2e6I5aW7UEpHnm8nM9+R4h2PhusWWUXuejlQZtUsWsmsV/wJOQH8M9wG35uZcz9ORZYOsWEoSsq0UG2lc1C1i6DRDXNRuLu+riNq5C1njummiBpGgiqidm5AZdfOguKidg5A1GHVzJ/uonVrIBjILP4k8y6i912LbVXCDFlIFFDKpgtRCrrJznsSHQiZVwNSCVAGFTKqAqQWpAgqZVAFTC1IFjMikCihkUgVMLUgVUMikCphakCpIPY2TQn4cN5n9v5j2tHBlZb9+sbDvMS24dfuyHQ7ua5EXPa7bi22ZqO42FpxvV6VQMVbIb3BseqTFRtp/YdrtcsQ+uBUbH2bfE92yyhMprfXIgAHTEWkSljsacfkiaElhr0VaepBdoJBJFVDIpApyEPIIQjbCiEyqgEImVZCDkDm6RzaTg5D/B0I2wtSCVAGFTKogh0lDOebIyuPre+8tf8L97XDtfS7TqPHO62ew3RCMFbLkOLnPDo2pK+312f6B65TIHLBlMuI6lfN3XCcClSxyKa294TTOSbwKeTGfV6wXP1seSTaCcD5ygSz3Jbai/jemKZsjDgqHqMvHivotpumwHa4CPxSSQh5BYqPP1mISdYMDwe63OlE4mKAp5LpRmATd4gBr9qTw7SYaQaRpUPmJWZIRmZ36eaFQMUwtSBWw+41UgaSQOT2TRENSyKk3AyEHgjkyqQLmyKQKJIX8OwiJBFMLUgW5CJmDJ2QTFDKpAk7jJFXAHJlUQS5LnVKmFnap0AnTSKSPH4+tclZP/M33l9f5AleFvBa8Fo2kkMeA300p5A+4PaIgBQpXUbvzPn7EgQ+3CYWLT/NgnH3dL37mxGztZxzgYJs1UMj5Y59W/cXeXb5nxfzybL+AEfsruTT2OAoYhs3rzdn+cjG7HcCIA8Put/Kxom4wCfrvOGi5s/utHmwKcjrbDzjg2YkUcp0YTIJO3RsTjVwWn44gezOe7W9n+ycOQO2rqDnYMPV02Og8Ii0Kglghbzm8+ylCRCTlQwNiGTGddy1F7/E7GnJ81Y+BzNnEBv68EPKhA3EMkDuHuvG4fid4/a9BUwv989DFp52QH0wv5OrY2uBxfSV4/Y/2Aja16CGTz1oB6YDf/xUyvAZ5BTl6j9/RkONGNyfIfFrewx8t5MOAY6MgFw2/wK8RNwheX88vpIUuYtOLkEf7JyE/NI5LCzkRtR7X/0nw+t+kry8gJyIDf94J+dDhmCjIicg3QLSC17874NMJXSyk0aeFfPAt9NpoIVeenZ8L8XtLGsELavgj9WQYcKweDAW5+rT20sOHRtgHde+ikulFB3+k0gtrb3EcBsiV4+Dpw0dBH7qnLvxe8MIafmhBH0L8KJkHyJZh4+GDTumDFrxwC386QT8G1L1USLKXwJWfD62wH+o5B6TSC2u+OeprQR9qFrOCbEphrfH0Q9IHr+mpkjmqgR+S+XqtYlaQF3EHP1phPxofJ7SgAyEDJEbQj7mYNcrHphP2XqTLS3n4ooR9GBBAJ+iIgR8xorKzB5TLK8QppxZ+tJn48RXJHDW3qOxsgF/faC7YMpTsZVqWjfLwSUXwJWj7A+loaOBHzKjsrEPe6YYtkwfELRffGYStsB8dViDZ6LOVoOCHEfTjuUJrkA8pBGxtgB8qgi8NVqCFnWrhR4qovKxI66tCGjSmEclUZaDgRyvsx4ANdMLOafjRCPvha3bI1T5mpbep0kgrXmcGfqgIvmyaXqAh61wHfzphX0JtwBSFNLZPRlKYPiC28ZZavM4+wh/JORXOFDYyQNZB354ChXwq+Z51CG8ktojT/xtqA/yF00Twp8UOGMg6OSCfoeutZhBGrvcRElyGCP4o7ECMxlZI/iPZm0Ihh91DG8GfFjtiAHGHNfywH6wYOZm0CJDAv+fsHfzRkXxS2JFYk3h8UwyFPHNLgzBy8j2kcWfraYjgUwsBDCDueEiKoZCfmA3CyMVvK+KQnpe3kfxSECDWwISGPwp5idkgjBx8DhVxE8mvFoIYQPwGBoQVrEI+YjYII7W/oSJWiFPWAyKMpMa4kQ5hKOQhZoMwUvp6QvhAThfJN4MIaAAxbuYBYcSc1rhXBaTyM6R3wvEQybcBEekQ56ZeIRwTybcShWzbOGs2dWwi+fcFkWccasQr+DUTdDTSpBoGYcT0bcC6slSINzWgRQJijbANWJf4K8jtMlqakG1drZnYpBAvIITMUd+VmPOEB6y/yVgLM3MU8oD1q11iDXo4S7qP9UvEu9EB26ZLNpCvGIMwpPz4hO0t/5jTADpkgHUi1g2H9nsusX9rICdogzAkfFibRsxphXx77EOnkAEKcecJD9h+4woygjYIY89rt9hHEO3Ofj1nWR2NEXue8ID9PsUN9hO0QRg5CRiIL+IWGRJ7MGLAvo8kvcM9GISx9jouB95zv+cW2+49df3tRuxWrqvQvTdVUVifdhiEEfr/O0xPvz0F/AJp1kNKL+DdhEb8ArH2ABk0pr5o3zaAQRi+H9Z3kNk0RiHNIgWDAki1rs6mBQpyNHg+9TAI46n/1V2uKXVcRMz+9bm1KIhUk3cGyD+yrLAa3L9HgzDuiddA/qyTV0izIn2IcG+7kiJfntsD4uBEfcK6QQhXuQbxGj6xVnfcE7FCgSik3+pKIS4KYWjEQyHtJjdZN+6eQyNdwTmzEaiox5kAtmcnZVDJatBjLTlsqjIgr501Y2E/wKlSCWcGFWGQXsxO0EU/4gLQSL/8y6BCDPIQs7UW9R5RppB+yZe1NcupiuGEPIRco6BTbQR+z044ACfkIeKloEtOOWxjbkAeZXnCgTghj0JfWoeyGoUaee0bfcIBOSGfCljagEnQCnmikd/G5yccGIO8KuOetcjnlCeN/ARszYAUIWZrA6Y+cYW45NSIo4ifwSDPSnrMOsinHhp5HIjzlFUxYrc3qYdRcxC1whR9ByCa/2vM1pMGeRSF/Ctxb1Hb1OE18sx979mAegeTdkUh36MVQszeg00N9J17tN97QDnind+TAgnCoKxKfsrso9gOG7coM32yVvWQszQNyq34WmztDp5kgULZeXPJNuA4swWjYVCWCEq3E7ggQQwNRmdpYyoRCYW852mUbB3YKxGdBozOexqjcEJsDpfz2dQlmO0bZoMuExQYnUNtj83AiRANKGgf68BcOHsU2FX3mNko3IAUhQJ7N+a2x5EMJCEK5U3O2dM6sDFXFRrHEvQAzhmuGo26Bc2RuYOhUZegJc4VIQWhUXajkAImNyiUJWgKmDyJwpRjDqCASSU0yCePpoDJZhTCjimjgEnWuMNvOsgLeMD+h0MS8g0KU5S2gttTwB04kEESYXdJ2rJLvOTppoQEoxCWejD/JdmjMOW493ZNYvqwM9+BxEBhSj/c0qzPILvyf37GsBLv2o7yAAAAAElFTkSuQmCC" alt="TruthBounty Logo" class="w-full h-full invert" />
+      </div>
+      <h1 class="fade-up text-5xl font-black mb-3" style="transition-delay: 0.2s">
+        <span class="gradient-blue">Truth</span>Bounty
+      </h1>
+      <p class="fade-up text-xl text-muted" style="transition-delay: 0.4s">Find traders worth copying</p>
+    </div>
+  </div>
+
+  <!-- SCENE 2: The Problem (3-10s) -->
+  <div id="scene-2" class="scene">
+    <div class="max-w-4xl mx-auto px-8">
+      <h2 class="fade-up text-5xl font-black text-center mb-12">The Problem</h2>
+
+      <div class="grid grid-cols-3 gap-6">
+        <div class="slide-left problem-card rounded-2xl p-6 text-center">
+          <span class="text-5xl mb-4 block">🎰</span>
+          <h3 class="text-xl font-bold mb-2">Lucky Gamblers</h3>
+          <p class="text-muted">90% win rate on 10 bets = meaningless</p>
+        </div>
+
+        <div class="fade-up problem-card rounded-2xl p-6 text-center" style="transition-delay: 0.2s">
+          <span class="text-5xl mb-4 block">🤥</span>
+          <h3 class="text-xl font-bold mb-2">Fake Gurus</h3>
+          <p class="text-muted">"Trust me bro" — no proof</p>
+        </div>
+
+        <div class="slide-right problem-card rounded-2xl p-6 text-center">
+          <span class="text-5xl mb-4 block">📊</span>
+          <h3 class="text-xl font-bold mb-2">Siloed Data</h3>
+          <p class="text-muted">12 platforms, zero unified view</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 3: Meet the Trader (10-18s) -->
+  <div id="scene-3" class="scene">
+    <div class="text-center">
+      <p class="fade-up text-lg text-secondary font-semibold mb-4">Case Study</p>
+      <h2 class="fade-up text-6xl font-black mb-4" style="transition-delay: 0.2s">
+        Meet <span id="trader-title" class="gradient-text">Theo</span>
+      </h2>
+      <p class="fade-up text-xl text-muted mb-10" style="transition-delay: 0.4s">From anonymous wallet to verified expert</p>
+
+      <div id="trader-card" class="fade-up trader-card rounded-2xl p-8 max-w-md mx-auto" style="transition-delay: 0.6s">
+        <div class="flex items-center gap-4 mb-6">
+          <div id="trader-avatar" class="w-16 h-16 rounded-xl bg-gradient-to-br from-secondary to-amber-600 flex items-center justify-center text-white font-bold text-2xl">T4</div>
+          <div class="text-left flex-1">
+            <p id="trader-name" class="text-xl font-bold">Theo4.eth</p>
+            <div class="flex items-center gap-2 mt-1">
+              <span id="trader-tier" class="px-3 py-1 rounded bg-secondary/20 text-secondary text-xs font-semibold">DIAMOND</span>
+              <span id="trader-platform" class="text-sm text-muted">Polymarket</span>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-4 text-center">
+          <div class="p-3 rounded-xl bg-surface/50">
+            <p id="trader-winrate" class="text-3xl font-black text-success">67%</p>
+            <p class="text-xs text-muted mt-1">Win Rate</p>
+          </div>
+          <div class="p-3 rounded-xl bg-surface/50">
+            <p id="trader-bets" class="text-3xl font-black">1,247</p>
+            <p class="text-xs text-muted mt-1">Bets</p>
+          </div>
+          <div class="p-3 rounded-xl bg-surface/50">
+            <p id="trader-score" class="text-3xl font-black text-secondary">2,847</p>
+            <p class="text-xs text-muted mt-1">TruthScore</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 4: The Solution - Wilson Score (18-28s) -->
+  <div id="scene-4" class="scene">
+    <div class="max-w-5xl mx-auto px-8">
+      <h2 class="fade-up text-5xl font-black text-center mb-12">The Solution</h2>
+
+      <div class="grid grid-cols-2 gap-10 items-center">
+        <div class="slide-left solution-card rounded-2xl p-8">
+          <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+            <span class="text-3xl">📐</span> Wilson Score
+          </h3>
+
+          <div class="space-y-4">
+            <div class="p-4 rounded-xl bg-surface/50">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-semibold">Theo4.eth</span>
+                <span class="text-success font-bold text-xl">67%</span>
+              </div>
+              <p class="text-xs text-muted mb-3">1,247 bets → High confidence</p>
+              <div class="h-3 rounded-full bg-surface overflow-hidden">
+                <div id="progress-1" class="progress-bar h-full bg-success rounded-full" style="--target: 67%"></div>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-surface/50 opacity-50">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-semibold">LuckyGambler</span>
+                <span class="text-muted font-bold text-xl">90%</span>
+              </div>
+              <p class="text-xs text-muted mb-3">10 bets → Penalized</p>
+              <div class="h-3 rounded-full bg-surface overflow-hidden">
+                <div id="progress-2" class="progress-bar h-full bg-muted rounded-full" style="--target: 25%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slide-right space-y-4">
+          <div class="check-item flex items-center gap-4 p-4 rounded-xl bg-surface/30 border border-success/20">
+            <span class="text-success text-2xl">✓</span>
+            <span class="text-lg font-medium">Filters lucky gamblers</span>
+          </div>
+          <div class="check-item flex items-center gap-4 p-4 rounded-xl bg-surface/30 border border-success/20" style="transition-delay: 0.3s">
+            <span class="text-success text-2xl">✓</span>
+            <span class="text-lg font-medium">Rewards consistency</span>
+          </div>
+          <div class="check-item flex items-center gap-4 p-4 rounded-xl bg-surface/30 border border-success/20" style="transition-delay: 0.6s">
+            <span class="text-success text-2xl">✓</span>
+            <span class="text-lg font-medium">On-chain verifiable</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 5: Platform Aggregation (28-36s) -->
+  <div id="scene-5" class="scene">
+    <div class="max-w-4xl mx-auto px-8 text-center">
+      <h2 class="fade-up text-5xl font-black mb-12">One Score. <span class="gradient-text">12 Platforms.</span></h2>
+
+      <div class="grid grid-cols-6 gap-4 mb-12">
+        <div class="platform-logo p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+          <div class="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center mb-2 mx-auto">
+            <span class="text-purple-400 font-bold text-xl">P</span>
+          </div>
+          <p class="text-xs">Polymarket</p>
+        </div>
+        <div class="platform-logo p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+          <div class="w-12 h-12 rounded-lg bg-amber-500/20 flex items-center justify-center mb-2 mx-auto">
+            <span class="text-2xl">🥞</span>
+          </div>
+          <p class="text-xs">Pancake</p>
+        </div>
+        <div class="platform-logo p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+          <div class="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center mb-2 mx-auto">
+            <span class="text-blue-400 font-bold text-xl">A</span>
+          </div>
+          <p class="text-xs">Azuro</p>
+        </div>
+        <div class="platform-logo p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+          <div class="w-12 h-12 rounded-lg bg-emerald-500/20 flex items-center justify-center mb-2 mx-auto">
+            <span class="text-emerald-400 font-bold text-xl">SX</span>
+          </div>
+          <p class="text-xs">SX Bet</p>
+        </div>
+        <div class="platform-logo p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+          <div class="w-12 h-12 rounded-lg bg-cyan-500/20 flex items-center justify-center mb-2 mx-auto">
+            <span class="text-cyan-400 font-bold text-xl">L</span>
+          </div>
+          <p class="text-xs">Limitless</p>
+        </div>
+        <div class="platform-logo p-4 rounded-xl bg-pink-500/10 border border-pink-500/20">
+          <div class="w-12 h-12 rounded-lg bg-pink-500/20 flex items-center justify-center mb-2 mx-auto">
+            <span class="text-pink-400 font-bold text-xl">+7</span>
+          </div>
+          <p class="text-xs">More</p>
+        </div>
+      </div>
+
+      <div class="fade-up flex items-center justify-center gap-6 text-xl" style="transition-delay: 0.8s">
+        <span class="px-6 py-3 rounded-xl bg-surface border border-border">12 Platforms</span>
+        <span class="text-primary text-3xl">→</span>
+        <span class="px-6 py-3 rounded-xl bg-primary/10 border border-primary/30 text-primary font-bold">1 TruthScore</span>
+        <span class="text-secondary text-3xl">→</span>
+        <span class="px-6 py-3 rounded-xl bg-secondary/10 border border-secondary/30 text-secondary font-bold">Copy with Confidence</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 6: CTA (36-45s) -->
+  <div id="scene-6" class="scene">
+    <div class="text-center">
+      <h2 class="fade-up text-6xl font-black mb-6">
+        Stop guessing.<br>
+        <span class="gradient-blue">Start copying winners.</span>
+      </h2>
+      <p class="fade-up text-xl text-muted mb-10" style="transition-delay: 0.3s">
+        Join 1,000+ traders using TruthScore to find edge
+      </p>
+      <div class="fade-up" style="transition-delay: 0.6s">
+        <button class="cta-btn pulse-glow">Get Started Free</button>
+      </div>
+      <div class="fade-up mt-8 flex items-center justify-center gap-8 text-muted" style="transition-delay: 0.9s">
+        <span class="flex items-center gap-2"><span class="text-success">✓</span> No signup required</span>
+        <span class="flex items-center gap-2"><span class="text-success">✓</span> Free tier available</span>
+        <span class="flex items-center gap-2"><span class="text-success">✓</span> Start in 30 seconds</span>
+      </div>
+
+      <div class="fade-up mt-16 flex items-center justify-center gap-3" style="transition-delay: 1.2s">
+        <div class="logo-mark logo-mark-sm">
+          <img src="data:image/png;base64,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" alt="TruthBounty Logo" class="w-full h-full invert" />
+        </div>
+        <span class="text-2xl font-bold"><span class="gradient-blue">Truth</span>Bounty</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div id="controls">
+    <button class="play-btn" onclick="playVideo()">▶ Play</button>
+    <button class="reset-btn" onclick="resetVideo()">↺ Reset</button>
+    <button id="voice-btn" class="voice-btn-on" onclick="toggleVoice()">🔊 Voice On</button>
+    <button class="hide-btn" onclick="hideControls()">Hide UI</button>
+    <div id="timer">0:00 / 0:45</div>
+  </div>
+
+  <!-- Script Panel -->
+  <div id="script-panel">
+    <h3>Voiceover Script</h3>
+    <div class="script-line" data-scene="1">
+      <div class="time">0:00 - 0:03</div>
+      <p>"TruthBounty."</p>
+    </div>
+    <div class="script-line" data-scene="2">
+      <div class="time">0:03 - 0:10</div>
+      <p>"Lucky gamblers. Fake gurus. Scattered data. The problem is clear."</p>
+    </div>
+    <div class="script-line" data-scene="3">
+      <div class="time">0:10 - 0:18</div>
+      <p>"Meet Theo. 67% win rate. 1,200 bets. Verified on-chain."</p>
+    </div>
+    <div class="script-line" data-scene="4">
+      <div class="time">0:18 - 0:28</div>
+      <p>"90% on 10 bets? Luck. 67% on 1,200? That's skill."</p>
+    </div>
+    <div class="script-line" data-scene="5">
+      <div class="time">0:28 - 0:36</div>
+      <p>"12 platforms. One score. Copy with confidence."</p>
+    </div>
+    <div class="script-line" data-scene="6">
+      <div class="time">0:36 - 0:45</div>
+      <p>"Stop guessing. Start winning."</p>
+    </div>
+  </div>
+
+  <script>
+    // Voiceover scripts for each scene
+    const voiceovers = {
+      1: "TruthBounty.",
+      2: "Lucky gamblers. Fake gurus. Scattered data. The problem is clear.",
+      3: "Meet Theo. 67% win rate. 1,200 bets. Verified on-chain.",
+      4: "90% on 10 bets? Luck. 67% on 1,200? That's skill.",
+      5: "12 platforms. One score. Copy with confidence.",
+      6: "Stop guessing. Start winning."
+    };
+
+    let voiceEnabled = true;
+    let currentUtterance = null;
+
+    function speak(text) {
+      if (!voiceEnabled || !window.speechSynthesis) return;
+
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
+
+      currentUtterance = new SpeechSynthesisUtterance(text);
+      currentUtterance.rate = 0.95;
+      currentUtterance.pitch = 1;
+      currentUtterance.volume = 1;
+
+      // Try to get a good English voice
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google'))
+        || voices.find(v => v.lang.startsWith('en-US'))
+        || voices.find(v => v.lang.startsWith('en'));
+      if (englishVoice) currentUtterance.voice = englishVoice;
+
+      window.speechSynthesis.speak(currentUtterance);
+    }
+
+    function stopSpeaking() {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    }
+
+    function toggleVoice() {
+      voiceEnabled = !voiceEnabled;
+      document.getElementById('voice-btn').textContent = voiceEnabled ? '🔊 Voice On' : '🔇 Voice Off';
+      document.getElementById('voice-btn').className = voiceEnabled
+        ? 'voice-btn-on'
+        : 'voice-btn-off';
+      if (!voiceEnabled) stopSpeaking();
+    }
+
+    // Load voices (needed for some browsers)
+    if (window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+
+    // Trader data for rotation
+    const traders = [
+      { name: 'Theo4.eth', initials: 'T4', title: 'Theo', platform: 'Polymarket', tier: 'DIAMOND', tierClass: 'bg-secondary/20 text-secondary', gradient: 'from-secondary to-amber-600', winRate: 67, bets: 1247, score: 2847 },
+      { name: 'WhaleAlert', initials: 'WA', title: 'Whale', platform: 'PancakeSwap', tier: 'PLATINUM', tierClass: 'bg-cyan-500/20 text-cyan-400', gradient: 'from-cyan-500 to-blue-600', winRate: 72, bets: 892, score: 2654 },
+      { name: '0xPredictor', initials: '0x', title: 'Predictor', platform: 'Limitless', tier: 'DIAMOND', tierClass: 'bg-secondary/20 text-secondary', gradient: 'from-purple-500 to-pink-600', winRate: 64, bets: 1583, score: 2791 },
+    ];
+    let currentTrader = 0;
+    let traderInterval = null;
+
+    // Timeline
+    const timeline = [
+      { scene: 1, start: 0, end: 3000 },
+      { scene: 2, start: 3000, end: 10000 },
+      { scene: 3, start: 10000, end: 18000 },
+      { scene: 4, start: 18000, end: 28000 },
+      { scene: 5, start: 28000, end: 36000 },
+      { scene: 6, start: 36000, end: 45000 },
+    ];
+
+    let isPlaying = false;
+    let startTime = 0;
+    let animationFrame = null;
+
+    function showScene(num) {
+      document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+      const scene = document.getElementById('scene-' + num);
+      if (scene) {
+        scene.classList.add('active');
+        // Trigger animations
+        setTimeout(() => {
+          scene.querySelectorAll('.fade-up, .fade-in, .scale-in, .slide-left, .slide-right').forEach(el => {
+            el.classList.add('show');
+          });
+        }, 100);
+
+        // Scene-specific animations
+        if (num === 3) {
+          startTraderRotation();
+        } else {
+          stopTraderRotation();
+        }
+
+        if (num === 4) {
+          setTimeout(() => {
+            document.querySelectorAll('.progress-bar').forEach(bar => bar.classList.add('animate'));
+            document.querySelectorAll('.check-item').forEach((item, i) => {
+              setTimeout(() => item.classList.add('show'), i * 400);
+            });
+          }, 800);
+        }
+
+        if (num === 5) {
+          document.querySelectorAll('.platform-logo').forEach((logo, i) => {
+            setTimeout(() => logo.classList.add('show'), i * 150);
+          });
+        }
+
+        // Update script panel
+        document.querySelectorAll('.script-line').forEach(line => {
+          line.classList.toggle('active', line.dataset.scene == num);
+        });
+
+        // Speak the voiceover
+        if (voiceovers[num]) {
+          speak(voiceovers[num]);
+        }
+      }
+    }
+
+    function updateTrader() {
+      const trader = traders[currentTrader];
+      const card = document.getElementById('trader-card');
+
+      card.style.opacity = '0';
+      card.style.transform = 'scale(0.95)';
+
+      setTimeout(() => {
+        document.getElementById('trader-avatar').className = `w-16 h-16 rounded-xl bg-gradient-to-br ${trader.gradient} flex items-center justify-center text-white font-bold text-2xl`;
+        document.getElementById('trader-avatar').textContent = trader.initials;
+        document.getElementById('trader-name').textContent = trader.name;
+        document.getElementById('trader-title').textContent = trader.title;
+        document.getElementById('trader-tier').textContent = trader.tier;
+        document.getElementById('trader-tier').className = `px-3 py-1 rounded ${trader.tierClass} text-xs font-semibold`;
+        document.getElementById('trader-platform').textContent = trader.platform;
+        document.getElementById('trader-winrate').textContent = trader.winRate + '%';
+        document.getElementById('trader-bets').textContent = trader.bets.toLocaleString();
+        document.getElementById('trader-score').textContent = trader.score.toLocaleString();
+
+        card.style.opacity = '1';
+        card.style.transform = 'scale(1)';
+      }, 300);
+
+      currentTrader = (currentTrader + 1) % traders.length;
+    }
+
+    function startTraderRotation() {
+      if (traderInterval) return;
+      traderInterval = setInterval(updateTrader, 2500);
+    }
+
+    function stopTraderRotation() {
+      if (traderInterval) {
+        clearInterval(traderInterval);
+        traderInterval = null;
+      }
+    }
+
+    function playVideo() {
+      if (isPlaying) {
+        isPlaying = false;
+        document.querySelector('.play-btn').textContent = '▶ Play';
+        cancelAnimationFrame(animationFrame);
+        stopSpeaking();
+        return;
+      }
+
+      isPlaying = true;
+      startTime = performance.now();
+      document.querySelector('.play-btn').textContent = '⏸ Pause';
+
+      function tick() {
+        if (!isPlaying) return;
+
+        const elapsed = performance.now() - startTime;
+        const seconds = Math.floor(elapsed / 1000);
+        const display = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+        document.getElementById('timer').textContent = display + ' / 0:45';
+
+        // Find current scene
+        for (const item of timeline) {
+          if (elapsed >= item.start && elapsed < item.end) {
+            const currentScene = document.querySelector('.scene.active');
+            if (!currentScene || currentScene.id !== 'scene-' + item.scene) {
+              showScene(item.scene);
+            }
+            break;
+          }
+        }
+
+        if (elapsed < 45000) {
+          animationFrame = requestAnimationFrame(tick);
+        } else {
+          isPlaying = false;
+          document.querySelector('.play-btn').textContent = '▶ Play';
+        }
+      }
+
+      tick();
+    }
+
+    function resetVideo() {
+      isPlaying = false;
+      document.querySelector('.play-btn').textContent = '▶ Play';
+      cancelAnimationFrame(animationFrame);
+      stopTraderRotation();
+      stopSpeaking();
+      currentTrader = 0;
+      document.getElementById('timer').textContent = '0:00 / 0:45';
+
+      // Reset all animations
+      document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.fade-up, .fade-in, .scale-in, .slide-left, .slide-right, .check-item, .platform-logo').forEach(el => {
+        el.classList.remove('show');
+      });
+      document.querySelectorAll('.progress-bar').forEach(bar => bar.classList.remove('animate'));
+      document.querySelectorAll('.script-line').forEach(line => line.classList.remove('active'));
+
+      // Show scene 1
+      showScene(1);
+    }
+
+    function hideControls() {
+      document.getElementById('controls').style.display = 'none';
+      document.getElementById('script-panel').style.display = 'none';
+    }
+
+    // Initialize
+    resetVideo();
+  </script>
+</body>
+</html>

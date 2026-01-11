@@ -25,7 +25,8 @@ export async function fetchAzuroMarkets(): Promise<{
   isMock: boolean;
 }> {
   try {
-    const response = await fetch('/api/azuro?limit=20');
+    // Fetch from all networks with higher limit
+    const response = await fetch('/api/azuro?limit=100');
 
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);

@@ -16,16 +16,18 @@ interface SXMarket {
   outcomeOneName: string;
   outcomeTwoName: string;
   outcomeVoidName?: string;
-  teamOneName: string;
-  teamTwoName: string;
-  type: number; // 1 = moneyline, 2 = spread, 3 = total
-  sportId: number;
-  leagueId: number;
+  teamOneName?: string;
+  teamTwoName?: string;
+  type: number;
+  sportId?: number;
+  leagueId?: number;
   gameTime: number;
   line?: number;
   status: string;
-  group1?: string; // Sport name
-  group2?: string; // League name
+  group1?: string;
+  group2?: string;
+  sportLabel?: string;
+  leagueLabel?: string;
 }
 
 interface SXSport {
@@ -48,13 +50,18 @@ interface MarketData {
   status: string;
 }
 
-// Market type mapping
+// Market type mapping (SX Bet uses various type codes)
 const MARKET_TYPES: Record<number, string> = {
   1: 'Moneyline',
   2: 'Spread',
   3: 'Total',
-  52: 'Player Props',
+  52: 'Props',
   63: 'Game Props',
+  126: 'Moneyline',
+  165: 'Moneyline',
+  166: 'Total',
+  201: 'Spread',
+  226: 'Spread',
 };
 
 // Sport ID mapping
@@ -111,8 +118,19 @@ async function fetchActiveMarkets(sportId?: number): Promise<SXMarket[]> {
       return [];
     }
 
-    const data = await response.json();
-    return data.data || data || [];
+    const result = await response.json();
+
+    // Handle nested data structure: { status, data: { markets: [...] } } or { data: [...] }
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
+    } else if (result.data && result.data.markets && Array.isArray(result.data.markets)) {
+      return result.data.markets;
+    } else if (Array.isArray(result)) {
+      return result;
+    }
+
+    // Try direct array access
+    return [];
   } catch (error) {
     console.error('SX Bet markets fetch failed:', error);
     return [];
@@ -147,16 +165,68 @@ function transformMarkets(markets: SXMarket[]): MarketData[] {
     id: market.marketHash,
     marketHash: market.marketHash,
     type: MARKET_TYPES[market.type] || `Type ${market.type}`,
-    sport: market.group1 || SPORT_NAMES[market.sportId] || `Sport ${market.sportId}`,
-    league: market.group2 || `League ${market.leagueId}`,
-    teamOne: market.teamOneName,
-    teamTwo: market.teamTwoName,
+    sport: market.sportLabel || market.group1 || (market.sportId ? SPORT_NAMES[market.sportId] : 'Sports') || 'Sports',
+    league: market.leagueLabel || market.group2 || (market.leagueId ? `League ${market.leagueId}` : ''),
+    teamOne: market.teamOneName || market.outcomeOneName || 'Team 1',
+    teamTwo: market.teamTwoName || market.outcomeTwoName || 'Team 2',
     outcomeOne: market.outcomeOneName,
     outcomeTwo: market.outcomeTwoName,
     line: market.line,
-    gameTime: market.gameTime * 1000, // Convert to milliseconds
+    gameTime: market.gameTime > 1e12 ? market.gameTime : market.gameTime * 1000, // Handle both ms and seconds
     status: market.status,
   }));
+}
+
+/**
+ * Fetch ALL active markets with pagination
+ */
+async function fetchAllActiveMarkets(): Promise<SXMarket[]> {
+  const allMarkets: SXMarket[] = [];
+  let nextKey: string | null = null;
+  let pageCount = 0;
+  const maxPages = 10; // Safety limit
+
+  do {
+    try {
+      let url = `${SX_API}/markets/active?pageSize=100`;
+      if (nextKey) {
+        url += `&nextKey=${nextKey}`;
+      }
+
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (!response.ok) break;
+
+      const result = await response.json();
+
+      // Handle nested data structure
+      let markets: SXMarket[] = [];
+      if (result.data && Array.isArray(result.data)) {
+        markets = result.data;
+      } else if (Array.isArray(result)) {
+        markets = result;
+      }
+
+      allMarkets.push(...markets);
+
+      // Get next page key
+      nextKey = result.nextKey || null;
+      pageCount++;
+
+      // Stop if no more pages or hit limit
+      if (!nextKey || markets.length < 100 || pageCount >= maxPages) {
+        break;
+      }
+    } catch (error) {
+      console.error('SX Bet pagination error:', error);
+      break;
+    }
+  } while (nextKey);
+
+  return allMarkets;
 }
 
 /**
@@ -166,13 +236,16 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const sportId = searchParams.get('sportId') ? parseInt(searchParams.get('sportId')!) : undefined;
   const popular = searchParams.get('popular') === 'true';
-  const limit = Math.min(50, parseInt(searchParams.get('limit') || '20'));
+  const fetchAll = searchParams.get('fetchAll') === 'true';
+  const limit = Math.min(200, parseInt(searchParams.get('limit') || '50'));
 
   try {
     let markets: SXMarket[];
 
     if (popular) {
       markets = await fetchPopularMarkets();
+    } else if (fetchAll) {
+      markets = await fetchAllActiveMarkets();
     } else {
       markets = await fetchActiveMarkets(sportId);
     }
@@ -189,7 +262,17 @@ export async function GET(request: NextRequest) {
       }, { status: 503 });
     }
 
-    const transformed = transformMarkets(markets);
+    let transformed = transformMarkets(markets);
+
+    // Filter by sport if specified
+    if (sportId) {
+      const sportName = SPORT_NAMES[sportId];
+      if (sportName) {
+        transformed = transformed.filter(m =>
+          m.sport.toLowerCase().includes(sportName.toLowerCase())
+        );
+      }
+    }
 
     // Filter to upcoming games only
     const now = Date.now();
@@ -197,8 +280,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: upcomingMarkets.slice(0, limit),
+      data: fetchAll ? upcomingMarkets : upcomingMarkets.slice(0, limit),
       count: upcomingMarkets.length,
+      totalAvailable: upcomingMarkets.length,
       isMock: false,
       platform: 'SX Bet',
       chain: 'SX Network',

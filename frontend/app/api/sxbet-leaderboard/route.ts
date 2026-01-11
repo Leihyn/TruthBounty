@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { calculateTruthScore, TRUTHSCORE_CONFIG } from '@/lib/truthscore';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,36 +10,16 @@ export const dynamic = 'force-dynamic';
  * SX Bet is a decentralized sports betting platform on SX Network.
  * API: https://api.sx.bet/ (Documentation: https://api.docs.sx.bet/)
  *
- * Note: SX Bet doesn't have a public leaderboard API, so we aggregate
- * trader data from recent trades.
+ * Uses unified TruthScore v2.0 system (odds-based market scoring with ROI).
  */
 
 const SX_API = 'https://api.sx.bet';
 
-// Scoring config (matches main leaderboard)
-const SCORING_CONFIG = {
-  MAX_SCORE: 1300,
-  MIN_BETS_FOR_LEADERBOARD: 5,
-  MIN_BETS_FOR_FULL_SCORE: 50,
-  SKILL_MAX: 500,
-  ACTIVITY_MAX: 500,
-  VOLUME_MAX: 200,
-  WILSON_Z: 1.96,
-};
-
-interface SXTrade {
-  tradeHash: string;
-  bettor: string;
-  baseToken: string;
-  stake: string;
-  odds: string;
-  maker: boolean;
-  betTime: number;
-  settleTime?: number;
-  settled: boolean;
-  won?: boolean;
-  marketHash: string;
-}
+// Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 interface TraderStats {
   address: string;
@@ -63,56 +45,27 @@ interface LeaderboardEntry {
 }
 
 /**
- * Wilson Score Lower Bound
+ * Calculate TruthScore using unified system
  */
-function wilsonScoreLower(wins: number, total: number, z = SCORING_CONFIG.WILSON_Z): number {
-  if (total === 0) return 0;
-  const p = wins / total;
-  const denominator = 1 + (z * z) / total;
-  const center = p + (z * z) / (2 * total);
-  const spread = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * total)) / total);
-  return Math.max(0, (center - spread) / denominator);
+function calculateScore(stats: TraderStats): number {
+  // Use unified TruthScore system (odds-based market)
+  const scoreResult = calculateTruthScore({
+    pnl: stats.pnl,
+    volume: stats.volume,
+    trades: stats.totalBets,
+    platform: 'SX Bet',
+  });
+  return scoreResult.score;
 }
 
 /**
- * Calculate TruthScore
+ * Fetch unique bettors from general trades endpoint
+ * Note: This endpoint only returns winning trades, but we use it to discover bettors
  */
-function calculateScore(wins: number, totalBets: number, volume: number, pnl: number): number {
-  if (totalBets < SCORING_CONFIG.MIN_BETS_FOR_LEADERBOARD) {
-    return 0;
-  }
-
-  // Skill Score: Wilson Score based (0-500)
-  const wilsonWinRate = wilsonScoreLower(wins, totalBets);
-  const skillScore = Math.min(
-    SCORING_CONFIG.SKILL_MAX,
-    Math.max(0, Math.floor(wilsonWinRate * SCORING_CONFIG.SKILL_MAX))
-  );
-
-  // Activity Score: Logarithmic based on volume (0-500)
-  const activityScore = volume > 0
-    ? Math.min(SCORING_CONFIG.ACTIVITY_MAX, Math.max(0, Math.floor(Math.log10(volume) * 65)))
-    : 0;
-
-  // Profit Bonus: Based on PnL (0-200)
-  const profitBonus = pnl > 0
-    ? Math.min(SCORING_CONFIG.VOLUME_MAX, Math.floor(Math.log10(pnl) * 50))
-    : 0;
-
-  // Sample size multiplier
-  const sampleMultiplier = Math.min(1, totalBets / SCORING_CONFIG.MIN_BETS_FOR_FULL_SCORE);
-
-  const rawScore = skillScore + activityScore + profitBonus;
-  return Math.min(SCORING_CONFIG.MAX_SCORE, Math.floor(rawScore * sampleMultiplier));
-}
-
-/**
- * Fetch recent trades from SX Bet
- */
-async function fetchRecentTrades(limit: number = 1000): Promise<SXTrade[]> {
+async function fetchUniqueBettors(limit: number = 100): Promise<string[]> {
   try {
     const response = await fetch(
-      `${SX_API}/trades?pageSize=${limit}&settled=true`,
+      `${SX_API}/trades?limit=${limit}`,
       {
         headers: { 'Accept': 'application/json' },
         signal: AbortSignal.timeout(15000),
@@ -125,55 +78,176 @@ async function fetchRecentTrades(limit: number = 1000): Promise<SXTrade[]> {
     }
 
     const data = await response.json();
-    return data.data || data || [];
+    let trades: any[] = [];
+
+    if (data.data?.trades && Array.isArray(data.data.trades)) {
+      trades = data.data.trades;
+    } else if (data.data && Array.isArray(data.data)) {
+      trades = data.data;
+    }
+
+    // Extract unique bettor addresses
+    const bettors = new Set<string>();
+    trades.forEach(t => {
+      if (t.bettor) bettors.add(t.bettor);
+    });
+
+    console.log(`SX Bet: Found ${bettors.size} unique bettors from ${trades.length} trades`);
+    return Array.from(bettors);
   } catch (error) {
-    console.error('SX Bet trades fetch failed:', error);
+    console.error('SX Bet fetchUniqueBettors error:', error);
     return [];
   }
 }
 
 /**
- * Aggregate trades into trader stats
+ * Fetch a specific bettor's full trade history
+ * Using ?bettor= parameter returns ALL trades (wins + losses)
  */
-function aggregateTraderStats(trades: SXTrade[]): TraderStats[] {
-  const traderMap = new Map<string, TraderStats>();
+async function fetchBettorTrades(bettor: string, pageSize: number = 100): Promise<any[]> {
+  try {
+    const response = await fetch(
+      `${SX_API}/trades?bettor=${bettor}&pageSize=${pageSize}`,
+      {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(10000),
+      }
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    return data.data?.trades || [];
+  } catch (error) {
+    console.error(`SX Bet fetchBettorTrades error for ${bettor.slice(0, 10)}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Calculate trader stats from their trades
+ * Determines win/loss by comparing bettingOutcomeOne vs outcome
+ */
+function calculateBettorStats(bettor: string, trades: any[]): TraderStats {
+  const stats: TraderStats = {
+    address: bettor.toLowerCase(),
+    totalBets: 0,
+    wins: 0,
+    losses: 0,
+    volume: 0,
+    pnl: 0,
+  };
 
   for (const trade of trades) {
-    const address = trade.bettor?.toLowerCase();
-    if (!address) continue;
-
-    let stats = traderMap.get(address);
-    if (!stats) {
-      stats = {
-        address,
-        totalBets: 0,
-        wins: 0,
-        losses: 0,
-        volume: 0,
-        pnl: 0,
-      };
-      traderMap.set(address, stats);
-    }
+    if (!trade.settled) continue; // Skip unsettled trades
 
     stats.totalBets++;
 
-    // Parse stake (in wei)
-    const stake = parseFloat(trade.stake || '0') / 1e18;
+    // Use betTimeValue which is the correct USD amount provided by the API
+    // (stake field may be in different decimal formats depending on token)
+    const stake = parseFloat(trade.betTimeValue || '0');
     stats.volume += stake;
 
-    if (trade.settled && trade.won !== undefined) {
-      if (trade.won) {
-        stats.wins++;
-        const odds = parseFloat(trade.odds || '1') / 1e18;
-        stats.pnl += stake * (odds - 1);
-      } else {
-        stats.losses++;
-        stats.pnl -= stake;
-      }
+    // Determine if bettor won:
+    // - outcome=0: void (no winner)
+    // - outcome=1: outcome one won
+    // - outcome=2: outcome two won
+    // - bettingOutcomeOne: true if bettor bet on outcome one
+    const outcome = trade.outcome;
+    const bettingOutcomeOne = trade.bettingOutcomeOne;
+
+    if (outcome === 0) {
+      // Void - no win or loss
+      continue;
+    }
+
+    const bettorWon = (bettingOutcomeOne && outcome === 1) || (!bettingOutcomeOne && outcome === 2);
+
+    if (bettorWon) {
+      stats.wins++;
+      const odds = parseFloat(trade.odds || '1000000000000000000') / 1e18;
+      stats.pnl += stake * (odds - 1);
+    } else {
+      stats.losses++;
+      stats.pnl -= stake;
     }
   }
 
-  return Array.from(traderMap.values());
+  return stats;
+}
+
+/**
+ * Fetch leaderboard from simulated trades in database (fallback)
+ */
+async function fetchFromDatabase(): Promise<LeaderboardEntry[]> {
+  try {
+    const { data, error } = await supabase
+      .from('sxbet_simulated_trades')
+      .select('follower, result, amount_usd, pnl_usd')
+      .not('result', 'is', null);
+
+    if (error || !data || data.length === 0) {
+      console.log('SX Bet: No simulated trades in database');
+      return [];
+    }
+
+    const traderMap = new Map<string, TraderStats>();
+
+    for (const trade of data) {
+      const address = trade.follower?.toLowerCase();
+      if (!address) continue;
+
+      let stats = traderMap.get(address);
+      if (!stats) {
+        stats = { address, totalBets: 0, wins: 0, losses: 0, volume: 0, pnl: 0 };
+        traderMap.set(address, stats);
+      }
+
+      stats.totalBets++;
+      stats.volume += parseFloat(trade.amount_usd || '0');
+      stats.pnl += parseFloat(trade.pnl_usd || '0');
+
+      if (trade.result === 'won') {
+        stats.wins++;
+      } else if (trade.result === 'lost') {
+        stats.losses++;
+      }
+    }
+
+    const entries: LeaderboardEntry[] = [];
+    for (const stats of traderMap.values()) {
+      if (stats.totalBets < 1) continue;
+
+      const score = calculateScore(stats);
+      const winRate = stats.wins + stats.losses > 0
+        ? (stats.wins / (stats.wins + stats.losses)) * 100
+        : 0;
+
+      entries.push({
+        rank: 0,
+        address: stats.address,
+        truthScore: score,
+        winRate: Math.round(winRate * 10) / 10,
+        totalBets: stats.totalBets,
+        wins: stats.wins,
+        losses: stats.losses,
+        totalVolume: stats.volume.toFixed(2),
+        pnl: stats.pnl,
+        platforms: ['SX Bet'],
+      });
+    }
+
+    entries.sort((a, b) => b.truthScore - a.truthScore);
+    entries.forEach((e, i) => e.rank = i + 1);
+
+    console.log(`SX Bet: Found ${entries.length} traders from simulated trades`);
+    return entries;
+  } catch (error) {
+    console.error('SX Bet database fallback error:', error);
+    return [];
+  }
 }
 
 /**
@@ -185,10 +259,35 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get('search')?.toLowerCase();
 
   try {
-    // Fetch recent trades
-    const trades = await fetchRecentTrades(2000);
+    // Step 1: Get unique bettors from general trades
+    const bettors = await fetchUniqueBettors(200);
 
-    if (trades.length === 0) {
+    if (bettors.length === 0) {
+      console.log('SX Bet: API unavailable, falling back to database');
+      const dbLeaderboard = await fetchFromDatabase();
+
+      if (dbLeaderboard.length > 0) {
+        let filteredData = dbLeaderboard.slice(0, limit);
+        if (search) {
+          filteredData = dbLeaderboard.filter(entry =>
+            entry.address.toLowerCase().includes(search)
+          ).slice(0, limit);
+        }
+
+        return NextResponse.json({
+          success: true,
+          data: filteredData,
+          count: filteredData.length,
+          totalTraders: dbLeaderboard.length,
+          isMock: false,
+          source: 'sxbet-simulated',
+          platform: 'SX Bet',
+          chain: 'SX Network',
+          note: 'Showing simulated trading activity (external API unavailable)',
+          timestamp: Date.now(),
+        });
+      }
+
       return NextResponse.json({
         success: false,
         data: [],
@@ -196,62 +295,75 @@ export async function GET(request: NextRequest) {
         isMock: false,
         source: 'none',
         platform: 'SX Bet',
-        error: 'Could not fetch trades from SX Bet API. The API may be temporarily unavailable.',
+        error: 'SX Bet API temporarily unavailable.',
         timestamp: Date.now(),
       }, { status: 503 });
     }
 
-    // Aggregate into trader stats
-    const traderStats = aggregateTraderStats(trades);
+    // Step 2: Fetch each bettor's full trade history (limit to top 30 to avoid timeout)
+    const maxBettorsToFetch = Math.min(bettors.length, 30);
+    console.log(`SX Bet: Fetching trade history for ${maxBettorsToFetch} bettors...`);
 
-    // Transform to leaderboard entries
-    const leaderboard: LeaderboardEntry[] = traderStats.map(stats => {
-      const score = calculateScore(stats.wins, stats.totalBets, stats.volume, stats.pnl);
-      const winRate = stats.wins + stats.losses > 0
-        ? (stats.wins / (stats.wins + stats.losses)) * 100
-        : 0;
+    const allStats: TraderStats[] = [];
 
-      return {
-        rank: 0,
-        address: stats.address,
-        truthScore: score,
-        winRate: Math.round(winRate * 10) / 10,
-        totalBets: stats.totalBets,
-        wins: stats.wins,
-        losses: stats.losses,
-        totalVolume: stats.volume.toFixed(2),
-        pnl: stats.pnl,
-        platforms: ['SX Bet'],
-      };
-    });
+    // Fetch in parallel batches of 5
+    for (let i = 0; i < maxBettorsToFetch; i += 5) {
+      const batch = bettors.slice(i, i + 5);
+      const batchResults = await Promise.all(
+        batch.map(async (bettor) => {
+          const trades = await fetchBettorTrades(bettor, 100);
+          return calculateBettorStats(bettor, trades);
+        })
+      );
+      allStats.push(...batchResults);
+    }
 
-    // Sort by TruthScore
+    // Step 3: Transform to leaderboard entries
+    const leaderboard: LeaderboardEntry[] = allStats
+      .filter(stats => stats.totalBets >= TRUTHSCORE_CONFIG.MIN_BETS_ODDS)
+      .map(stats => {
+        const score = calculateScore(stats);
+        const winRate = stats.wins + stats.losses > 0
+          ? (stats.wins / (stats.wins + stats.losses)) * 100
+          : 0;
+
+        return {
+          rank: 0,
+          address: stats.address,
+          truthScore: score,
+          winRate: Math.round(winRate * 10) / 10,
+          totalBets: stats.totalBets,
+          wins: stats.wins,
+          losses: stats.losses,
+          totalVolume: stats.volume.toFixed(2),
+          pnl: stats.pnl,
+          platforms: ['SX Bet'],
+        };
+      });
+
+    // Sort by TruthScore and assign ranks
     leaderboard.sort((a, b) => b.truthScore - a.truthScore);
-
-    // Filter out zero-score entries and assign ranks
-    const ranked = leaderboard
-      .filter(e => e.truthScore > 0)
-      .slice(0, limit);
-
-    ranked.forEach((entry, idx) => {
+    leaderboard.forEach((entry, idx) => {
       entry.rank = idx + 1;
     });
 
     // Filter by search if provided
-    let filteredData = ranked;
+    let filteredData = leaderboard.slice(0, limit);
     if (search) {
-      filteredData = ranked.filter(entry =>
+      filteredData = leaderboard.filter(entry =>
         entry.address.toLowerCase().includes(search)
-      );
+      ).slice(0, limit);
     }
+
+    console.log(`SX Bet: Returning ${filteredData.length} traders with accurate win/loss data`);
 
     return NextResponse.json({
       success: true,
       data: filteredData,
       count: filteredData.length,
-      totalTraders: traderStats.length,
+      totalTraders: allStats.length,
       isMock: false,
-      source: 'sxbet-trades',
+      source: 'sxbet-per-bettor',
       platform: 'SX Bet',
       chain: 'SX Network',
       timestamp: Date.now(),

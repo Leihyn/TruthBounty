@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { calculateTruthScore, TRUTHSCORE_CONFIG } from '@/lib/truthscore';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,6 +8,7 @@ export const dynamic = 'force-dynamic';
  *
  * Azuro is a decentralized betting infrastructure on Polygon, Gnosis, Arbitrum, and more.
  * Uses The Graph subgraph for data: https://gem.azuro.org/subgraph/overview
+ * Uses unified TruthScore v2.0 system (odds-based market scoring with ROI).
  */
 
 // Azuro subgraph endpoints
@@ -20,28 +22,14 @@ const AZURO_SUBGRAPHS = {
 
 type AzuroNetwork = keyof typeof AZURO_SUBGRAPHS;
 
-// Scoring config (matches main leaderboard)
-const SCORING_CONFIG = {
-  MAX_SCORE: 1300,
-  MIN_BETS_FOR_LEADERBOARD: 5,
-  MIN_BETS_FOR_FULL_SCORE: 50,
-  SKILL_MAX: 500,
-  ACTIVITY_MAX: 500,
-  VOLUME_MAX: 200,
-  WILSON_Z: 1.96,
-};
-
 interface AzuroBettor {
   id: string;
   rawTurnover: string;
   rawInBets: string;
   rawToPayout: string;
-  rawBiggestBetPayout: string;
   betsCount: string;
   wonBetsCount: string;
   lostBetsCount: string;
-  canceledBetsCount: string;
-  redeemedBetsCount: string;
   pnl: string;
 }
 
@@ -60,72 +48,27 @@ interface LeaderboardEntry {
   network: string;
 }
 
-/**
- * Wilson Score Lower Bound
- */
-function wilsonScoreLower(wins: number, total: number, z = SCORING_CONFIG.WILSON_Z): number {
-  if (total === 0) return 0;
-  const p = wins / total;
-  const denominator = 1 + (z * z) / total;
-  const center = p + (z * z) / (2 * total);
-  const spread = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * total)) / total);
-  return Math.max(0, (center - spread) / denominator);
-}
-
-/**
- * Calculate TruthScore for Azuro bettor
- */
-function calculateAzuroScore(wins: number, totalBets: number, volume: number, pnl: number): number {
-  if (totalBets < SCORING_CONFIG.MIN_BETS_FOR_LEADERBOARD) {
-    return 0;
-  }
-
-  // Skill Score: Wilson Score based (0-500)
-  const wilsonWinRate = wilsonScoreLower(wins, totalBets);
-  const skillScore = Math.min(
-    SCORING_CONFIG.SKILL_MAX,
-    Math.max(0, Math.floor(wilsonWinRate * SCORING_CONFIG.SKILL_MAX))
-  );
-
-  // Activity Score: Logarithmic based on volume (0-500)
-  const activityScore = volume > 0
-    ? Math.min(SCORING_CONFIG.ACTIVITY_MAX, Math.max(0, Math.floor(Math.log10(volume) * 65)))
-    : 0;
-
-  // Profit Bonus: Based on PnL (0-200)
-  const profitBonus = pnl > 0
-    ? Math.min(SCORING_CONFIG.VOLUME_MAX, Math.floor(Math.log10(pnl) * 50))
-    : 0;
-
-  // Sample size multiplier
-  const sampleMultiplier = Math.min(1, totalBets / SCORING_CONFIG.MIN_BETS_FOR_FULL_SCORE);
-
-  const rawScore = skillScore + activityScore + profitBonus;
-  return Math.min(SCORING_CONFIG.MAX_SCORE, Math.floor(rawScore * sampleMultiplier));
-}
 
 /**
  * Query Azuro subgraph for top bettors
  */
 async function queryAzuroSubgraph(network: AzuroNetwork, limit: number = 100): Promise<AzuroBettor[]> {
+  // Note: betsCount_gt must be a number, not a string
   const query = `
     query GetTopBettors($first: Int!) {
       bettors(
         first: $first
         orderBy: rawTurnover
         orderDirection: desc
-        where: { betsCount_gt: "0" }
+        where: { betsCount_gt: 0 }
       ) {
         id
         rawTurnover
         rawInBets
         rawToPayout
-        rawBiggestBetPayout
         betsCount
         wonBetsCount
         lostBetsCount
-        canceledBetsCount
-        redeemedBetsCount
         pnl
       }
     }
@@ -193,8 +136,8 @@ export async function GET(request: NextRequest) {
       const bettors = await queryAzuroSubgraph(network as AzuroNetwork, limit);
       allBettors = bettors.map(b => ({ bettor: b, network }));
     } else {
-      // Query all networks
-      const results = await fetchAllNetworkBettors(Math.ceil(limit / 3));
+      // Query all networks - fetch more per network for better coverage
+      const results = await fetchAllNetworkBettors(Math.max(100, limit));
       for (const result of results) {
         for (const bettor of result.bettors) {
           allBettors.push({ bettor, network: result.network });
@@ -218,18 +161,30 @@ export async function GET(request: NextRequest) {
 
     // Transform to leaderboard entries
     const leaderboard: LeaderboardEntry[] = allBettors.map(({ bettor, network: net }) => {
-      const volume = parseFloat(bettor.rawTurnover || '0') / 1e18; // Convert from wei
-      const pnl = parseFloat(bettor.pnl || '0') / 1e18;
+      // rawTurnover is in smallest units (6 decimals for USDC/USDT)
+      const volume = parseFloat(bettor.rawTurnover || '0') / 1e6;
+      const pnl = parseFloat(bettor.pnl || '0');
       const totalBets = parseInt(bettor.betsCount || '0');
       const wins = parseInt(bettor.wonBetsCount || '0');
       const losses = parseInt(bettor.lostBetsCount || '0');
       const winRate = totalBets > 0 ? (wins / totalBets) * 100 : 0;
 
-      const score = calculateAzuroScore(wins, totalBets, volume, pnl);
+      // Use unified TruthScore system (odds-based market)
+      const scoreResult = calculateTruthScore({
+        pnl,
+        volume,
+        trades: totalBets,
+        platform: 'Azuro',
+      });
+      const score = scoreResult.score;
+
+      // Extract wallet address from compound ID (format: coreAddress_bettorAddress_lpAddress)
+      const idParts = bettor.id.split('_');
+      const walletAddress = idParts.length >= 2 ? idParts[1] : bettor.id;
 
       return {
         rank: 0, // Will be set after sorting
-        address: bettor.id,
+        address: walletAddress,
         truthScore: score,
         winRate: Math.round(winRate * 10) / 10,
         totalBets,

@@ -78,6 +78,15 @@ const PLATFORM_ICONS: Record<string, string> = {
   'Speed Markets': '⚡',
   'Limitless': '♾️',
   'SX Bet': '🎰',
+  'Gnosis/Omen': '🦉',
+  'Gnosis': '🦉',
+  'Omen': '🦉',
+  'Drift BET': '🌊',
+  'Drift': '🌊',
+  'Kalshi': '📊',
+  'Manifold Markets': '📈',
+  'Manifold': '📈',
+  'Metaculus': '🔬',
 };
 
 const PLATFORM_CHAINS: Record<string, string> = {
@@ -90,6 +99,15 @@ const PLATFORM_CHAINS: Record<string, string> = {
   'Speed Markets': 'Optimism',
   'Limitless': 'Base',
   'SX Bet': 'SX Network',
+  'Gnosis/Omen': 'Gnosis',
+  'Gnosis': 'Gnosis',
+  'Omen': 'Gnosis',
+  'Drift BET': 'Solana',
+  'Drift': 'Solana',
+  'Kalshi': 'Hybrid',
+  'Manifold Markets': 'Off-chain',
+  'Manifold': 'Off-chain',
+  'Metaculus': 'Off-chain',
 };
 
 const PLATFORM_EXPLORERS: Record<string, string> = {
@@ -102,13 +120,22 @@ const PLATFORM_EXPLORERS: Record<string, string> = {
   'Speed Markets': 'https://optimistic.etherscan.io/address/',
   'Limitless': 'https://basescan.org/address/',
   'SX Bet': 'https://explorer.sx.technology/address/',
+  'Gnosis/Omen': 'https://gnosisscan.io/address/',
+  'Gnosis': 'https://gnosisscan.io/address/',
+  'Omen': 'https://gnosisscan.io/address/',
+  'Drift BET': 'https://solscan.io/account/',
+  'Drift': 'https://solscan.io/account/',
+  'Kalshi': '',
+  'Manifold Markets': '',
+  'Manifold': '',
+  'Metaculus': '',
 };
 
 // All platforms now return volume as decimal strings (not wei)
-// Polymarket/Limitless = USD, PancakeSwap = BNB, Overtime/Speed = ETH
-const USD_VOLUME_PLATFORMS = ['Polymarket', 'Limitless'];
+// Polymarket/Limitless/SX Bet = USD, PancakeSwap = BNB, Overtime/Speed/Azuro = ETH
+const USD_VOLUME_PLATFORMS = ['Polymarket', 'Limitless', 'SX Bet'];
 const BNB_VOLUME_PLATFORMS = ['PancakeSwap Prediction'];
-const ETH_VOLUME_PLATFORMS = ['Overtime', 'Speed Markets'];
+const ETH_VOLUME_PLATFORMS = ['Overtime', 'Speed Markets', 'Azuro'];
 
 function getTierFromScore(score: number): ReputationTier {
   if (score >= TIER_THRESHOLDS[ReputationTier.DIAMOND]) return ReputationTier.DIAMOND;

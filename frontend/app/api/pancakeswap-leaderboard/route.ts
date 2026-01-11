@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { calculateTruthScore, TRUTHSCORE_CONFIG } from '@/lib/truthscore';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,6 +8,8 @@ export const dynamic = 'force-dynamic';
  *
  * Fetches real user data from PancakeSwap Prediction V2 subgraph on The Graph.
  * Data includes total bets, volume, win rate, and profit/loss.
+ *
+ * Uses unified TruthScore v2.0 system (binary market scoring).
  */
 
 // Graph API key (from thales-data - works for any subgraph)
@@ -16,17 +19,6 @@ const GRAPH_API_KEY = 'a6068becfe82e6542c05ec1385be2942';
 const PANCAKE_PREDICTION_SUBGRAPH = '4kRuZVKCR9dsG2ePXhLSiKw5oaw3YMJo4nAwxZbUaqVY';
 
 const SUBGRAPH_URL = `https://gateway-arbitrum.network.thegraph.com/api/${GRAPH_API_KEY}/subgraphs/id/${PANCAKE_PREDICTION_SUBGRAPH}`;
-
-// Scoring config (matches main leaderboard)
-const SCORING_CONFIG = {
-  MAX_SCORE: 1300,
-  MIN_BETS_FOR_LEADERBOARD: 10,
-  MIN_BETS_FOR_FULL_SCORE: 100,
-  SKILL_MAX: 500,
-  ACTIVITY_MAX: 500,
-  VOLUME_MAX: 200,
-  WILSON_Z: 1.96,
-};
 
 interface PancakeUser {
   id: string;
@@ -56,64 +48,6 @@ interface LeaderboardEntry {
   network: string;
 }
 
-/**
- * Wilson Score Lower Bound
- */
-function wilsonScoreLower(wins: number, total: number, z = SCORING_CONFIG.WILSON_Z): number {
-  if (total === 0) return 0;
-  const p = wins / total;
-  const denominator = 1 + (z * z) / total;
-  const center = p + (z * z) / (2 * total);
-  const spread = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * total)) / total);
-  return Math.max(0, (center - spread) / denominator);
-}
-
-/**
- * Calculate TruthScore for PancakeSwap user
- *
- * Uses baseline-adjusted scoring: Since binary prediction has 50% random chance,
- * skill score is based on performance ABOVE the 50% baseline.
- */
-function calculatePancakeScore(winRate: number, totalBets: number, volumeBNB: number, pnlBNB: number): number {
-  if (totalBets < SCORING_CONFIG.MIN_BETS_FOR_LEADERBOARD) {
-    return 0;
-  }
-
-  // Calculate wins from win rate
-  const wins = Math.floor(totalBets * (winRate / 100));
-
-  // Wilson Score adjusted win rate (conservative estimate for sample size)
-  const wilsonWinRate = wilsonScoreLower(wins, totalBets);
-
-  // Skill Score: Based on Wilson-adjusted win rate MINUS 50% baseline
-  // Binary prediction has 50% random chance, so only reward performance above that
-  // (adjustedWinRate - 0.5) * 1000 means:
-  // - 50% win rate → 0 points (random chance)
-  // - 55% win rate → 50 points
-  // - 60% win rate → 100 points
-  // - 65% win rate → 150 points
-  const skillScore = Math.min(
-    SCORING_CONFIG.SKILL_MAX,
-    Math.max(0, Math.floor((wilsonWinRate - 0.5) * 1000))
-  );
-
-  // Activity Score: Logarithmic based on number of WINS (not volume)
-  // log10(10) = 1 → 166 pts, log10(100) = 2 → 332 pts, log10(1000) = 3 → 498 pts
-  const activityScore = wins > 0
-    ? Math.min(SCORING_CONFIG.ACTIVITY_MAX, Math.floor(Math.log10(wins) * 166))
-    : 0;
-
-  // Volume Bonus: Logarithmic based on volume in BNB (0-200)
-  const volumeBonus = volumeBNB >= 1
-    ? Math.min(SCORING_CONFIG.VOLUME_MAX, Math.floor(Math.log10(volumeBNB) * 100))
-    : 0;
-
-  // Sample size multiplier (higher threshold for PancakeSwap due to high frequency)
-  const sampleMultiplier = Math.min(1, totalBets / SCORING_CONFIG.MIN_BETS_FOR_FULL_SCORE);
-
-  const rawScore = skillScore + activityScore + volumeBonus;
-  return Math.min(SCORING_CONFIG.MAX_SCORE, Math.floor(rawScore * sampleMultiplier));
-}
 
 /**
  * Query PancakeSwap Prediction subgraph
@@ -207,7 +141,14 @@ export async function GET(request: NextRequest) {
       const wins = Math.floor(totalBets * (winRate / 100));
       const losses = totalBets - wins;
 
-      const score = calculatePancakeScore(winRate, totalBets, volumeBNB, pnlBNB);
+      // Use unified TruthScore system (binary market)
+      const scoreResult = calculateTruthScore({
+        wins,
+        losses,
+        totalBets,
+        platform: 'PancakeSwap',
+      });
+      const score = scoreResult.score;
 
       return {
         rank: index + 1,
@@ -224,9 +165,9 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Filter only users with enough bets
+    // Filter only users with enough bets (using unified config)
     const qualifiedUsers = leaderboard.filter(
-      entry => entry.totalBets >= SCORING_CONFIG.MIN_BETS_FOR_LEADERBOARD
+      entry => entry.totalBets >= TRUTHSCORE_CONFIG.MIN_BETS_BINARY
     );
 
     // Sort by TruthScore

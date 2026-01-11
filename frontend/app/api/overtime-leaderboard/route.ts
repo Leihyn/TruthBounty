@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { calculateTruthScore, TRUTHSCORE_CONFIG } from '@/lib/truthscore';
 
 export const dynamic = 'force-dynamic';
 
@@ -6,7 +7,7 @@ export const dynamic = 'force-dynamic';
  * Overtime/Thales Sport Markets Leaderboard API
  *
  * Uses Thales subgraph via The Graph's decentralized network.
- * API keys and subgraph IDs from thales-data library.
+ * Uses unified TruthScore v2.0 system (odds-based market scoring with ROI).
  */
 
 // Graph API key for SportsMarkets (from thales-data)
@@ -22,17 +23,6 @@ const THALES_SUBGRAPHS = {
   optimism: `https://gateway-arbitrum.network.thegraph.com/api/${GRAPH_API_KEY}/subgraphs/id/${SUBGRAPH_IDS.optimism}`,
   arbitrum: `https://gateway-arbitrum.network.thegraph.com/api/${GRAPH_API_KEY}/subgraphs/id/${SUBGRAPH_IDS.arbitrum}`,
 } as const;
-
-// Scoring config (matches main leaderboard)
-const SCORING_CONFIG = {
-  MAX_SCORE: 1300,
-  MIN_BETS_FOR_LEADERBOARD: 10,
-  MIN_BETS_FOR_FULL_SCORE: 50,
-  SKILL_MAX: 500,
-  ACTIVITY_MAX: 500,
-  VOLUME_MAX: 200,
-  WILSON_Z: 1.96,
-};
 
 interface OvertimeUser {
   id: string;
@@ -60,50 +50,6 @@ interface LeaderboardEntry {
   network: string;
 }
 
-/**
- * Wilson Score Lower Bound - Conservative win rate estimate
- */
-function wilsonScoreLower(wins: number, total: number, z = SCORING_CONFIG.WILSON_Z): number {
-  if (total === 0) return 0;
-  const p = wins / total;
-  const denominator = 1 + (z * z) / total;
-  const center = p + (z * z) / (2 * total);
-  const spread = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * total)) / total);
-  return Math.max(0, (center - spread) / denominator);
-}
-
-/**
- * Calculate TruthScore for Overtime user
- */
-function calculateOvertimeScore(pnl: number, volume: number, wins: number, totalBets: number): number {
-  if (volume <= 0 || totalBets < SCORING_CONFIG.MIN_BETS_FOR_LEADERBOARD) {
-    return 0;
-  }
-
-  // Use Wilson Score for skill (more accurate for small samples)
-  const wilsonWinRate = wilsonScoreLower(wins, totalBets);
-  const skillScore = Math.min(
-    SCORING_CONFIG.SKILL_MAX,
-    Math.max(0, Math.floor(wilsonWinRate * SCORING_CONFIG.SKILL_MAX))
-  );
-
-  // Activity Score: Logarithmic based on volume (0-500)
-  const activityScore = Math.min(
-    SCORING_CONFIG.ACTIVITY_MAX,
-    Math.max(0, Math.floor(Math.log10(volume) * 65))
-  );
-
-  // Profit Bonus: Based on PnL (0-200)
-  const profitBonus = pnl > 0
-    ? Math.min(SCORING_CONFIG.VOLUME_MAX, Math.floor(Math.log10(pnl) * 50))
-    : 0;
-
-  // Sample size multiplier
-  const sampleMultiplier = Math.min(1, totalBets / SCORING_CONFIG.MIN_BETS_FOR_FULL_SCORE);
-
-  const rawScore = skillScore + activityScore + profitBonus;
-  return Math.min(SCORING_CONFIG.MAX_SCORE, Math.floor(rawScore * sampleMultiplier));
-}
 
 /**
  * Query Thales subgraph for top users
@@ -250,11 +196,18 @@ export async function GET(request: NextRequest) {
       const pnl = parseFloat(user.pnl || '0') / 1e18;
       const trades = parseInt(user.trades || '0');
 
-      // Estimate wins from PnL (rough approximation)
+      // Use unified TruthScore system (odds-based market)
+      const scoreResult = calculateTruthScore({
+        pnl,
+        volume,
+        trades,
+        platform: 'Overtime',
+      });
+      const score = scoreResult.score;
+
+      // Estimate win rate from ROI for display
       const estimatedWinRate = pnl > 0 ? Math.min(0.7, 0.5 + (pnl / volume) * 0.5) : Math.max(0.3, 0.5 + (pnl / volume) * 0.5);
       const estimatedWins = Math.floor(trades * estimatedWinRate);
-
-      const score = calculateOvertimeScore(Math.max(0, pnl), volume, estimatedWins, trades);
       const winRate = trades > 0 ? estimatedWinRate * 100 : 0;
 
       return {

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   let totalPending = 0;
   const errors: string[] = [];
 
-  // List of platform resolve endpoints
+  // List of platform resolve endpoints (12 platforms)
   const platforms = [
     { name: 'pancakeswap', path: '/api/pancakeswap/resolve' },
     { name: 'polymarket', path: '/api/polymarket/resolve' },
@@ -28,6 +28,11 @@ export async function GET(request: NextRequest) {
     { name: 'speedmarkets', path: '/api/speedmarkets/resolve' },
     { name: 'azuro', path: '/api/azuro/resolve' },
     { name: 'sxbet', path: '/api/sxbet/resolve' },
+    { name: 'gnosis', path: '/api/gnosis/resolve' },
+    { name: 'drift', path: '/api/drift/resolve' },
+    { name: 'kalshi', path: '/api/kalshi/resolve' },
+    { name: 'manifold', path: '/api/manifold/resolve' },
+    { name: 'metaculus', path: '/api/metaculus/resolve' },
   ];
 
   // Call each platform's resolve endpoint

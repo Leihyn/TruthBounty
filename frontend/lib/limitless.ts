@@ -121,8 +121,9 @@ export class LimitlessService {
       const response = await fetch(`/api/limitless?limit=${limit}`);
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.markets) {
-          const result = { markets: data.markets, isMock: data.isMock || false };
+        // API returns { success, data: [...markets], isMock }
+        if (data.success && data.data) {
+          const result = { markets: data.data, isMock: data.isMock || false };
           limitlessCache.set(cacheKey, result);
           return result;
         }

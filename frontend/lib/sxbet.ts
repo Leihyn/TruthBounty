@@ -22,7 +22,8 @@ export async function fetchSXBetMarkets(): Promise<{
   isMock: boolean;
 }> {
   try {
-    const response = await fetch('/api/sxbet?limit=20');
+    // Fetch more markets (up to 100)
+    const response = await fetch('/api/sxbet?limit=100');
 
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);

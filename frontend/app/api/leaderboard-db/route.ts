@@ -1,40 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { calculateTruthScore, TRUTHSCORE_CONFIG, wilsonScoreLower } from '@/lib/truthscore';
+
+export const dynamic = 'force-dynamic';
+
 // NO DEMO MODE - Real data only
-
-// ============================================
-// Scoring Configuration (matches indexer)
-// ============================================
-const SCORING_CONFIG = {
-  MAX_SCORE: 1300,
-  MIN_BETS_FOR_LEADERBOARD: 10,
-  MIN_BETS_FOR_FULL_SCORE: 50,
-  SKILL_MAX: 500,
-  ACTIVITY_MAX: 500,
-  VOLUME_MAX: 200,
-  WILSON_Z: 1.96,
-};
-
-/**
- * Wilson Score Lower Bound - Conservative win rate estimate
- * Fixes small sample size exploit (3/3 wins = 43.8%, not 100%)
- */
-function wilsonScoreLower(wins: number, total: number, z = SCORING_CONFIG.WILSON_Z): number {
-  if (total === 0) return 0;
-  const p = wins / total;
-  const denominator = 1 + (z * z) / total;
-  const center = p + (z * z) / (2 * total);
-  const spread = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * total)) / total);
-  return Math.max(0, (center - spread) / denominator);
-}
-
-/**
- * Sample size multiplier (0-1)
- */
-function getSampleSizeMultiplier(totalBets: number): number {
-  if (totalBets < SCORING_CONFIG.MIN_BETS_FOR_LEADERBOARD) return 0;
-  return Math.min(1, totalBets / SCORING_CONFIG.MIN_BETS_FOR_FULL_SCORE);
-}
 
 interface LeaderboardEntry {
   rank: number;
@@ -74,49 +44,28 @@ interface PolymarketTrader {
 }
 
 /**
- * Calculate Polymarket TruthScore with sample size adjustment
+ * Calculate Polymarket TruthScore using unified system
  */
 function calculatePolymarketScore(pnl: number, volume: number): {
   score: number;
-  skillScore: number;
-  activityScore: number;
-  profitBonus: number;
-  sampleMultiplier: number;
   roi: number;
 } {
   if (volume <= 0) {
-    return { score: 0, skillScore: 0, activityScore: 0, profitBonus: 0, sampleMultiplier: 0, roi: 0 };
+    return { score: 0, roi: 0 };
   }
 
   const roi = pnl / volume;
-
-  // Skill Score: Based on ROI (0-500)
-  const skillScore = Math.min(
-    SCORING_CONFIG.SKILL_MAX,
-    Math.max(0, Math.floor(roi * 1000))
-  );
-
-  // Activity Score: Logarithmic based on volume (0-500)
-  const activityScore = Math.min(
-    SCORING_CONFIG.ACTIVITY_MAX,
-    Math.max(0, Math.floor(Math.log10(volume) * 65))
-  );
-
-  // Profit Bonus: Logarithmic based on absolute profit (0-200)
-  const profitBonus = pnl > 0
-    ? Math.min(SCORING_CONFIG.VOLUME_MAX, Math.floor(Math.log10(pnl) * 50))
-    : 0;
-
-  // Estimate trades from volume (avg trade size ~$250)
   const estimatedTrades = Math.floor(volume / 250);
-  const sampleMultiplier = getSampleSizeMultiplier(estimatedTrades);
 
-  // Calculate and cap score
-  const rawScore = skillScore + activityScore + profitBonus;
-  const adjustedScore = Math.floor(rawScore * sampleMultiplier);
-  const score = Math.min(SCORING_CONFIG.MAX_SCORE, adjustedScore);
+  // Use unified TruthScore system (odds-based market)
+  const result = calculateTruthScore({
+    pnl,
+    volume,
+    trades: estimatedTrades,
+    platform: 'Polymarket',
+  });
 
-  return { score, skillScore, activityScore, profitBonus, sampleMultiplier, roi };
+  return { score: result.score, roi };
 }
 
 /**
@@ -155,6 +104,7 @@ async function fetchPolymarketLeaderboard(limit: number = 50): Promise<Leaderboa
       const winRate = scoreResult.roi > 0
         ? Math.min(95, 50 + (scoreResult.roi * 100))
         : Math.max(5, 50 + (scoreResult.roi * 100));
+      const roiPercent = (scoreResult.roi * 100).toFixed(2);
 
       // Estimate trades for display
       const estimatedTrades = Math.floor(volume / 250);
@@ -170,7 +120,7 @@ async function fetchPolymarketLeaderboard(limit: number = 50): Promise<Leaderboa
         losses: 0,
         totalVolume: volume.toFixed(2),
         pnl,
-        roi: (scoreResult.roi * 100).toFixed(2),
+        roi: roiPercent,
         platforms: ['Polymarket'],
         platformBreakdown: [{
           platform: 'Polymarket',
@@ -179,7 +129,7 @@ async function fetchPolymarketLeaderboard(limit: number = 50): Promise<Leaderboa
           score: scoreResult.score,
           volume: volume.toFixed(2),
           pnl,
-          roi: (scoreResult.roi * 100).toFixed(2),
+          roi: roiPercent,
         }],
         profileImage: trader.profileImage,
         xUsername: trader.xUsername,
@@ -192,7 +142,7 @@ async function fetchPolymarketLeaderboard(limit: number = 50): Promise<Leaderboa
   }
 }
 
-// Recency Bonus Configuration
+// Recency Bonus Configuration (used with TruthScore v2.0)
 const RECENCY_WINDOW_DAYS = 90;  // Look at last 90 days
 const RECENCY_BONUS_MAX = 100;   // Max recency bonus
 
@@ -357,8 +307,8 @@ export async function GET(request: NextRequest) {
             recencyBonus = bonusData.recencyBonus;
           }
 
-          // Cap total at 1300 to match Polymarket range
-          const totalScore = Math.min(1300, baseScore + recencyBonus);
+          // Cap total at max TruthScore
+          const totalScore = Math.min(TRUTHSCORE_CONFIG.MAX_SCORE, baseScore + recencyBonus);
 
           return {
             ...user,

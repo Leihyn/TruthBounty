@@ -187,8 +187,8 @@ export async function GET(request: NextRequest) {
         .map(([key]) => key);
     }
 
-    // Fetch up to 3 sports to conserve API quota
-    const sportsSlice = sportsToFetch.slice(0, 3);
+    // Fetch ALL sports (not just 3) to get complete market coverage
+    const sportsSlice = sportsToFetch;
 
     for (const sport of sportsSlice) {
       try {
@@ -214,8 +214,9 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        markets: finalMarkets.slice(0, limit),
+        markets: limit > 0 ? finalMarkets.slice(0, limit) : finalMarkets,
         count: finalMarkets.length,
+        totalAvailable: finalMarkets.length,
         isMock: false,
         source: 'the-odds-api',
         sportsFetched: sportsSlice,

@@ -816,3 +816,61 @@
 2025-12-29 21:51:14: Catch-up resolver error: getaddrinfo ENOTFOUND bsc.publicnode.com
 2025-12-29 21:51:31:   Error simulating copy trades: request timeout (code=TIMEOUT, version=6.16.0)
 2025-12-29 21:51:36:   Error simulating copy trades: getaddrinfo ENOTFOUND bsc-testnet.publicnode.com
+2025-12-30 02:30:17: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 02:30:17: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 02:30:47: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 02:30:47: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 02:31:17: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 02:31:17: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 02:31:47: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 02:31:47: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 02:32:12: Round resolution error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-30 02:32:12: Catch-up resolver error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-30 02:32:42: Round resolution error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-30 02:32:42: Catch-up resolver error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-30 02:33:12: Round resolution error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-30 02:33:12: Catch-up resolver error: getaddrinfo ENOTFOUND bsc.publicnode.com
+2025-12-30 03:08:35: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:08:35: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:09:30: Round resolution error: socket hang up
+2025-12-30 03:09:30: Catch-up resolver error: socket hang up
+2025-12-30 03:23:06: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:23:06: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:23:36: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:23:36: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:24:06: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:24:06: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:24:36: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:24:36: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:25:06: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:25:06: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:25:36: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:25:36: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:26:06: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:26:06: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:26:46: Round resolution error: Client network socket disconnected before secure TLS connection was established
+2025-12-30 03:26:46: Catch-up resolver error: Client network socket disconnected before secure TLS connection was established
+2025-12-30 03:27:16: Round resolution error: Client network socket disconnected before secure TLS connection was established
+2025-12-30 03:27:16: Catch-up resolver error: Client network socket disconnected before secure TLS connection was established
+2025-12-30 03:27:36: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:27:36: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:28:06: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:28:06: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:28:36: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:28:36: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 03:29:13: Error fetching trades: {
+2025-12-30 03:29:13:   message: 'TypeError: fetch failed',
+2025-12-30 03:29:13:   details: 'TypeError: fetch failed\n' +
+2025-12-30 03:29:13:     '\n' +
+2025-12-30 03:29:13:     'Caused by: ConnectTimeoutError: Connect Timeout Error (attempted addresses: 172.64.149.246:443, timeout: 10000ms) (UND_ERR_CONNECT_TIMEOUT)\n' +
+2025-12-30 03:29:13:     'ConnectTimeoutError: Connect Timeout Error (attempted addresses: 172.64.149.246:443, timeout: 10000ms)\n' +
+2025-12-30 03:29:13:     '    at onConnectTimeout (node:internal/deps/undici/undici:2718:28)\n' +
+2025-12-30 03:29:13:     '    at Immediate._onImmediate (node:internal/deps/undici/undici:2684:35)\n' +
+2025-12-30 03:29:13:     '    at processImmediate (node:internal/timers:485:21)',
+2025-12-30 03:29:13:   hint: '',
+2025-12-30 03:29:13:   code: ''
+2025-12-30 03:29:13: }
+2025-12-30 07:52:51: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 07:52:51: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 08:31:19: Round resolution error: request timeout (code=TIMEOUT, version=6.16.0)
+2025-12-30 08:31:19: Catch-up resolver error: request timeout (code=TIMEOUT, version=6.16.0)

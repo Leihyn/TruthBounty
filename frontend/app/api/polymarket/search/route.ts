@@ -4,31 +4,73 @@ const POLYMARKET_API = 'https://gamma-api.polymarket.com';
 
 export const dynamic = 'force-dynamic';
 
-// In-memory cache for all markets (refreshed every 5 minutes)
+// In-memory cache for all markets (refreshed every 30 seconds - reduced from 5 minutes)
 let marketCache: any[] = [];
 let cacheTimestamp = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+let lastFetchError: string | null = null;
+const CACHE_DURATION = 30 * 1000; // 30 seconds (reduced from 5 minutes)
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
 
-async function fetchAllMarkets(): Promise<any[]> {
-  // Return cached if fresh
+// Helper function to delay
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Fetch with retry logic
+async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<Response | null> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(10000) // 10 second timeout per request
+      });
+      if (res.ok) return res;
+
+      console.warn(`[Polymarket] Attempt ${attempt}/${retries} failed with status ${res.status}`);
+      if (attempt < retries) await delay(RETRY_DELAY * attempt);
+    } catch (err) {
+      console.warn(`[Polymarket] Attempt ${attempt}/${retries} error:`, err);
+      if (attempt < retries) await delay(RETRY_DELAY * attempt);
+    }
+  }
+  return null;
+}
+
+async function fetchAllMarkets(): Promise<{ markets: any[], error: string | null }> {
+  // Return cached if fresh AND we have markets
   if (marketCache.length > 0 && Date.now() - cacheTimestamp < CACHE_DURATION) {
-    return marketCache;
+    return { markets: marketCache, error: null };
   }
 
   console.log('[Polymarket] Fetching all markets...');
   const allMarkets: any[] = [];
   let offset = 0;
   const batchSize = 500;
+  let fetchError: string | null = null;
+  let consecutiveFailures = 0;
 
   while (offset < 10000) { // Safety limit
+    const res = await fetchWithRetry(
+      `${POLYMARKET_API}/events?closed=false&limit=${batchSize}&offset=${offset}`
+    );
+
+    if (!res) {
+      consecutiveFailures++;
+      // If we have some markets and hit 2 consecutive failures, stop but keep what we have
+      if (allMarkets.length > 0 && consecutiveFailures >= 2) {
+        console.warn(`[Polymarket] Stopping fetch after ${consecutiveFailures} consecutive failures, keeping ${allMarkets.length} markets`);
+        break;
+      }
+      // If we have no markets at all after failures, record the error
+      if (allMarkets.length === 0) {
+        fetchError = `Failed to fetch from Polymarket API after ${MAX_RETRIES} retries`;
+      }
+      offset += batchSize; // Skip this batch and try next
+      continue;
+    }
+
+    consecutiveFailures = 0; // Reset on success
+
     try {
-      const res = await fetch(
-        `${POLYMARKET_API}/events?closed=false&limit=${batchSize}&offset=${offset}`,
-        { headers: { 'Accept': 'application/json' } }
-      );
-
-      if (!res.ok) break;
-
       const events = await res.json();
       if (!events || events.length === 0) break;
 
@@ -69,20 +111,27 @@ async function fetchAllMarkets(): Promise<any[]> {
       // If we got less than batch size, we're done
       if (events.length < batchSize) break;
     } catch (err) {
-      console.error('[Polymarket] Fetch error at offset', offset, err);
-      break;
+      console.error('[Polymarket] Parse error at offset', offset, err);
+      consecutiveFailures++;
+      offset += batchSize;
     }
   }
 
   // Sort by 24h volume
   allMarkets.sort((a, b) => (b.volume24hr || 0) - (a.volume24hr || 0));
 
-  // Update cache
-  marketCache = allMarkets;
-  cacheTimestamp = Date.now();
+  // Only update cache if we got markets (don't cache empty results from errors)
+  if (allMarkets.length > 0) {
+    marketCache = allMarkets;
+    cacheTimestamp = Date.now();
+    lastFetchError = null;
+    console.log(`[Polymarket] Cached ${allMarkets.length} markets`);
+  } else if (fetchError) {
+    lastFetchError = fetchError;
+    console.error(`[Polymarket] No markets fetched: ${fetchError}`);
+  }
 
-  console.log(`[Polymarket] Cached ${allMarkets.length} markets`);
-  return allMarkets;
+  return { markets: allMarkets, error: fetchError };
 }
 
 /**
@@ -100,7 +149,19 @@ export async function GET(request: NextRequest) {
 
   try {
     // Get all markets (cached)
-    const allMarkets = await fetchAllMarkets();
+    const { markets: allMarkets, error: fetchError } = await fetchAllMarkets();
+
+    // If we have no markets and there was an error, return 503
+    if (allMarkets.length === 0 && (fetchError || lastFetchError)) {
+      return NextResponse.json({
+        success: false,
+        query,
+        total: 0,
+        cached: 0,
+        markets: [],
+        error: fetchError || lastFetchError || 'Failed to fetch markets from Polymarket API',
+      }, { status: 503 });
+    }
 
     // Filter by search query
     let results = allMarkets;
@@ -113,6 +174,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
+      success: true,
       query,
       total: results.length,
       cached: marketCache.length,
@@ -121,9 +183,12 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('Polymarket search error:', error);
     return NextResponse.json(
-      { error: error.message || 'Search failed' },
+      {
+        success: false,
+        error: error.message || 'Search failed',
+        markets: [],
+      },
       { status: 500 }
     );
   }
 }
-// Cache bust: 1766980928

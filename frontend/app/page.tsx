@@ -571,7 +571,7 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {[
                 {
                   name: 'Polymarket',
@@ -590,6 +590,51 @@ export default function HomePage() {
                   gradient: 'from-amber-500/10 to-yellow-500/10',
                   iconBg: 'from-amber-500 to-yellow-500',
                   glow: 'rgba(245, 158, 11, 0.15)',
+                },
+                {
+                  name: 'Azuro',
+                  description: 'Decentralized sports betting infrastructure.',
+                  chain: 'Multi-chain',
+                  volume: '$180M+',
+                  gradient: 'from-blue-500/10 to-cyan-500/10',
+                  iconBg: 'from-blue-500 to-cyan-500',
+                  glow: 'rgba(59, 130, 246, 0.15)',
+                },
+                {
+                  name: 'SX Bet',
+                  description: 'Sports betting on the SX Network.',
+                  chain: 'SX Network',
+                  volume: '$95M+',
+                  gradient: 'from-emerald-500/10 to-teal-500/10',
+                  iconBg: 'from-emerald-500 to-teal-500',
+                  glow: 'rgba(16, 185, 129, 0.15)',
+                },
+                {
+                  name: 'Overtime',
+                  description: 'Sports markets powered by Thales protocol.',
+                  chain: 'Optimism',
+                  volume: '$75M+',
+                  gradient: 'from-red-500/10 to-orange-500/10',
+                  iconBg: 'from-red-500 to-orange-500',
+                  glow: 'rgba(239, 68, 68, 0.15)',
+                },
+                {
+                  name: 'Limitless',
+                  description: 'Prediction markets with no limits.',
+                  chain: 'Base',
+                  volume: '$12M+',
+                  gradient: 'from-indigo-500/10 to-violet-500/10',
+                  iconBg: 'from-indigo-500 to-violet-500',
+                  glow: 'rgba(99, 102, 241, 0.15)',
+                },
+                {
+                  name: 'Speed Markets',
+                  description: 'Fast-paced crypto price predictions.',
+                  chain: 'Optimism',
+                  volume: '$8M+',
+                  gradient: 'from-pink-500/10 to-rose-500/10',
+                  iconBg: 'from-pink-500 to-rose-500',
+                  glow: 'rgba(236, 72, 153, 0.15)',
                 },
               ].map((platform, i) => (
                 <div
@@ -659,7 +704,7 @@ export default function HomePage() {
                 },
                 {
                   q: 'What platforms do you support?',
-                  a: 'We currently support Polymarket (Polygon) and PancakeSwap Prediction (BSC). More platforms coming soon.',
+                  a: 'We support Polymarket, PancakeSwap Prediction, Azuro, SX Bet, Overtime, Limitless, and Speed Markets across Polygon, BSC, Optimism, Arbitrum, Base, and more.',
                 },
               ].map((faq, i) => (
                 <div
