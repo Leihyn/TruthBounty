@@ -44,8 +44,9 @@ function calculateScore(wins: number, totalBets: number, volume: string): number
     losses: totalBets - wins,
     totalBets,
     platform: 'PancakeSwap',
+    lastTradeAt: new Date(),
   });
-  return result.score;
+  return result.totalScore;
 }
 
 export async function GET() {

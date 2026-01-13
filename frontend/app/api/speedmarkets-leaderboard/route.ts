@@ -209,8 +209,9 @@ export async function GET(request: NextRequest) {
         losses,
         totalBets: trades,
         platform: 'Speed Markets',
+        lastTradeAt: new Date(),
       });
-      const score = scoreResult.score;
+      const score = scoreResult.totalScore;
       const winRate = trades > 0 ? (wins / trades) * 100 : 0;
 
       return {

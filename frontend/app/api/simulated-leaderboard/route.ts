@@ -270,6 +270,7 @@ export async function GET(request: NextRequest) {
           losses: stats.losses,
           totalBets: resolvedBets,
           platform: config.displayName,
+          lastTradeAt: new Date(),
         });
       } else {
         scoreResult = calculateTruthScore({
@@ -277,6 +278,7 @@ export async function GET(request: NextRequest) {
           volume: volumeUsd,
           trades: resolvedBets,
           platform: config.displayName,
+          lastTradeAt: new Date(),
         });
       }
 
@@ -287,7 +289,7 @@ export async function GET(request: NextRequest) {
       leaderboard.push({
         rank: 0, // Will be set after sorting
         address: stats.follower,
-        truthScore: scoreResult.score,
+        truthScore: scoreResult.totalScore,
         winRate: Math.round(winRate * 10) / 10,
         totalBets: stats.totalBets,
         wins: stats.wins,

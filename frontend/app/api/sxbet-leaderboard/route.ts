@@ -54,8 +54,9 @@ function calculateScore(stats: TraderStats): number {
     volume: stats.volume,
     trades: stats.totalBets,
     platform: 'SX Bet',
+    lastTradeAt: new Date(),
   });
-  return scoreResult.score;
+  return scoreResult.totalScore;
 }
 
 /**

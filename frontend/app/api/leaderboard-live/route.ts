@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
+import { calculateTruthScore, TRUTHSCORE_CONFIG } from '@/lib/truthscore';
 
 // PancakeSwap Prediction V2 on BSC Mainnet
 const PANCAKE_PREDICTION = '0x18B2A687610328590Bc8F2e5fEdDe3b582A49cdA';
@@ -152,26 +153,29 @@ async function indexTraders(provider: ethers.JsonRpcProvider): Promise<TraderSta
     }
   }
 
-  // Calculate win rate and score for each trader
+  // Calculate win rate and score for each trader using unified TruthScore system
   const traders = Array.from(tradersMap.values()).map(trader => {
     // Estimate win rate from claims vs bets
     const estimatedWinRate = trader.totalBets > 0
       ? Math.min(100, (trader.claims / trader.totalBets) * 100)
       : 0;
 
-    // Calculate TruthScore
-    // Formula: (wins * 100) + (winRate bonus) + (volume bonus)
-    const winPoints = trader.claims * 100;
-    const winRateBonus = estimatedWinRate > 55 ? (estimatedWinRate - 55) * 10 : 0;
-    const volumeBNB = Number(trader.totalBetAmount) / 1e18;
-    const volumeBonus = Math.min(500, Math.floor(volumeBNB * 10));
+    // Use unified TruthScore system (binary market - PancakeSwap is 50/50 up/down)
+    const wins = trader.claims;
+    const losses = trader.totalBets - trader.claims;
 
-    const truthScore = Math.floor(winPoints + winRateBonus + volumeBonus);
+    const scoreResult = calculateTruthScore({
+      wins,
+      losses,
+      totalBets: trader.totalBets,
+      platform: 'PancakeSwap',
+      lastTradeAt: new Date(),
+    });
 
     return {
       ...trader,
       estimatedWinRate: Math.round(estimatedWinRate * 10) / 10,
-      truthScore,
+      truthScore: scoreResult.totalScore,
     };
   });
 
@@ -199,14 +203,15 @@ export async function GET() {
     const provider = await getProvider();
     const traders = await indexTraders(provider);
 
-    // Format for leaderboard
+    // Format for leaderboard - use unified min bets requirement
     const leaderboardData = traders
-      .filter(t => t.totalBets >= 5) // Minimum 5 bets to appear
+      .filter(t => t.totalBets >= TRUTHSCORE_CONFIG.MIN_BETS_BINARY) // Minimum 30 bets to appear
       .map((trader, index) => ({
         rank: index + 1,
         address: trader.address,
         truthScore: trader.truthScore,
-        tier: trader.truthScore >= 2000 ? 4 : trader.truthScore >= 1000 ? 3 : trader.truthScore >= 500 ? 2 : trader.truthScore >= 200 ? 1 : 0,
+        // Tier based on 1300 scale: Diamond(900+), Platinum(650+), Gold(400+), Silver(200+), Bronze(0+)
+        tier: trader.truthScore >= 900 ? 4 : trader.truthScore >= 650 ? 3 : trader.truthScore >= 400 ? 2 : trader.truthScore >= 200 ? 1 : 0,
         winRate: trader.estimatedWinRate,
         totalBets: trader.totalBets,
         wins: trader.claims,

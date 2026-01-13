@@ -61,8 +61,9 @@ function calculateLimitlessScore(trader: TraderStats): number {
     volume: trader.volume,
     trades: trader.trades,
     platform: 'Limitless',
+    lastTradeAt: new Date(),
   });
-  return scoreResult.score;
+  return scoreResult.totalScore;
 }
 
 /**

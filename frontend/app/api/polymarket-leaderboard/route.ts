@@ -123,16 +123,18 @@ function calculatePolymarketScore(trader: PolymarketTrader): { score: number; wi
   const estimatedTrades = Math.max(1, Math.floor(volume / 500));
 
   // Use unified TruthScore system (odds-based market)
+  // For live API data, assume recent activity (full recency bonus)
   const scoreResult = calculateTruthScore({
     pnl,
     volume,
     trades: estimatedTrades,
     platform: 'Polymarket',
+    lastTradeAt: new Date(), // Live data = active trader
   });
 
   // Estimate win rate from ROI for display purposes
   const roi = pnl / volume;
   const winRate = Math.max(5, Math.min(95, 50 + (roi * 100)));
 
-  return { score: scoreResult.score, winRate };
+  return { score: scoreResult.totalScore, winRate };
 }

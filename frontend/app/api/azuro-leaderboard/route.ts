@@ -175,8 +175,9 @@ export async function GET(request: NextRequest) {
         volume,
         trades: totalBets,
         platform: 'Azuro',
+        lastTradeAt: new Date(),
       });
-      const score = scoreResult.score;
+      const score = scoreResult.totalScore;
 
       // Extract wallet address from compound ID (format: coreAddress_bettorAddress_lpAddress)
       const idParts = bettor.id.split('_');

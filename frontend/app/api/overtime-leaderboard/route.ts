@@ -202,8 +202,9 @@ export async function GET(request: NextRequest) {
         volume,
         trades,
         platform: 'Overtime',
+        lastTradeAt: new Date(),
       });
-      const score = scoreResult.score;
+      const score = scoreResult.totalScore;
 
       // Estimate win rate from ROI for display
       const estimatedWinRate = pnl > 0 ? Math.min(0.7, 0.5 + (pnl / volume) * 0.5) : Math.max(0.3, 0.5 + (pnl / volume) * 0.5);

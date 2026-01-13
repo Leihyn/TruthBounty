@@ -63,9 +63,10 @@ function calculatePolymarketScore(pnl: number, volume: number): {
     volume,
     trades: estimatedTrades,
     platform: 'Polymarket',
+    lastTradeAt: new Date(),
   });
 
-  return { score: result.score, roi };
+  return { score: result.totalScore, roi };
 }
 
 /**
@@ -144,26 +145,30 @@ async function fetchPolymarketLeaderboard(limit: number = 50): Promise<Leaderboa
 
 // Recency Bonus Configuration (used with TruthScore v2.0)
 const RECENCY_WINDOW_DAYS = 90;  // Look at last 90 days
-const RECENCY_BONUS_MAX = 100;   // Max recency bonus
+const RECENCY_BONUS_MAX = 300;   // Max recency bonus (allows 1000 + 300 = 1300 max)
 
 /**
  * Calculate recency bonus based on recent 90-day performance
  * Uses Wilson Score to prevent gaming with small recent sample
  *
- * Final TruthScore = BaseScore + RecencyBonus (capped at 1300)
+ * Final TruthScore = BaseScore (max 1000) + RecencyBonus (max 300) = max 1300
  */
 async function calculateRecencyBonus(userId: string): Promise<{ baseScore: number; recencyBonus: number }> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - RECENCY_WINDOW_DAYS);
 
   try {
-    // Get all-time stats (base score)
+    // Get all-time stats (base score = highest platform score, capped at 1000)
     const { data: allTimeStats } = await supabase
       .from('user_platform_stats')
       .select('score')
       .eq('user_id', userId);
 
-    const baseScore = (allTimeStats || []).reduce((sum, stat) => sum + stat.score, 0);
+    // Use highest platform score as base (not sum) - prevents multi-platform inflation
+    const baseScore = Math.min(
+      TRUTHSCORE_CONFIG.MAX_SCORE,
+      Math.max(0, ...(allTimeStats || []).map(stat => stat.score || 0))
+    );
 
     // Get recent bets (last 90 days)
     const { data: recentBets } = await supabase
@@ -187,11 +192,14 @@ async function calculateRecencyBonus(userId: string): Promise<{ baseScore: numbe
     // Use Wilson Score for recent win rate
     const recentWilsonRate = wilsonScoreLower(recentWins, recentTotal);
 
-    // Skill from Wilson-adjusted recent win rate (0-50)
-    const recentSkill = Math.min(50, Math.max(0, (recentWilsonRate - 0.5) * 100));
+    // Skill from Wilson-adjusted recent win rate (0-150 points)
+    // Edge above 50% × 300 = max 150 points for 10%+ proven edge
+    const recentEdge = Math.max(0, recentWilsonRate - 0.5);
+    const recentSkill = Math.min(150, Math.floor(recentEdge * 3000));
 
-    // Activity from recent bets - logarithmic (0-50)
-    const recentActivity = Math.min(50, Math.floor(Math.log10(recentTotal) * 30));
+    // Activity from recent bets - logarithmic (0-150 points)
+    // log10(10) = 1 → 50pts, log10(100) = 2 → 100pts, log10(1000) = 3 → 150pts
+    const recentActivity = Math.min(150, Math.floor(Math.log10(recentTotal) * 50));
 
     const recencyBonus = Math.min(RECENCY_BONUS_MAX, Math.floor(recentSkill + recentActivity));
 
@@ -281,7 +289,8 @@ export async function GET(request: NextRequest) {
         user.totalBets += stat.total_bets;
         user.wins += stat.wins;
         user.losses += stat.losses;
-        user.truthScore += stat.score;
+        // Use highest platform score as base (not sum) - prevents multi-platform inflation
+        user.truthScore = Math.max(user.truthScore, stat.score);
         user.totalVolume = (BigInt(user.totalVolume) + BigInt(stat.volume || '0')).toString();
         if (stat.platform?.name && !user.platforms.includes(stat.platform.name)) {
           user.platforms.push(stat.platform.name);
@@ -307,8 +316,8 @@ export async function GET(request: NextRequest) {
             recencyBonus = bonusData.recencyBonus;
           }
 
-          // Cap total at max TruthScore
-          const totalScore = Math.min(TRUTHSCORE_CONFIG.MAX_SCORE, baseScore + recencyBonus);
+          // Cap total at max TruthScore (1300 = 1000 base + 300 recency)
+          const totalScore = Math.min(TRUTHSCORE_CONFIG.MAX_TOTAL_SCORE, baseScore + recencyBonus);
 
           return {
             ...user,

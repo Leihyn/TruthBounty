@@ -142,13 +142,15 @@ export async function GET(request: NextRequest) {
       const losses = totalBets - wins;
 
       // Use unified TruthScore system (binary market)
+      // For live blockchain data, assume recent activity (full recency bonus)
       const scoreResult = calculateTruthScore({
         wins,
         losses,
         totalBets,
         platform: 'PancakeSwap',
+        lastTradeAt: new Date(), // Live data = active trader
       });
-      const score = scoreResult.score;
+      const score = scoreResult.totalScore;
 
       return {
         rank: index + 1,

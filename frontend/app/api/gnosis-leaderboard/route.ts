@@ -48,8 +48,9 @@ function calculateScore(trades: number, volume: number, pnl: number): number {
     volume,
     trades,
     platform: 'Gnosis/Omen',
+    lastTradeAt: new Date(),
   });
-  return result.score;
+  return result.totalScore;
 }
 
 /**
