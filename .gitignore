@@ -43,6 +43,9 @@ lcov.info
 # Exclude all .sql files
 *.sql
 
+# Exclude PDF files
+*.pdf
+
 # Next.js build output
 .next/
 out/
@@ -58,3 +61,4 @@ frontend/.claude/
 .claude/
 
 .vercel
+tmpclaude-*

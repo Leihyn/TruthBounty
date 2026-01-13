@@ -30,7 +30,8 @@ export const TRUTHSCORE_CONFIG = {
 
   // Score scaling
   MAX_EDGE_POINTS: 500,       // Maximum points from edge
-  MAX_SCORE: 1000,            // Maximum total score
+  MAX_SCORE: 1000,            // Maximum base score (before recency bonus)
+  MAX_TOTAL_SCORE: 1300,      // Maximum total score (base + recency bonus)
 
   // Confidence curve parameters
   CONFIDENCE_MIN: 0.5,        // Minimum confidence multiplier
@@ -39,6 +40,11 @@ export const TRUTHSCORE_CONFIG = {
   // ROI confidence for odds markets
   ROI_VARIANCE_ESTIMATE: 0.25, // Conservative variance assumption
   ROI_Z_SCORE: 1.5,           // 93% confidence level
+
+  // Recency bonus parameters
+  RECENCY_MAX_BONUS: 300,     // Maximum recency bonus points
+  RECENCY_FULL_DAYS: 7,       // Full bonus if traded within 7 days
+  RECENCY_DECAY_DAYS: 90,     // Bonus decays to 0 over 90 days
 } as const;
 
 // ============================================================================
@@ -60,16 +66,21 @@ export interface TruthScoreInput {
 
   // Platform identification
   platform: string;
+
+  // Recency tracking
+  lastTradeAt?: Date | string | number;  // Timestamp of last trade
 }
 
 export interface TruthScoreResult {
-  score: number;
+  score: number;             // Base score (0-1000)
+  totalScore: number;        // Total score with recency bonus (0-1300)
   eligible: boolean;
 
   // Breakdown components
   edge: number;              // Percentage edge (0-50)
   edgePoints: number;        // Points from edge (0-500)
   confidence: number;        // Confidence level (50-100%)
+  recencyBonus: number;      // Recency bonus points (0-300)
 
   // Raw metrics
   rawWinRate?: number;       // Actual win rate
@@ -80,12 +91,15 @@ export interface TruthScoreResult {
   // Meta
   marketType: MarketType;
   sampleSize: number;
+  lastTradeAt?: Date;        // When the trader last traded
+  daysSinceLastTrade?: number;
   reason?: string;
 }
 
 export interface ScoreBreakdown {
   skill: string;
   confidence: string;
+  recency: string;
   explanation: string;
 }
 
@@ -288,6 +302,57 @@ export function calculateConservativeROI(
 }
 
 // ============================================================================
+// RECENCY BONUS CALCULATION
+// ============================================================================
+
+/**
+ * Calculate recency bonus based on time since last trade
+ *
+ * Rewards active traders with up to 300 bonus points.
+ * - Full bonus (300 pts) for trades within 7 days
+ * - Linear decay from 300 → 0 over 7-90 days
+ * - Zero bonus after 90 days of inactivity
+ *
+ * This prevents stale profiles from dominating leaderboards
+ * and incentivizes continuous participation.
+ *
+ * @param lastTradeAt - Timestamp of last trade
+ * @returns Recency bonus points (0-300)
+ */
+export function calculateRecencyBonus(lastTradeAt?: Date | string | number): {
+  bonus: number;
+  daysSince: number;
+} {
+  const { RECENCY_MAX_BONUS, RECENCY_FULL_DAYS, RECENCY_DECAY_DAYS } = TRUTHSCORE_CONFIG;
+
+  if (!lastTradeAt) {
+    return { bonus: 0, daysSince: Infinity };
+  }
+
+  const lastTrade = new Date(lastTradeAt);
+  const now = new Date();
+  const daysSince = Math.floor((now.getTime() - lastTrade.getTime()) / (1000 * 60 * 60 * 24));
+
+  // Full bonus if traded within RECENCY_FULL_DAYS
+  if (daysSince <= RECENCY_FULL_DAYS) {
+    return { bonus: RECENCY_MAX_BONUS, daysSince };
+  }
+
+  // No bonus after RECENCY_DECAY_DAYS
+  if (daysSince >= RECENCY_DECAY_DAYS) {
+    return { bonus: 0, daysSince };
+  }
+
+  // Linear decay between RECENCY_FULL_DAYS and RECENCY_DECAY_DAYS
+  const decayRange = RECENCY_DECAY_DAYS - RECENCY_FULL_DAYS;
+  const daysIntoDecay = daysSince - RECENCY_FULL_DAYS;
+  const decayProgress = daysIntoDecay / decayRange;
+  const bonus = Math.round(RECENCY_MAX_BONUS * (1 - decayProgress));
+
+  return { bonus, daysSince };
+}
+
+// ============================================================================
 // MAIN SCORING FUNCTIONS
 // ============================================================================
 
@@ -311,22 +376,30 @@ export function calculateConservativeROI(
 export function scoreBinaryTrader(
   wins: number,
   total: number,
-  platform: string
+  platform: string,
+  lastTradeAt?: Date | string | number
 ): TruthScoreResult {
-  const { MIN_BETS_BINARY, MAX_EDGE_POINTS, MAX_SCORE } = TRUTHSCORE_CONFIG;
+  const { MIN_BETS_BINARY, MAX_EDGE_POINTS, MAX_SCORE, MAX_TOTAL_SCORE } = TRUTHSCORE_CONFIG;
+
+  // Calculate recency bonus
+  const { bonus: recencyBonus, daysSince: daysSinceLastTrade } = calculateRecencyBonus(lastTradeAt);
 
   // Eligibility check
   if (total < MIN_BETS_BINARY) {
     return {
       score: 0,
+      totalScore: 0,
       eligible: false,
       edge: 0,
       edgePoints: 0,
       confidence: 0,
+      recencyBonus: 0,
       rawWinRate: total > 0 ? wins / total : 0,
       provenWinRate: 0,
       marketType: 'binary',
       sampleSize: total,
+      lastTradeAt: lastTradeAt ? new Date(lastTradeAt) : undefined,
+      daysSinceLastTrade: daysSinceLastTrade === Infinity ? undefined : daysSinceLastTrade,
       reason: `Need ${MIN_BETS_BINARY}+ bets (have ${total})`,
     };
   }
@@ -346,19 +419,26 @@ export function scoreBinaryTrader(
   const confidence = calculateConfidence(total);
   const confidencePercent = Math.round(confidence * 100);
 
-  // Final score
+  // Base score (capped at 1000)
   const score = Math.min(MAX_SCORE, Math.round(edgePoints * confidence * 2));
+
+  // Total score with recency bonus (capped at 1300)
+  const totalScore = Math.min(MAX_TOTAL_SCORE, score + recencyBonus);
 
   return {
     score,
+    totalScore,
     eligible: true,
     edge: Math.round(edgePercent * 10) / 10,
     edgePoints,
     confidence: confidencePercent,
+    recencyBonus,
     rawWinRate: Math.round(rawWinRate * 1000) / 10,
     provenWinRate: Math.round(provenWinRate * 1000) / 10,
     marketType: 'binary',
     sampleSize: total,
+    lastTradeAt: lastTradeAt ? new Date(lastTradeAt) : undefined,
+    daysSinceLastTrade: daysSinceLastTrade === Infinity ? undefined : daysSinceLastTrade,
   };
 }
 
@@ -388,22 +468,30 @@ export function scoreOddsTrader(
   pnl: number,
   volume: number,
   trades: number,
-  platform: string
+  platform: string,
+  lastTradeAt?: Date | string | number
 ): TruthScoreResult {
-  const { MIN_BETS_ODDS, MIN_VOLUME_ODDS, MAX_EDGE_POINTS, MAX_SCORE } = TRUTHSCORE_CONFIG;
+  const { MIN_BETS_ODDS, MIN_VOLUME_ODDS, MAX_EDGE_POINTS, MAX_SCORE, MAX_TOTAL_SCORE } = TRUTHSCORE_CONFIG;
+
+  // Calculate recency bonus
+  const { bonus: recencyBonus, daysSince: daysSinceLastTrade } = calculateRecencyBonus(lastTradeAt);
 
   // Eligibility checks
   if (trades < MIN_BETS_ODDS) {
     return {
       score: 0,
+      totalScore: 0,
       eligible: false,
       edge: 0,
       edgePoints: 0,
       confidence: 0,
+      recencyBonus: 0,
       rawROI: volume > 0 ? (pnl / volume) * 100 : 0,
       provenROI: 0,
       marketType: 'odds',
       sampleSize: trades,
+      lastTradeAt: lastTradeAt ? new Date(lastTradeAt) : undefined,
+      daysSinceLastTrade: daysSinceLastTrade === Infinity ? undefined : daysSinceLastTrade,
       reason: `Need ${MIN_BETS_ODDS}+ trades (have ${trades})`,
     };
   }
@@ -411,14 +499,18 @@ export function scoreOddsTrader(
   if (volume < MIN_VOLUME_ODDS) {
     return {
       score: 0,
+      totalScore: 0,
       eligible: false,
       edge: 0,
       edgePoints: 0,
       confidence: 0,
+      recencyBonus: 0,
       rawROI: volume > 0 ? (pnl / volume) * 100 : 0,
       provenROI: 0,
       marketType: 'odds',
       sampleSize: trades,
+      lastTradeAt: lastTradeAt ? new Date(lastTradeAt) : undefined,
+      daysSinceLastTrade: daysSinceLastTrade === Infinity ? undefined : daysSinceLastTrade,
       reason: `Need $${MIN_VOLUME_ODDS}+ volume (have $${Math.round(volume)})`,
     };
   }
@@ -438,19 +530,26 @@ export function scoreOddsTrader(
   const confidence = calculateConfidence(trades);
   const confidencePercent = Math.round(confidence * 100);
 
-  // Final score
+  // Base score (capped at 1000)
   const score = Math.min(MAX_SCORE, Math.round(edgePoints * confidence * 2));
+
+  // Total score with recency bonus (capped at 1300)
+  const totalScore = Math.min(MAX_TOTAL_SCORE, score + recencyBonus);
 
   return {
     score,
+    totalScore,
     eligible: true,
     edge: Math.round(edgePercent * 10) / 10,
     edgePoints,
     confidence: confidencePercent,
+    recencyBonus,
     rawROI: Math.round(rawROI * 1000) / 10,
     provenROI: Math.round(provenROI * 1000) / 10,
     marketType: 'odds',
     sampleSize: trades,
+    lastTradeAt: lastTradeAt ? new Date(lastTradeAt) : undefined,
+    daysSinceLastTrade: daysSinceLastTrade === Infinity ? undefined : daysSinceLastTrade,
   };
 }
 
@@ -472,7 +571,7 @@ export function calculateTruthScore(input: TruthScoreInput): TruthScoreResult {
   if (marketType === 'binary') {
     const wins = input.wins ?? 0;
     const total = input.totalBets ?? (wins + (input.losses ?? 0));
-    return scoreBinaryTrader(wins, total, input.platform);
+    return scoreBinaryTrader(wins, total, input.platform, input.lastTradeAt);
   }
 
   // Odds-based market
@@ -480,7 +579,7 @@ export function calculateTruthScore(input: TruthScoreInput): TruthScoreResult {
   const volume = input.volume ?? 0;
   const trades = input.trades ?? input.totalBets ?? 0;
 
-  return scoreOddsTrader(pnl, volume, trades, input.platform);
+  return scoreOddsTrader(pnl, volume, trades, input.platform, input.lastTradeAt);
 }
 
 // ============================================================================
@@ -495,6 +594,7 @@ export function getScoreBreakdown(result: TruthScoreResult): ScoreBreakdown {
     return {
       skill: 'Not eligible',
       confidence: 'N/A',
+      recency: 'N/A',
       explanation: result.reason || 'Insufficient data',
     };
   }
@@ -518,36 +618,55 @@ export function getScoreBreakdown(result: TruthScoreResult): ScoreBreakdown {
   else if (result.confidence >= 55) confidenceLevel = 'Low';
   else confidenceLevel = 'Very low';
 
+  // Recency description
+  let recencyLevel: string;
+  if (result.recencyBonus >= 250) recencyLevel = 'Very active';
+  else if (result.recencyBonus >= 150) recencyLevel = 'Active';
+  else if (result.recencyBonus >= 50) recencyLevel = 'Moderate';
+  else if (result.recencyBonus > 0) recencyLevel = 'Low activity';
+  else recencyLevel = 'Inactive';
+
+  const daysText = result.daysSinceLastTrade !== undefined
+    ? `${result.daysSinceLastTrade} days ago`
+    : 'unknown';
+
   return {
     skill: `${skillLevel} (${edgeDescription})`,
     confidence: `${confidenceLevel} (${result.confidence}%, ${result.sampleSize} ${result.marketType === 'binary' ? 'bets' : 'trades'})`,
-    explanation: `${skillLevel} performer with ${confidenceLevel.toLowerCase()} confidence based on ${result.sampleSize} ${result.marketType === 'binary' ? 'bets' : 'trades'}.`,
+    recency: `${recencyLevel} (+${result.recencyBonus} pts, last trade ${daysText})`,
+    explanation: `${skillLevel} performer with ${confidenceLevel.toLowerCase()} confidence. ${recencyLevel} trader with +${result.recencyBonus} recency bonus.`,
   };
 }
 
 /**
- * Get tier name from score
+ * Get tier name from score (0-1300 scale)
+ *
+ * Tier thresholds aligned with contracts.ts:
+ * - Diamond: 900+ (top performers with recency bonus)
+ * - Platinum: 650-899
+ * - Gold: 400-649
+ * - Silver: 200-399
+ * - Bronze: 0-199
  */
 export function getScoreTier(score: number): string {
-  if (score >= 900) return 'Legendary';
-  if (score >= 750) return 'Elite';
-  if (score >= 600) return 'Expert';
-  if (score >= 450) return 'Skilled';
-  if (score >= 300) return 'Competent';
-  if (score >= 150) return 'Beginner';
-  return 'Unranked';
+  if (score >= 1100) return 'Legendary';  // Diamond+ with max recency
+  if (score >= 900) return 'Diamond';
+  if (score >= 650) return 'Platinum';
+  if (score >= 400) return 'Gold';
+  if (score >= 200) return 'Silver';
+  return 'Bronze';
 }
 
 /**
- * Get tier color class
+ * Get tier color class (0-1300 scale)
  */
 export function getScoreTierColor(score: number): string {
-  if (score >= 900) return 'text-yellow-400'; // Legendary - Gold
-  if (score >= 750) return 'text-purple-400'; // Elite - Purple
-  if (score >= 600) return 'text-blue-400';   // Expert - Blue
-  if (score >= 450) return 'text-green-400';  // Skilled - Green
-  if (score >= 300) return 'text-gray-400';   // Competent - Gray
-  return 'text-gray-500';                      // Unranked
+  if (score >= 1100) return 'text-yellow-400'; // Legendary - Gold glow
+  if (score >= 900) return 'text-cyan-400';    // Diamond - Cyan
+  if (score >= 650) return 'text-purple-400';  // Platinum - Purple
+  if (score >= 400) return 'text-yellow-500';  // Gold - Yellow
+  if (score >= 200) return 'text-gray-400';    // Silver - Gray
+  return 'text-amber-600';                     // Bronze - Amber
 }
 
 // ============================================================================
@@ -565,13 +684,14 @@ export function legacyCalculateScore(
   total: number,
   volume: number,
   pnl: number = 0,
-  platform: string = 'pancakeswap'
+  platform: string = 'pancakeswap',
+  lastTradeAt?: Date | string | number
 ): number {
   const marketType = getMarketType(platform);
 
   if (marketType === 'binary') {
-    return scoreBinaryTrader(wins, total, platform).score;
+    return scoreBinaryTrader(wins, total, platform, lastTradeAt).totalScore;
   }
 
-  return scoreOddsTrader(pnl, volume, total, platform).score;
+  return scoreOddsTrader(pnl, volume, total, platform, lastTradeAt).totalScore;
 }

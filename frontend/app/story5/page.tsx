@@ -76,7 +76,8 @@ const TIERS = [
   { name: 'Silver', minScore: 300, color: 'bg-gray-400', textColor: 'text-gray-400', icon: '🥈' },
   { name: 'Gold', minScore: 500, color: 'bg-yellow-500', textColor: 'text-yellow-500', icon: '🥇' },
   { name: 'Platinum', minScore: 700, color: 'bg-cyan-400', textColor: 'text-cyan-400', icon: '💎' },
-  { name: 'Diamond', minScore: 1000, color: 'bg-purple-500', textColor: 'text-purple-500', icon: '👑' },
+  { name: 'Diamond', minScore: 900, color: 'bg-purple-500', textColor: 'text-purple-500', icon: '👑' },
+  { name: 'Legendary', minScore: 1100, color: 'bg-gradient-to-r from-purple-500 to-pink-500', textColor: 'text-pink-500', icon: '🏆' },
 ];
 
 const FAQS = [

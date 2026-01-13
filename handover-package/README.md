@@ -25,7 +25,7 @@ handover-package/
 
 | Folder | Project Name | URL |
 |--------|--------------|-----|
-| frontend/ | frontend | https://frontend-two-phi-72.vercel.app |
+| frontend/ | frontend | https://truthbounty.xyz |
 | user-docs/ | user-docs | (check Vercel dashboard) |
 
 The `.vercel/` folders link to the existing Vercel projects. After copying, running `vercel` will deploy to the same projects.
@@ -65,7 +65,7 @@ The `.vercel/` folders link to the existing Vercel projects. After copying, runn
 ## Important Notes
 
 - **Do NOT commit these files to git** - they contain secrets
-- The production URL is: `https://frontend-two-phi-72.vercel.app`
+- The production URL is: `https://truthbounty.xyz`
 - See `CLAUDE.md` in the project root for architecture overview
 - See `frontend/DESIGN_SYSTEM.md` for UI/design guidelines
 

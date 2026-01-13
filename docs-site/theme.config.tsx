@@ -29,8 +29,8 @@ const config: DocsThemeConfig = {
   banner: {
     key: 'beta-release',
     text: (
-      <a href="https://truth-bounty-4r9b.vercel.app" target="_blank" rel="noreferrer">
-        TruthBounty is live on testnet. Try it now →
+      <a href="https://truthbounty.xyz" target="_blank" rel="noreferrer">
+        TruthBounty is live! Try it now →
       </a>
     ),
   },

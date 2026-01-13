@@ -20,7 +20,7 @@ const config: DocsThemeConfig = {
     </div>
   ),
   project: {
-    link: 'https://truth-bounty-4r9b.vercel.app',
+    link: 'https://truthbounty.xyz',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -44,7 +44,7 @@ const config: DocsThemeConfig = {
   banner: {
     key: 'launch',
     text: (
-      <a href="https://truth-bounty-4r9b.vercel.app" target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+      <a href="https://truthbounty.xyz" target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
         <span>TruthBounty is live! Start building your reputation today</span>
         <span>→</span>
       </a>
@@ -64,7 +64,7 @@ const config: DocsThemeConfig = {
     text: (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
         <div style={{ display: 'flex', gap: '16px', fontSize: '0.9rem' }}>
-          <a href="https://truth-bounty-4r9b.vercel.app" target="_blank" rel="noreferrer" style={{ color: '#3B82F6' }}>
+          <a href="https://truthbounty.xyz" target="_blank" rel="noreferrer" style={{ color: '#3B82F6' }}>
             Launch App
           </a>
           <span style={{ color: '#D1D5DB' }}>|</span>
