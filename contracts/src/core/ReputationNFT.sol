@@ -316,13 +316,19 @@ contract ReputationNFT is ERC721, Ownable, IReputationNFT {
     // ============================================
 
     /**
-     * @dev Calculates tier based on TruthScore
+     * @dev Calculates tier based on TruthScore (0-1300 scale)
+     * Thresholds aligned with frontend/lib/contracts.ts:
+     * - Diamond: 900+ (top performers)
+     * - Platinum: 650-899
+     * - Gold: 400-649
+     * - Silver: 200-399
+     * - Bronze: 0-199
      */
     function _calculateTier(uint256 score) internal pure returns (ReputationTier) {
-        if (score >= 5000) return ReputationTier.DIAMOND;
-        if (score >= 2000) return ReputationTier.PLATINUM;
-        if (score >= 1000) return ReputationTier.GOLD;
-        if (score >= 500) return ReputationTier.SILVER;
+        if (score >= 900) return ReputationTier.DIAMOND;
+        if (score >= 650) return ReputationTier.PLATINUM;
+        if (score >= 400) return ReputationTier.GOLD;
+        if (score >= 200) return ReputationTier.SILVER;
         return ReputationTier.BRONZE;
     }
 

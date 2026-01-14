@@ -174,8 +174,8 @@ export class TrendDetector {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        const markets = data.data || data.markets || data || [];
+        const data = await response.json() as Record<string, unknown>;
+        const markets = (data.data || data.markets || data || []) as any[];
         return markets.map((m: any) => ({
           id: m.id || m.externalId,
           platform: m.platform,
@@ -204,8 +204,8 @@ export class TrendDetector {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          const markets = data.data || data.markets || data || [];
+          const data = await response.json() as Record<string, unknown>;
+          const markets = (data.data || data.markets || data || []) as any[];
 
           for (const m of markets) {
             allMarkets.push({

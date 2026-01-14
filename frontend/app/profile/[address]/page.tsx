@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,8 +26,195 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { CopyTradeButton } from '@/components/CopyTradeButton';
+
+// Demo mode constants - must match dashboard/page.tsx
+const DEMO_ADDRESS = '0x7a3f1234567890abcdef1234567890abcdef8c2d';
+
+// Demo profile data for all tiers
+const DEMO_PROFILES: Record<string, AggregatedProfile> = {
+  bronze: {
+    address: DEMO_ADDRESS,
+    username: 'New Trader',
+    truthScore: 85,
+    winRate: 52.5,
+    totalBets: 12,
+    wins: 6,
+    losses: 6,
+    totalVolume: { USD: 165, BNB: 0.12 },
+    totalPnl: { USD: -8.50, BNB: 0.0124 },
+    platforms: [
+      {
+        platform: 'PancakeSwap Prediction',
+        truthScore: 85,
+        winRate: 57.1,
+        totalBets: 8,
+        wins: 4,
+        losses: 4,
+        volume: '0.12',
+        pnl: 0.0124,
+        rank: 892,
+      },
+      {
+        platform: 'Polymarket',
+        truthScore: 65,
+        winRate: 50.0,
+        totalBets: 4,
+        wins: 2,
+        losses: 2,
+        volume: '45',
+        pnl: -8.50,
+        rank: 1245,
+      },
+    ],
+    globalRank: 856,
+  },
+  silver: {
+    address: DEMO_ADDRESS,
+    username: 'Rising Trader',
+    truthScore: 285,
+    winRate: 61.2,
+    totalBets: 38,
+    wins: 22,
+    losses: 16,
+    totalVolume: { USD: 950, BNB: 0.65 },
+    totalPnl: { USD: 42.30, BNB: 0.0892 },
+    platforms: [
+      {
+        platform: 'Polymarket',
+        truthScore: 285,
+        winRate: 60.0,
+        totalBets: 16,
+        wins: 9,
+        losses: 7,
+        volume: '285',
+        pnl: 42.30,
+        rank: 324,
+      },
+      {
+        platform: 'PancakeSwap Prediction',
+        truthScore: 260,
+        winRate: 61.9,
+        totalBets: 22,
+        wins: 13,
+        losses: 9,
+        volume: '0.65',
+        pnl: 0.0892,
+        rank: 412,
+      },
+    ],
+    globalRank: 298,
+  },
+  gold: {
+    address: DEMO_ADDRESS,
+    username: 'Demo Trader',
+    truthScore: 520,
+    winRate: 68.5,
+    totalBets: 127,
+    wins: 87,
+    losses: 40,
+    totalVolume: { USD: 45200, BNB: 12.5 },
+    totalPnl: { USD: 8340, BNB: 2.1 },
+    platforms: [
+      {
+        platform: 'Polymarket',
+        truthScore: 520,
+        winRate: 71.2,
+        totalBets: 73,
+        wins: 52,
+        losses: 21,
+        volume: '32500',
+        pnl: 6200,
+        rank: 42,
+      },
+      {
+        platform: 'PancakeSwap Prediction',
+        truthScore: 485,
+        winRate: 64.8,
+        totalBets: 54,
+        wins: 35,
+        losses: 19,
+        volume: '12.5',
+        pnl: 2.1,
+        rank: 156,
+      },
+    ],
+    globalRank: 38,
+  },
+  platinum: {
+    address: DEMO_ADDRESS,
+    username: 'Elite Predictor',
+    truthScore: 780,
+    winRate: 73.8,
+    totalBets: 156,
+    wins: 112,
+    losses: 44,
+    totalVolume: { USD: 125400, BNB: 6.85 },
+    totalPnl: { USD: 18920, BNB: 1.245 },
+    platforms: [
+      {
+        platform: 'Polymarket',
+        truthScore: 780,
+        winRate: 72.3,
+        totalBets: 67,
+        wins: 47,
+        losses: 20,
+        volume: '98500',
+        pnl: 15680,
+        rank: 12,
+      },
+      {
+        platform: 'PancakeSwap Prediction',
+        truthScore: 720,
+        winRate: 74.7,
+        totalBets: 89,
+        wins: 65,
+        losses: 24,
+        volume: '6.85',
+        pnl: 1.245,
+        rank: 28,
+      },
+    ],
+    globalRank: 8,
+  },
+  diamond: {
+    address: DEMO_ADDRESS,
+    username: 'Legendary Oracle',
+    truthScore: 1250,
+    winRate: 79.8,
+    totalBets: 342,
+    wins: 267,
+    losses: 75,
+    totalVolume: { USD: 485000, BNB: 22.5 },
+    totalPnl: { USD: 89420, BNB: 4.892 },
+    platforms: [
+      {
+        platform: 'Polymarket',
+        truthScore: 1250,
+        winRate: 79.3,
+        totalBets: 144,
+        wins: 111,
+        losses: 33,
+        volume: '385000',
+        pnl: 72500,
+        rank: 1,
+      },
+      {
+        platform: 'PancakeSwap Prediction',
+        truthScore: 1180,
+        winRate: 80.4,
+        totalBets: 198,
+        wins: 156,
+        losses: 42,
+        volume: '22.5',
+        pnl: 4.892,
+        rank: 3,
+      },
+    ],
+    globalRank: 1,
+  },
+};
 
 // Platform configuration
 const PLATFORM_CONFIG: Record<string, {
@@ -114,18 +301,29 @@ function getTierFromScore(score: number): ReputationTier {
   return ReputationTier.BRONZE;
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const [profileAddress, setProfileAddress] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
+  const [demoTier, setDemoTier] = useState<string>('gold');
 
   useEffect(() => {
     setMounted(true);
     if (params?.address) {
       setProfileAddress(params.address as string);
     }
-  }, [params]);
+    // Check for demo mode via URL param or demo address
+    const demoParam = searchParams.get('demo');
+    const isDemoAddress = params?.address === DEMO_ADDRESS;
+    setIsDemo(!!demoParam || isDemoAddress);
+    // Set demo tier from URL param (default to gold)
+    if (demoParam && ['bronze', 'silver', 'gold', 'platinum', 'diamond'].includes(demoParam)) {
+      setDemoTier(demoParam);
+    }
+  }, [params, searchParams]);
 
   if (!mounted || !profileAddress) {
     return (
@@ -135,7 +333,30 @@ export default function ProfilePage() {
     );
   }
 
-  return <ProfileContent address={profileAddress} copied={copied} setCopied={setCopied} />;
+  return (
+    <div className="relative">
+      {isDemo && (
+        <div className="fixed top-4 right-4 z-50">
+          <Badge className="bg-warning text-warning-foreground font-mono text-xs">
+            DEMO
+          </Badge>
+        </div>
+      )}
+      <ProfileContent address={profileAddress} copied={copied} setCopied={setCopied} isDemo={isDemo} demoTier={demoTier} />
+    </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="container px-4 py-12">
+        <ProfileSkeleton />
+      </div>
+    }>
+      <ProfilePageContent />
+    </Suspense>
+  );
 }
 
 function ProfileSkeleton() {
@@ -158,7 +379,7 @@ function ProfileSkeleton() {
   );
 }
 
-function ProfileContent({ address, copied, setCopied }: { address: string; copied: boolean; setCopied: (v: boolean) => void }) {
+function ProfileContent({ address, copied, setCopied, isDemo, demoTier }: { address: string; copied: boolean; setCopied: (v: boolean) => void; isDemo: boolean; demoTier: string }) {
   const [profile, setProfile] = useState<AggregatedProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -167,6 +388,14 @@ function ProfileContent({ address, copied, setCopied }: { address: string; copie
     async function fetchProfile() {
       setLoading(true);
       setError(null);
+
+      // Demo mode: use mock data based on tier
+      if (isDemo || address === DEMO_ADDRESS) {
+        const demoProfile = DEMO_PROFILES[demoTier] || DEMO_PROFILES.gold;
+        setProfile(demoProfile);
+        setLoading(false);
+        return;
+      }
 
       try {
         // Fetch from all platform leaderboard APIs in parallel
@@ -280,7 +509,7 @@ function ProfileContent({ address, copied, setCopied }: { address: string; copie
     }
 
     fetchProfile();
-  }, [address]);
+  }, [address, isDemo, demoTier]);
 
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(address);

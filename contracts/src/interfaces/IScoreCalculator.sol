@@ -10,15 +10,14 @@ pragma solidity ^0.8.28;
 interface IScoreCalculator {
     /**
      * @notice Enum representing reputation tiers based on TruthScore
-     * @dev Tiers determine user benefits and platform privileges
+     * @dev Tiers determine user benefits and platform privileges (0-1300 scale)
      */
     enum Tier {
-        BRONZE, // 0-499
-        SILVER, // 500-999
-        GOLD, // 1000-1999
-        PLATINUM, // 2000-4999
-        DIAMOND // 5000+
-
+        BRONZE,   // 0-199
+        SILVER,   // 200-399
+        GOLD,     // 400-649
+        PLATINUM, // 650-899
+        DIAMOND   // 900+ (with recency bonus up to 1300)
     }
 
     /**

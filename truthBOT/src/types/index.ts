@@ -416,7 +416,15 @@ export interface CopyTradeExecutedEvent extends BotEvent {
   payload: CopyTradeExecution;
 }
 
-export type AnyBotEvent = BetDetectedEvent | SignalGeneratedEvent | AlertCreatedEvent | CopyTradeExecutedEvent;
+export type AnyBotEvent =
+  | BetDetectedEvent
+  | SignalGeneratedEvent
+  | AlertCreatedEvent
+  | CopyTradeExecutedEvent
+  | TrendDetectedEvent
+  | TrendUpdatedEvent
+  | CrossSignalEvent
+  | SmartMoneyMoveEvent;
 
 // ===========================================
 // Configuration Types

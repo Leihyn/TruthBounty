@@ -22,6 +22,51 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const migrations = [
   {
+    name: 'trending_topics',
+    sql: `
+      CREATE TABLE IF NOT EXISTS trending_topics (
+        id SERIAL PRIMARY KEY,
+        topic TEXT NOT NULL,
+        normalized_topic TEXT NOT NULL UNIQUE,
+        score DECIMAL(10,2) DEFAULT 0,
+        velocity DECIMAL(10,2) DEFAULT 0,
+        total_volume DECIMAL(20,2) DEFAULT 0,
+        total_markets INTEGER DEFAULT 0,
+        category TEXT,
+        platforms TEXT[],
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_tt_normalized ON trending_topics(normalized_topic);
+      CREATE INDEX IF NOT EXISTS idx_tt_score ON trending_topics(score DESC);
+      CREATE INDEX IF NOT EXISTS idx_tt_updated ON trending_topics(updated_at);
+    `,
+  },
+  {
+    name: 'cross_platform_signals',
+    sql: `
+      CREATE TABLE IF NOT EXISTS cross_platform_signals (
+        id SERIAL PRIMARY KEY,
+        topic TEXT NOT NULL,
+        normalized_topic TEXT NOT NULL,
+        consensus TEXT NOT NULL,
+        confidence DECIMAL(5,2),
+        volume_weighted_probability DECIMAL(5,4),
+        smart_money_agreement DECIMAL(5,4),
+        platforms TEXT[],
+        total_volume DECIMAL(20,2) DEFAULT 0,
+        market_count INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        expires_at TIMESTAMPTZ
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_cps_topic ON cross_platform_signals(normalized_topic);
+      CREATE INDEX IF NOT EXISTS idx_cps_consensus ON cross_platform_signals(consensus);
+      CREATE INDEX IF NOT EXISTS idx_cps_created ON cross_platform_signals(created_at);
+    `,
+  },
+  {
     name: 'smart_money_signals',
     sql: `
       CREATE TABLE IF NOT EXISTS smart_money_signals (

@@ -18,6 +18,7 @@ import { trendDetector } from '../bots/trend-detector.js';
 import { crossPlatformSignals } from '../bots/cross-platform-signals.js';
 import { db } from '../core/database.js';
 import type { BacktestSettings } from '../types/index.js';
+import { registerCascadeRoutes } from './cascade-routes.js';
 
 // ===========================================
 // Server Setup
@@ -29,7 +30,8 @@ const fastify = Fastify({
 
 // Register plugins
 await fastify.register(cors, {
-  origin: config.api.corsOrigins,
+  origin: true, // Allow all origins in development
+  credentials: true,
 });
 
 await fastify.register(websocket);
@@ -48,8 +50,8 @@ const antiGaming = new AntiGamingDetector();
 
 // API Key authentication (optional)
 fastify.addHook('preHandler', async (request, reply) => {
-  // Skip auth for health check
-  if (request.url === '/health') return;
+  // Skip auth for health check and WebSocket
+  if (request.url === '/health' || request.url === '/api/signals/subscribe') return;
 
   // If API secret is configured, require it
   if (config.api.secret) {
@@ -245,16 +247,26 @@ fastify.get('/api/wallet/:address/analyze', async (request) => {
 // ===========================================
 
 // Trending Topics
-fastify.get('/api/trends', async (request) => {
+fastify.get('/api/trends', async (request, reply) => {
   const { limit = '50' } = request.query as { limit?: string };
 
-  const trends = await trendDetector.getTrendingTopics(parseInt(limit));
+  try {
+    const trends = await trendDetector.getTrendingTopics(parseInt(limit));
 
-  return {
-    success: true,
-    data: trends,
-    timestamp: new Date(),
-  };
+    return {
+      success: true,
+      data: trends || [],
+      timestamp: new Date(),
+    };
+  } catch (error) {
+    logger.warn('Failed to get trends', { error: (error as Error).message });
+    return {
+      success: true,
+      data: [],
+      message: 'No trend data available yet',
+      timestamp: new Date(),
+    };
+  }
 });
 
 fastify.get('/api/trends/:topic', async (request, reply) => {
@@ -277,16 +289,26 @@ fastify.get('/api/trends/:topic', async (request, reply) => {
 });
 
 // Cross-Platform Signals
-fastify.get('/api/cross-signals', async (request) => {
+fastify.get('/api/cross-signals', async (request, reply) => {
   const { limit = '50' } = request.query as { limit?: string };
 
-  const signals = await crossPlatformSignals.getSignals(parseInt(limit));
+  try {
+    const signals = await crossPlatformSignals.getSignals(parseInt(limit));
 
-  return {
-    success: true,
-    data: signals,
-    timestamp: new Date(),
-  };
+    return {
+      success: true,
+      data: signals || [],
+      timestamp: new Date(),
+    };
+  } catch (error) {
+    logger.warn('Failed to get cross-signals', { error: (error as Error).message });
+    return {
+      success: true,
+      data: [],
+      message: 'No cross-platform signals available yet',
+      timestamp: new Date(),
+    };
+  }
 });
 
 fastify.get('/api/cross-signals/strongest', async (request) => {
@@ -321,16 +343,26 @@ fastify.get('/api/cross-signals/:topic', async (request, reply) => {
 });
 
 // Unified Leaderboard
-fastify.get('/api/leaderboard/unified', async (request) => {
+fastify.get('/api/leaderboard/unified', async (request, reply) => {
   const { limit = '100' } = request.query as { limit?: string };
 
-  const leaderboard = await multiPlatformTracker.getUnifiedLeaderboard(parseInt(limit));
+  try {
+    const leaderboard = await multiPlatformTracker.getUnifiedLeaderboard(parseInt(limit));
 
-  return {
-    success: true,
-    data: leaderboard,
-    timestamp: new Date(),
-  };
+    return {
+      success: true,
+      data: leaderboard || [],
+      timestamp: new Date(),
+    };
+  } catch (error) {
+    logger.warn('Failed to get unified leaderboard', { error: (error as Error).message });
+    return {
+      success: true,
+      data: [],
+      message: 'No leaderboard data available yet',
+      timestamp: new Date(),
+    };
+  }
 });
 
 fastify.get('/api/trader/:address', async (request, reply) => {
@@ -353,16 +385,26 @@ fastify.get('/api/trader/:address', async (request, reply) => {
 });
 
 // Smart Money Activity
-fastify.get('/api/smart-money/activity', async (request) => {
+fastify.get('/api/smart-money/activity', async (request, reply) => {
   const { limit = '100' } = request.query as { limit?: string };
 
-  const activity = await db.getSmartMoneyActivity(parseInt(limit));
+  try {
+    const activity = await db.getSmartMoneyActivity(parseInt(limit));
 
-  return {
-    success: true,
-    data: activity,
-    timestamp: new Date(),
-  };
+    return {
+      success: true,
+      data: activity || [],
+      timestamp: new Date(),
+    };
+  } catch (error) {
+    logger.warn('Failed to get smart money activity', { error: (error as Error).message });
+    return {
+      success: true,
+      data: [],
+      message: 'No smart money activity available',
+      timestamp: new Date(),
+    };
+  }
 });
 
 fastify.get('/api/smart-money/by-topic/:topic', async (request) => {
@@ -379,14 +421,24 @@ fastify.get('/api/smart-money/by-topic/:topic', async (request) => {
 });
 
 // Platform Status
-fastify.get('/api/platforms/status', async () => {
-  const statuses = await multiPlatformTracker.getPlatformStatuses();
+fastify.get('/api/platforms/status', async (request, reply) => {
+  try {
+    const statuses = await multiPlatformTracker.getPlatformStatuses();
 
-  return {
-    success: true,
-    data: statuses,
-    timestamp: new Date(),
-  };
+    return {
+      success: true,
+      data: statuses || [],
+      timestamp: new Date(),
+    };
+  } catch (error) {
+    logger.warn('Failed to get platform statuses', { error: (error as Error).message });
+    return {
+      success: true,
+      data: [],
+      message: 'Platform status unavailable',
+      timestamp: new Date(),
+    };
+  }
 });
 
 // ===========================================
@@ -435,6 +487,9 @@ export async function startServer(): Promise<void> {
     await multiPlatformTracker.start();
     await trendDetector.start();
     await crossPlatformSignals.start();
+
+    // Register cascade prevention routes
+    await registerCascadeRoutes(fastify);
 
     // Start server
     await fastify.listen({

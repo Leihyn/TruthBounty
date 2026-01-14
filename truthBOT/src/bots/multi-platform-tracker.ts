@@ -162,26 +162,26 @@ export class MultiPlatformTracker {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as Record<string, unknown>;
 
       // Handle different response formats
       if (Array.isArray(data)) {
-        return data;
+        return data as LeaderboardEntry[];
       }
       if (data.data && Array.isArray(data.data)) {
-        return data.data;
+        return data.data as LeaderboardEntry[];
       }
       if (data.leaderboard && Array.isArray(data.leaderboard)) {
-        return data.leaderboard;
+        return data.leaderboard as LeaderboardEntry[];
       }
       if (data.traders && Array.isArray(data.traders)) {
-        return data.traders;
+        return data.traders as LeaderboardEntry[];
       }
 
       logger.warn(`Unexpected response format from ${platform}`, {
         bot: 'multi-platform',
         platform,
-        keys: Object.keys(data),
+        keys: Object.keys(data as object),
       });
       return [];
 

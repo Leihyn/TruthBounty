@@ -65,13 +65,15 @@ async function main(): Promise<void> {
     },
   });
 
-  // Verify blockchain connection
+  // Verify blockchain connection (optional - server can run without it)
   try {
     const blockNumber = await blockchain.getBlockNumber('bsc-mainnet');
     logger.info(`Connected to BSC Mainnet at block ${blockNumber}`);
   } catch (error) {
-    logger.error('Failed to connect to blockchain', error as Error);
-    process.exit(1);
+    logger.warn('Failed to connect to blockchain - running in API-only mode', {
+      error: (error as Error).message,
+    });
+    logger.warn('Blockchain-dependent features (live bet monitoring) will be unavailable');
   }
 
   // Start the API server (which also starts enabled bots)

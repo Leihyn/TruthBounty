@@ -341,6 +341,12 @@ export class PortfolioOptimizer {
       overtime: 1.1,
       limitless: 1.2, // Newer market, potentially more alpha
       speedmarkets: 0.8, // Fast markets are more efficient
+      sxbet: 1.1, // Sports betting
+      gnosis: 1.0,
+      drift: 1.0,
+      kalshi: 0.9, // Regulated, more efficient
+      manifold: 1.3, // Play money, less efficient
+      metaculus: 1.3, // Prediction-focused
     };
 
     edge *= platformEdgeMultipliers[platform] || 1.0;
@@ -370,6 +376,12 @@ export class PortfolioOptimizer {
       overtime: 1,
       limitless: 2, // Newer
       speedmarkets: 1, // Fast-paced
+      sxbet: 1, // Sports betting
+      gnosis: 1,
+      drift: 2, // Solana-based
+      kalshi: 0, // Regulated
+      manifold: 2, // Play money
+      metaculus: 2, // Prediction-focused
     };
 
     risk += platformRisk[platform] || 0;
@@ -401,6 +413,12 @@ export class PortfolioOptimizer {
       overtime: 0,
       limitless: 0,
       speedmarkets: 0,
+      sxbet: 0,
+      gnosis: 0,
+      drift: 0,
+      kalshi: 0,
+      manifold: 0,
+      metaculus: 0,
     };
 
     let totalAllocated = 0;
@@ -482,6 +500,12 @@ export class PortfolioOptimizer {
       overtime: BigInt(0),
       limitless: BigInt(0),
       speedmarkets: BigInt(0),
+      sxbet: BigInt(0),
+      gnosis: BigInt(0),
+      drift: BigInt(0),
+      kalshi: BigInt(0),
+      manifold: BigInt(0),
+      metaculus: BigInt(0),
     };
 
     let totalRisk = 0;
@@ -502,6 +526,12 @@ export class PortfolioOptimizer {
       overtime: 0,
       limitless: 0,
       speedmarkets: 0,
+      sxbet: 0,
+      gnosis: 0,
+      drift: 0,
+      kalshi: 0,
+      manifold: 0,
+      metaculus: 0,
     };
 
     if (totalValue > 0) {

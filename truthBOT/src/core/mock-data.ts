@@ -20,8 +20,8 @@ export const MOCK_TRADERS: Trader[] = [
     losses: 355,
     winRate: 71.5,
     totalVolume: '156780000000000000000', // 156.78 BNB
-    platform: 'pancakeswap',
-    lastActive: new Date(),
+    registeredAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days ago
+    lastActiveAt: new Date(),
   },
   {
     address: '0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD',
@@ -32,8 +32,8 @@ export const MOCK_TRADERS: Trader[] = [
     losses: 296,
     winRate: 69.9,
     totalVolume: '234560000000000000000', // 234.56 BNB
-    platform: 'pancakeswap',
-    lastActive: new Date(),
+    registeredAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days ago
+    lastActiveAt: new Date(),
   },
   {
     address: '0x8B3f5393bA08c24cc7ff5A66a832562aAE8b9D4C',
@@ -44,8 +44,8 @@ export const MOCK_TRADERS: Trader[] = [
     losses: 244,
     winRate: 67.7,
     totalVolume: '89340000000000000000', // 89.34 BNB
-    platform: 'pancakeswap',
-    lastActive: new Date(),
+    registeredAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days ago
+    lastActiveAt: new Date(),
   },
   {
     address: '0xDef1C0ded9bec7F1a1670819833240f027b25EfF',
@@ -56,8 +56,8 @@ export const MOCK_TRADERS: Trader[] = [
     losses: 176,
     winRate: 67.0,
     totalVolume: '67890000000000000000', // 67.89 BNB
-    platform: 'pancakeswap',
-    lastActive: new Date(),
+    registeredAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days ago
+    lastActiveAt: new Date(),
   },
   {
     address: '0x1111111254fb6c44bAC0beD2854e76F90643097d',
@@ -68,8 +68,8 @@ export const MOCK_TRADERS: Trader[] = [
     losses: 143,
     winRate: 66.0,
     totalVolume: '45670000000000000000', // 45.67 BNB
-    platform: 'pancakeswap',
-    lastActive: new Date(),
+    registeredAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days ago
+    lastActiveAt: new Date(),
   },
   {
     address: '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
@@ -80,8 +80,8 @@ export const MOCK_TRADERS: Trader[] = [
     losses: 109,
     winRate: 65.1,
     totalVolume: '34560000000000000000', // 34.56 BNB
-    platform: 'pancakeswap',
-    lastActive: new Date(),
+    registeredAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days ago
+    lastActiveAt: new Date(),
   },
   {
     address: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
@@ -92,8 +92,8 @@ export const MOCK_TRADERS: Trader[] = [
     losses: 103,
     winRate: 64.1,
     totalVolume: '28900000000000000000', // 28.9 BNB
-    platform: 'pancakeswap',
-    lastActive: new Date(),
+    registeredAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days ago
+    lastActiveAt: new Date(),
   },
   {
     address: '0x2C3c5f9F1Fb8E4c0A0B2F5D0E3C4B5A6d7e8f9a0',
@@ -104,8 +104,8 @@ export const MOCK_TRADERS: Trader[] = [
     losses: 73,
     winRate: 63.1,
     totalVolume: '19450000000000000000', // 19.45 BNB
-    platform: 'pancakeswap',
-    lastActive: new Date(),
+    registeredAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days ago
+    lastActiveAt: new Date(),
   },
   {
     address: '0x4A5B6C7D8E9F0a1b2C3d4E5F6a7B8c9D0e1F2a3B',
@@ -116,8 +116,8 @@ export const MOCK_TRADERS: Trader[] = [
     losses: 59,
     winRate: 62.2,
     totalVolume: '12340000000000000000', // 12.34 BNB
-    platform: 'pancakeswap',
-    lastActive: new Date(),
+    registeredAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days ago
+    lastActiveAt: new Date(),
   },
   {
     address: '0x5B6C7D8E9F0A1b2c3D4e5F6A7b8C9d0E1f2A3b4C',
@@ -128,8 +128,8 @@ export const MOCK_TRADERS: Trader[] = [
     losses: 52,
     winRate: 61.2,
     totalVolume: '9870000000000000000', // 9.87 BNB
-    platform: 'pancakeswap',
-    lastActive: new Date(),
+    registeredAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days ago
+    lastActiveAt: new Date(),
   },
 ];
 
