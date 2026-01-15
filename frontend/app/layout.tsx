@@ -6,6 +6,7 @@ import { ConnectWallet } from "@/components/ConnectWallet";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toaster } from "@/components/ui/toaster";
 import { MobileNav, DesktopNav } from "@/components/MobileNav";
+import { LiveTopTraderWidget } from "@/components/LiveTopTraderWidget";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -82,18 +83,31 @@ export default function RootLayout({
               <footer className="border-t border-border bg-surface">
                 <div className="container px-4 md:px-6">
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-6">
-                    {/* Left: Branding */}
-                    <div className="flex items-center gap-2">
-                      <Image
-                        src="/logo.png"
-                        alt="TruthBounty"
-                        width={24}
-                        height={24}
-                        className="w-5 h-5 invert opacity-70"
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        TruthBounty - On-Chain Reputation Protocol
-                      </span>
+                    {/* Left: Branding + Hackathon Badge */}
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/logo.png"
+                          alt="TruthBounty"
+                          width={24}
+                          height={24}
+                          className="w-5 h-5 invert opacity-70"
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          TruthBounty
+                        </span>
+                      </div>
+                      <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-xs font-medium">
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                          <path d="M4 22h16" />
+                          <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+                        </svg>
+                        2nd Place · Seedify
+                      </div>
                     </div>
 
                     {/* Right: Links */}
@@ -110,6 +124,12 @@ export default function RootLayout({
                       >
                         Markets
                       </Link>
+                      <Link
+                        href="/story"
+                        className="hover:text-foreground transition-colors"
+                      >
+                        Case Study
+                      </Link>
                       <a
                         href="https://github.com/truthbounty"
                         target="_blank"
@@ -123,6 +143,8 @@ export default function RootLayout({
                 </div>
               </footer>
             </div>
+            {/* Floating Top Trader Widget */}
+            <LiveTopTraderWidget labelType="featured" />
           </ErrorBoundary>
           <Toaster />
         </Providers>

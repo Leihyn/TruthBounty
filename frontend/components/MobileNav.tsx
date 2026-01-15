@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Home, LayoutDashboard, Trophy, TrendingUp, Users, Copy, FileText } from 'lucide-react';
+import { Menu, X, Home, LayoutDashboard, Trophy, TrendingUp, Users, Copy } from 'lucide-react';
 
 const navLinks = [
   { href: '/', label: 'Home', icon: Home },
@@ -12,8 +12,10 @@ const navLinks = [
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
   { href: '/traders', label: 'Traders', icon: Users },
   { href: '/copy-trading', label: 'Copy Trading', icon: Copy },
-  { href: '/case-study', label: 'Case Study', icon: FileText },
 ];
+
+// Desktop nav excludes Home (logo handles it)
+const desktopNavLinks = navLinks.filter(link => link.href !== '/');
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
@@ -51,7 +53,7 @@ export function MobileNav() {
                     href={link.href}
                     onClick={() => setOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-1 ${
-                      active ? 'bg-blue-500/15 text-blue-400' : 'text-gray-300 hover:bg-white/5'
+                      active ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-white/5'
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -72,14 +74,14 @@ export function DesktopNav() {
 
   return (
     <nav className="hidden md:flex items-center gap-1">
-      {navLinks.map((link) => (
+      {desktopNavLinks.map((link) => (
         <Link
           key={link.href}
           href={link.href}
-          className={`px-3 py-2 text-sm font-medium rounded-lg ${
+          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
             pathname === link.href
-              ? 'text-blue-400 bg-blue-500/10'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
+              ? 'text-primary bg-primary/10'
+              : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
           }`}
         >
           {link.label}
@@ -103,7 +105,7 @@ export function SidebarNav() {
               key={link.href}
               href={link.href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium ${
-                active ? 'bg-blue-500/10 text-blue-400' : 'text-gray-400 hover:bg-white/5'
+                active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-white/5'
               }`}
             >
               <Icon className="h-4 w-4" />

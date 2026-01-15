@@ -11,34 +11,28 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
   CheckCircle2,
-  BarChart3,
   Trophy,
-  Globe,
-  Target,
-  Timer,
-  Infinity,
-  Dice5,
-  Gauge,
   Layers,
   Wallet,
   Database,
   Sparkles,
 } from 'lucide-react';
+import { PlatformLogo, PLATFORMS, type PlatformId } from '@/components/PlatformLogo';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-// Platform data with colors and icons
-const PLATFORMS = [
-  { id: 'polymarket', name: 'Polymarket', Icon: Globe, predictions: '50,000', color: 'from-purple-500 to-indigo-600', bgColor: 'bg-purple-500' },
-  { id: 'pancakeswap', name: 'PancakeSwap', Icon: BarChart3, predictions: '20,000', color: 'from-amber-500 to-orange-500', bgColor: 'bg-amber-500' },
-  { id: 'azuro', name: 'Azuro', Icon: Target, predictions: '10,000', color: 'from-cyan-500 to-teal-500', bgColor: 'bg-cyan-500' },
-  { id: 'overtime', name: 'Overtime', Icon: Timer, predictions: '5,000', color: 'from-red-500 to-pink-500', bgColor: 'bg-red-500' },
-  { id: 'limitless', name: 'Limitless', Icon: Infinity, predictions: '800', color: 'from-blue-500 to-cyan-500', bgColor: 'bg-blue-500' },
-  { id: 'sxbet', name: 'SX Bet', Icon: Dice5, predictions: '500', color: 'from-green-500 to-emerald-500', bgColor: 'bg-green-500' },
-  { id: 'speedmarkets', name: 'Speed Markets', Icon: Gauge, predictions: '200', color: 'from-yellow-500 to-amber-500', bgColor: 'bg-yellow-500' },
-];
+// Platform prediction data for the story
+const PLATFORM_PREDICTIONS: Record<PlatformId, string> = {
+  polymarket: '50,000',
+  pancakeswap: '20,000',
+  azuro: '10,000',
+  overtime: '5,000',
+  limitless: '800',
+  sxbet: '500',
+  speedmarkets: '200',
+};
 
 // Scatter positions - contained within viewport (max ~35% from center)
 const SCATTER_POSITIONS = [
@@ -149,32 +143,32 @@ export default function StoryPage() {
       gsap.set('.text-phase-5', { opacity: 0, y: -20 });
 
       // ═══════════════════════════════════════════════════════════════
-      // TIMELINE DESIGN (total scroll: 300vh)
+      // TIMELINE DESIGN (total scroll: 300vh) - REBALANCED
       // ═══════════════════════════════════════════════════════════════
       //
-      // PHASE 1 (0-20%):  60vh  - "50,000+ on Polymarket alone"
-      // PHASE 2 (20-40%): 60vh  - "Plus 36,500+ more across 6 platforms"
-      // PHASE 3 (40-60%): 60vh  - "His reputation is scattered" (KEY)
-      // PHASE 4 (60-77%): 51vh  - "What if you could prove..."
-      // PHASE 5 (77-100%): 69vh - Cards merge + Unified solution
+      // PHASE 1 (0-18%):  54vh  - "50,000+ on Polymarket alone"
+      // PHASE 2 (18-33%): 45vh  - "Plus 36,500+ more across 6 platforms"
+      // PHASE 3 (33-48%): 45vh  - "His reputation is scattered" (KEY)
+      // PHASE 4 (48-62%): 42vh  - "What if you could prove..."
+      // PHASE 5 (62-100%): 114vh - Cards merge + Unified solution (MORE TIME)
       //
       // Each phase: ENTER (fast) → HOLD (readable) → EXIT (quick)
       // ═══════════════════════════════════════════════════════════════
 
       // ─────────────────────────────────────────────────────────────
-      // PHASE 1 (0% - 20%): "50,000+ on Polymarket alone"
-      // Enter: 0-5%, Hold: 5-17%, Exit: 17-20%
+      // PHASE 1 (0% - 18%): "50,000+ on Polymarket alone"
+      // Enter: 0-3%, Hold: 3-15%, Exit: 15-18%
       // ─────────────────────────────────────────────────────────────
       tl.to('.text-phase-1', {
         opacity: 1,
         y: 0,
-        duration: 0.05,
+        duration: 0.03,
         ease: 'power3.out',
       }, 0);
 
       tl.to('.platform-card-0', {
         opacity: 1,
-        duration: 0.05,
+        duration: 0.03,
         ease: 'power3.out',
       }, 0.01);
 
@@ -184,11 +178,11 @@ export default function StoryPage() {
         y: -20,
         duration: 0.03,
         ease: 'power2.in',
-      }, 0.17);
+      }, 0.15);
 
       // ─────────────────────────────────────────────────────────────
-      // PHASE 2 (20% - 40%): "Plus 36,500+ more across 6 platforms"
-      // Cards scatter: 20-25%, Text enter: 25-28%, Hold: 28-37%, Exit: 37-40%
+      // PHASE 2 (18% - 33%): "Plus 36,500+ more across 6 platforms"
+      // Cards scatter: 18-22%, Text enter: 22-24%, Hold: 24-30%, Exit: 30-33%
       // ─────────────────────────────────────────────────────────────
 
       // Cards emerge from behind Polymarket and scatter
@@ -198,25 +192,25 @@ export default function StoryPage() {
           tl.to(`.platform-card-${i}`, {
             opacity: 1,
             duration: 0.03,
-          }, 0.20);
+          }, 0.18);
         }
         // All cards scatter outward
         tl.to(`.platform-card-${i}`, {
           x: `${pos.x}vw`,
           y: `${pos.y}vh`,
           rotation: pos.rotate,
-          duration: 0.05,
+          duration: 0.04,
           ease: 'power2.out',
-        }, 0.20);
+        }, 0.18);
       });
 
       // Text enters after cards have scattered
       tl.to('.text-phase-2', {
         opacity: 1,
         scale: 1,
-        duration: 0.03,
+        duration: 0.02,
         ease: 'power3.out',
-      }, 0.25);
+      }, 0.22);
 
       // EXIT Phase 2
       tl.to('.text-phase-2', {
@@ -224,18 +218,18 @@ export default function StoryPage() {
         scale: 0.95,
         duration: 0.03,
         ease: 'power2.in',
-      }, 0.37);
+      }, 0.30);
 
       // ─────────────────────────────────────────────────────────────
-      // PHASE 3 (40% - 60%): "His reputation is scattered" - KEY MESSAGE
-      // Enter: 40-43%, Hold: 43-57%, Exit: 57-60%
+      // PHASE 3 (33% - 48%): "His reputation is scattered" - KEY MESSAGE
+      // Enter: 33-35%, Hold: 35-45%, Exit: 45-48%
       // ─────────────────────────────────────────────────────────────
       tl.to('.text-phase-3', {
         opacity: 1,
         scale: 1,
-        duration: 0.03,
+        duration: 0.02,
         ease: 'power3.out',
-      }, 0.40);
+      }, 0.33);
 
       // Cards drift further apart (emphasizing fragmentation)
       SCATTER_POSITIONS.forEach((pos, i) => {
@@ -243,9 +237,9 @@ export default function StoryPage() {
           x: `${pos.x * 1.15}vw`,
           y: `${pos.y * 1.1}vh`,
           rotation: pos.rotate * 1.3,
-          duration: 0.08,
+          duration: 0.06,
           ease: 'power2.out',
-        }, 0.40);
+        }, 0.33);
       });
 
       // EXIT Phase 3
@@ -254,18 +248,18 @@ export default function StoryPage() {
         scale: 0.95,
         duration: 0.03,
         ease: 'power2.in',
-      }, 0.57);
+      }, 0.45);
 
       // ─────────────────────────────────────────────────────────────
-      // PHASE 4 (60% - 77%): "What if you could prove your total track record?"
-      // Enter: 60-63%, Hold: 63-74%, Exit: 74-77%
+      // PHASE 4 (48% - 62%): "What if you could prove your total track record?"
+      // Enter: 48-50%, Hold: 50-59%, Exit: 59-62%
       // ─────────────────────────────────────────────────────────────
       tl.to('.text-phase-4', {
         opacity: 1,
         scale: 1,
-        duration: 0.03,
+        duration: 0.02,
         ease: 'power3.out',
-      }, 0.60);
+      }, 0.48);
 
       // EXIT Phase 4
       tl.to('.text-phase-4', {
@@ -273,11 +267,12 @@ export default function StoryPage() {
         scale: 0.95,
         duration: 0.03,
         ease: 'power2.in',
-      }, 0.74);
+      }, 0.59);
 
       // ─────────────────────────────────────────────────────────────
-      // PHASE 5 (77% - 100%): Cards merge + Unified solution
-      // Cards merge: 77-85%, Cards fade: 85-87%, Solution enters: 87-92%
+      // PHASE 5 (62% - 100%): Cards merge + Unified solution - EXTENDED
+      // Cards merge: 62-70%, Cards fade: 70-72%, Solution enters: 72-78%
+      // Hold: 78-100% (extended hold time for unified card)
       // ─────────────────────────────────────────────────────────────
 
       // Cards converge to center and shrink
@@ -289,16 +284,16 @@ export default function StoryPage() {
         opacity: 0.8,
         duration: 0.08,
         ease: 'power2.inOut',
-      }, 0.77);
+      }, 0.62);
 
       // Cards continue shrinking and fade out completely
       // (scale below 0.93 is OK for EXIT animations - rule applies to entrances)
       tl.to('.platform-card', {
         scale: 0.1,
         opacity: 0,
-        duration: 0.03,
+        duration: 0.02,
         ease: 'power2.in',
-      }, 0.85);
+      }, 0.70);
 
       // Intro text appears
       tl.to('.text-phase-5', {
@@ -306,13 +301,13 @@ export default function StoryPage() {
         y: 0,
         duration: 0.03,
         ease: 'power3.out',
-      }, 0.87);
+      }, 0.72);
 
       // Unified card appears
       tl.to('.unified-card', {
         opacity: 1,
         scale: 1,
-        duration: 0.05,
+        duration: 0.06,
         ease: 'power2.out', // Changed from back.out - more professional per CLAUDE.md
         onStart: () => {
           // Trigger counter animations
@@ -341,7 +336,7 @@ export default function StoryPage() {
             },
           });
         },
-      }, 0.88);
+      }, 0.74);
 
       // ═══════════════════════════════════════════════════════════════
       // POST-CINEMATIC SECTIONS
@@ -404,15 +399,15 @@ export default function StoryPage() {
       {/* ═══════════════════════════════════════════════════════════════
           INTRO SECTION
           ═══════════════════════════════════════════════════════════════ */}
-      <section className="intro-section min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-5">
+      <section className="intro-section min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-5 noise-overlay">
         <div className="absolute inset-0 hero-gradient" />
-        <div className="absolute inset-0 bg-dot-grid opacity-20" />
+        <div className="absolute inset-0 bg-dot-grid opacity-30" />
 
         <div className="relative z-10 text-center max-w-3xl mx-auto">
           <p className="intro-content text-sm text-muted-foreground mb-4 tracking-wider uppercase">Case Study</p>
 
           <h1 className="intro-content text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 tracking-tight">
-            Meet <span className="bg-gradient-to-r from-purple-500 to-indigo-500 bg-clip-text text-transparent">{featuredTrader?.username || 'Theo4'}</span>
+            Meet <span className="bg-gradient-to-r from-secondary via-amber-400 to-secondary bg-clip-text text-transparent">{featuredTrader?.username || 'Theo4'}</span>
           </h1>
 
           <p className="intro-content text-xl sm:text-2xl text-muted-foreground mb-8">
@@ -421,7 +416,7 @@ export default function StoryPage() {
           </p>
 
           <div className="intro-content inline-flex items-center gap-3 px-6 py-3 rounded-full bg-card/50 border border-border backdrop-blur-sm">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-lg font-bold text-white">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-lg font-bold text-white">
               {featuredTrader?.username?.[0] || 'T'}
             </div>
             <div className="text-left">
@@ -443,10 +438,10 @@ export default function StoryPage() {
           ═══════════════════════════════════════════════════════════════ */}
       <section
         ref={cinematicRef}
-        className="cinematic-section relative h-screen w-full overflow-hidden bg-background"
+        className="cinematic-section relative h-screen w-full overflow-hidden"
       >
-        {/* Subtle background */}
-        <div className="absolute inset-0 bg-dot-grid opacity-10" />
+        {/* Subtle background - matches homepage case study section */}
+        <div className="absolute inset-0 bg-dot-grid opacity-20" />
 
         {/* Platform Cards - absolutely positioned for animation */}
         <div className="absolute inset-0 flex items-center justify-center">
@@ -456,12 +451,12 @@ export default function StoryPage() {
               className={`platform-card platform-card-${index} absolute w-24 sm:w-28 md:w-32 opacity-0`}
               style={{ zIndex: 10 - index }}
             >
-              <div className={`p-3 sm:p-4 rounded-xl border border-border bg-card shadow-lg shadow-black/20`}>
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 rounded-lg bg-gradient-to-br ${platform.color} flex items-center justify-center shadow-md`}>
-                  <platform.Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              <div className="p-3 sm:p-4 rounded-lg border border-border bg-card shadow-lg shadow-black/20">
+                <div className="flex justify-center mb-2">
+                  <PlatformLogo platform={platform.id} size="lg" />
                 </div>
                 <p className="text-xs sm:text-sm font-medium text-center truncate">{platform.name}</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground text-center">{platform.predictions}</p>
+                <p className="text-xs text-muted-foreground text-center">{PLATFORM_PREDICTIONS[platform.id]}</p>
               </div>
             </div>
           ))}
@@ -472,14 +467,14 @@ export default function StoryPage() {
           {/* Phase 1: Introduction - text positioned above the cards */}
           <div className="text-phase-1 absolute top-[15%] left-0 right-0 text-center px-5 opacity-0">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
-              {featuredTrader?.username || 'Theo4'} made <span className="text-purple-500">50,000+</span> predictions
+              {featuredTrader?.username || 'Theo4'} made <span className="text-secondary">50,000+</span> predictions
             </h2>
             <p className="text-lg sm:text-xl text-muted-foreground/80">on Polymarket alone...</p>
           </div>
 
           {/* Phase 2: Scattered - centered in the viewport */}
           <div className="text-phase-2 absolute inset-0 flex items-center justify-center opacity-0">
-            <div className="text-center px-5 py-4 rounded-2xl bg-background/80 backdrop-blur-sm border border-border/50">
+            <div className="text-center px-5 py-4 rounded-xl bg-background/80 backdrop-blur-sm border border-border/50">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
                 Plus <span className="text-success">36,500+</span> more
               </h2>
@@ -491,7 +486,7 @@ export default function StoryPage() {
 
           {/* Phase 3: The Problem - centered with scattered cards */}
           <div className="text-phase-3 absolute inset-0 flex items-center justify-center opacity-0">
-            <div className="text-center px-5 py-4 rounded-2xl bg-destructive/5 border border-destructive/20 backdrop-blur-sm max-w-lg">
+            <div className="text-center px-5 py-4 rounded-xl bg-destructive/5 border border-destructive/20 backdrop-blur-sm max-w-lg">
               <h3 className="text-xl sm:text-2xl font-bold mb-2">
                 His reputation is <span className="text-destructive">scattered</span>
               </h3>
@@ -528,11 +523,11 @@ export default function StoryPage() {
         {/* Unified Card - appears at the end, positioned below the header */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none pt-8">
           <div className="unified-card w-full max-w-sm sm:max-w-md mx-5 opacity-0">
-            <div className="rounded-2xl border-2 border-success/50 bg-card p-5 sm:p-6 shadow-2xl shadow-success/20">
+            <div className="rounded-xl border border-border bg-card p-5 sm:p-6 shadow-xl shadow-black/5 verification-glow">
               {/* Header */}
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-xl sm:text-2xl font-bold text-white shadow-lg">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-xl sm:text-2xl font-bold text-white shadow-lg">
                     {featuredTrader?.username?.[0] || 'T'}
                   </div>
                   <div>
@@ -549,31 +544,26 @@ export default function StoryPage() {
 
               {/* Aggregated Stats */}
               <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
-                <div className="text-center p-2 sm:p-3 rounded-xl bg-primary/10 border border-primary/20">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">Platforms</p>
+                <div className="text-center p-2 sm:p-3 rounded-lg bg-primary/10 border border-primary/20">
+                  <p className="text-xs text-muted-foreground mb-1">Platforms</p>
                   <p className="text-xl sm:text-2xl font-bold text-primary tabular-nums">{animatedPlatforms}</p>
                 </div>
-                <div className="text-center p-2 sm:p-3 rounded-xl bg-success/10 border border-success/20">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">Predictions</p>
+                <div className="text-center p-2 sm:p-3 rounded-lg bg-success/10 border border-success/20">
+                  <p className="text-xs text-muted-foreground mb-1">Predictions</p>
                   <p className="text-xl sm:text-2xl font-bold text-success tabular-nums">
                     {animatedTotalBets >= 1000 ? `${(animatedTotalBets / 1000).toFixed(1)}K` : animatedTotalBets}
                   </p>
                 </div>
-                <div className="text-center p-2 sm:p-3 rounded-xl bg-secondary/10 border border-secondary/20">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">TruthScore</p>
+                <div className="text-center p-2 sm:p-3 rounded-lg bg-secondary/10 border border-secondary/20">
+                  <p className="text-xs text-muted-foreground mb-1">TruthScore</p>
                   <p className="text-xl sm:text-2xl font-bold text-secondary tabular-nums">{animatedScore}</p>
                 </div>
               </div>
 
               {/* Platform icons row - all 7 platforms */}
-              <div className="flex items-center justify-center gap-1 sm:gap-1.5 mb-4 flex-wrap">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-4 flex-wrap">
                 {PLATFORMS.map((platform) => (
-                  <div
-                    key={`icon-${platform.id}`}
-                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br ${platform.color} flex items-center justify-center shrink-0`}
-                  >
-                    <platform.Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
-                  </div>
+                  <PlatformLogo key={`icon-${platform.id}`} platform={platform.id} size="sm" />
                 ))}
               </div>
 
@@ -670,10 +660,10 @@ export default function StoryPage() {
             {PLATFORMS.map((platform) => (
               <div
                 key={platform.id}
-                className="platform-grid-item p-5 rounded-xl border border-border bg-card shadow-sm text-center hover:border-primary/30 transition-colors"
+                className="platform-grid-item p-5 rounded-lg border border-border bg-card shadow-sm text-center hover:border-primary/30 transition-colors"
               >
-                <div className={`w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br ${platform.color} flex items-center justify-center`}>
-                  <platform.Icon className="h-6 w-6 text-white" />
+                <div className="flex justify-center mb-3">
+                  <PlatformLogo platform={platform.id} size="lg" />
                 </div>
                 <h3 className="font-semibold text-sm">{platform.name}</h3>
               </div>
@@ -690,7 +680,7 @@ export default function StoryPage() {
         <div className="absolute inset-0 bg-dot-grid opacity-20" />
 
         <div className="cta-content relative z-10 max-w-xl mx-auto text-center">
-          <div className="w-20 h-20 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
+          <div className="w-20 h-20 mx-auto mb-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
             <Trophy className="h-10 w-10 text-white" />
           </div>
 

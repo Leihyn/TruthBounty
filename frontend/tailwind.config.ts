@@ -147,6 +147,13 @@ const config: Config = {
       transitionDuration: {
         "250": "250ms",
       },
+      transitionTimingFunction: {
+        // Custom easing curves - never linear!
+        "out-expo": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "out-quart": "cubic-bezier(0.25, 1, 0.5, 1)",
+        "in-out-custom": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "spring": "cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],

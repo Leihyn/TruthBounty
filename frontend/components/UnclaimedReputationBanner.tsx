@@ -227,7 +227,7 @@ export function UnclaimedReputationBanner() {
                 className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-purple-600 to-blue-600"
                 initial={{ width: '0%' }}
                 animate={{ width: '100%' }}
-                transition={{ duration: 10, ease: 'linear' }}
+                transition={{ duration: 10, ease: [0.4, 0, 0.2, 1] }}
               />
             </CardContent>
           </Card>
