@@ -10,30 +10,46 @@ import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
-  Shield,
   CheckCircle2,
   BarChart3,
-  Copy,
-  Sparkles,
   Trophy,
-  Users,
-  TrendingUp,
+  Globe,
+  Target,
+  Timer,
+  Infinity,
+  Dice5,
+  Gauge,
+  Layers,
+  Wallet,
   Database,
-  Link as LinkIcon,
-  Eye,
-  Zap,
-  ChevronDown,
+  Sparkles,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
-// Register GSAP plugins
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-// ═══════════════════════════════════════════════════════════════
-// Types
-// ═══════════════════════════════════════════════════════════════
+// Platform data with colors and icons
+const PLATFORMS = [
+  { id: 'polymarket', name: 'Polymarket', Icon: Globe, predictions: '50,000', color: 'from-purple-500 to-indigo-600', bgColor: 'bg-purple-500' },
+  { id: 'pancakeswap', name: 'PancakeSwap', Icon: BarChart3, predictions: '20,000', color: 'from-amber-500 to-orange-500', bgColor: 'bg-amber-500' },
+  { id: 'azuro', name: 'Azuro', Icon: Target, predictions: '10,000', color: 'from-cyan-500 to-teal-500', bgColor: 'bg-cyan-500' },
+  { id: 'overtime', name: 'Overtime', Icon: Timer, predictions: '5,000', color: 'from-red-500 to-pink-500', bgColor: 'bg-red-500' },
+  { id: 'limitless', name: 'Limitless', Icon: Infinity, predictions: '800', color: 'from-blue-500 to-cyan-500', bgColor: 'bg-blue-500' },
+  { id: 'sxbet', name: 'SX Bet', Icon: Dice5, predictions: '500', color: 'from-green-500 to-emerald-500', bgColor: 'bg-green-500' },
+  { id: 'speedmarkets', name: 'Speed Markets', Icon: Gauge, predictions: '200', color: 'from-yellow-500 to-amber-500', bgColor: 'bg-yellow-500' },
+];
+
+// Scatter positions - contained within viewport (max ~35% from center)
+const SCATTER_POSITIONS = [
+  { x: 0, y: -28, rotate: 0 },       // Top center (Polymarket - prominent)
+  { x: -30, y: -12, rotate: -8 },    // Upper left
+  { x: 30, y: -12, rotate: 8 },      // Upper right
+  { x: -35, y: 12, rotate: -6 },     // Middle left
+  { x: 35, y: 12, rotate: 6 },       // Middle right
+  { x: -22, y: 28, rotate: -4 },     // Lower left
+  { x: 22, y: 28, rotate: 4 },       // Lower right
+];
 
 interface TraderData {
   address: string;
@@ -41,71 +57,22 @@ interface TraderData {
   truthScore: number;
   winRate: number;
   totalBets: number;
-  wins: number;
-  losses: number;
-  totalVolume: string;
-  pnl: number;
 }
-
-interface PlatformConfig {
-  id: string;
-  name: string;
-  icon: string;
-  gradient: string;
-  volume: string;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Constants
-// ═══════════════════════════════════════════════════════════════
-
-const PLATFORMS: PlatformConfig[] = [
-  { id: 'polymarket', name: 'Polymarket', icon: '🔮', gradient: 'from-purple-500 to-indigo-600', volume: '$2.1B+' },
-  { id: 'pancakeswap', name: 'PancakeSwap', icon: '🥞', gradient: 'from-amber-500 to-orange-500', volume: '$340M+' },
-  { id: 'azuro', name: 'Azuro', icon: '🎯', gradient: 'from-cyan-500 to-teal-500', volume: '$180M+' },
-  { id: 'overtime', name: 'Overtime', icon: '⏱️', gradient: 'from-red-500 to-pink-500', volume: '$75M+' },
-  { id: 'limitless', name: 'Limitless', icon: '♾️', gradient: 'from-blue-500 to-cyan-500', volume: '$12M+' },
-  { id: 'sxbet', name: 'SX Bet', icon: '🎰', gradient: 'from-green-500 to-emerald-500', volume: '$95M+' },
-  { id: 'speedmarkets', name: 'Speed Markets', icon: '⚡', gradient: 'from-yellow-500 to-amber-500', volume: '$8M+' },
-];
-
-// ═══════════════════════════════════════════════════════════════
-// Helper Functions
-// ═══════════════════════════════════════════════════════════════
-
-const formatNumber = (num: number) => {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num?.toLocaleString() || '0';
-};
 
 const shortenAddress = (addr: string) => `${addr?.slice(0, 6)}...${addr?.slice(-4)}`;
-
-// ═══════════════════════════════════════════════════════════════
-// Main Component
-// ═══════════════════════════════════════════════════════════════
 
 export default function StoryPage() {
   const router = useRouter();
   const { isConnected } = useAccount();
   const containerRef = useRef<HTMLDivElement>(null);
+  const cinematicRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<gsap.core.Timeline | null>(null);
 
-  // Refs for each scene
-  const scene1Ref = useRef<HTMLDivElement>(null);
-  const scene2Ref = useRef<HTMLDivElement>(null);
-  const scene3Ref = useRef<HTMLDivElement>(null);
-  const scene4Ref = useRef<HTMLDivElement>(null);
-  const scene5Ref = useRef<HTMLDivElement>(null);
-  const scene6Ref = useRef<HTMLDivElement>(null);
-  const scene7Ref = useRef<HTMLDivElement>(null);
-
-  // State
   const [featuredTrader, setFeaturedTrader] = useState<TraderData | null>(null);
+  const [animatedTotalBets, setAnimatedTotalBets] = useState(0);
   const [animatedScore, setAnimatedScore] = useState(0);
-  const [animatedWinRate, setAnimatedWinRate] = useState(0);
-  const [animatedBets, setAnimatedBets] = useState(0);
+  const [animatedPlatforms, setAnimatedPlatforms] = useState(0);
 
-  // Fetch featured trader
   useEffect(() => {
     async function fetchTrader() {
       try {
@@ -114,228 +81,315 @@ export default function StoryPage() {
         if (data.success && data.data?.[0]) {
           setFeaturedTrader(data.data[0]);
         }
-      } catch (error) {
-        // Use fallback data
+      } catch {
         setFeaturedTrader({
           address: '0x7a3f8e2d9c4b5a6f7e8d9c4b5a6f7e8d9c4b5a6f',
           username: 'Theo4',
           truthScore: 1170,
-          winRate: 95,
+          winRate: 94,
           totalBets: 86500,
-          wins: 82175,
-          losses: 4325,
-          totalVolume: '2450000',
-          pnl: 47000,
         });
       }
     }
     fetchTrader();
   }, []);
 
-  // GSAP Animations
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !featuredTrader || !cinematicRef.current) return;
 
     const ctx = gsap.context(() => {
-      // Scene 1: The Hook - Fade in and scale
-      gsap.fromTo(
-        '.scene1-card',
-        { scale: 0.8, opacity: 0, y: 100 },
-        {
-          scale: 1,
-          opacity: 1,
-          y: 0,
-          duration: 1,
-          ease: 'power3.out',
-          scrollTrigger: {
-            trigger: scene1Ref.current,
-            start: 'top 80%',
-            end: 'top 20%',
-            toggleActions: 'play none none reverse',
-          },
-        }
-      );
+      // Kill any existing ScrollTriggers to prevent duplicates
+      ScrollTrigger.getAll().forEach(st => st.kill());
 
-      gsap.fromTo(
-        '.scene1-text',
+      // ═══════════════════════════════════════════════════════════════
+      // INTRO SECTION (animate immediately on load - no scroll trigger)
+      // ═══════════════════════════════════════════════════════════════
+      gsap.fromTo('.intro-content',
         { opacity: 0, y: 30 },
         {
           opacity: 1,
           y: 0,
           duration: 0.8,
           stagger: 0.2,
-          scrollTrigger: {
-            trigger: scene1Ref.current,
-            start: 'top 70%',
-            toggleActions: 'play none none reverse',
-          },
+          ease: 'power3.out',
+          delay: 0.3, // Small delay for page to settle
         }
       );
 
-      // Scene 2: Stats count up
-      ScrollTrigger.create({
-        trigger: scene2Ref.current,
-        start: 'top 60%',
-        onEnter: () => {
-          if (featuredTrader) {
-            // Animate score
-            gsap.to({}, {
-              duration: 2,
-              onUpdate: function() {
-                setAnimatedScore(Math.round(featuredTrader.truthScore * this.progress()));
-              },
-            });
-            // Animate win rate
-            gsap.to({}, {
-              duration: 2,
-              onUpdate: function() {
-                setAnimatedWinRate(Math.round(featuredTrader.winRate * this.progress() * 10) / 10);
-              },
-            });
-            // Animate bets
-            gsap.to({}, {
-              duration: 2.5,
-              onUpdate: function() {
-                setAnimatedBets(Math.round(featuredTrader.totalBets * this.progress()));
-              },
-            });
-          }
+      // ═══════════════════════════════════════════════════════════════
+      // CINEMATIC SCROLL-DRIVEN ANIMATION
+      // ═══════════════════════════════════════════════════════════════
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: '.cinematic-section',
+          start: 'top top',
+          end: '+=300%', // 3x viewport height of scroll
+          scrub: 1, // Smooth scrubbing
+          pin: true,
+          anticipatePin: 1,
         },
-        once: true,
       });
 
-      gsap.fromTo(
-        '.scene2-stat',
-        { scale: 0, opacity: 0 },
-        {
-          scale: 1,
-          opacity: 1,
-          duration: 0.6,
-          stagger: 0.15,
-          ease: 'back.out(1.7)',
-          scrollTrigger: {
-            trigger: scene2Ref.current,
-            start: 'top 60%',
-            toggleActions: 'play none none reverse',
-          },
-        }
-      );
+      timelineRef.current = tl;
 
-      // Scene 3: Verification timeline reveal
-      gsap.fromTo(
-        '.scene3-step',
-        { x: -50, opacity: 0 },
-        {
-          x: 0,
-          opacity: 1,
-          duration: 0.6,
-          stagger: 0.3,
+      // Starting state: All cards stacked at center, hidden
+      gsap.set('.platform-card', {
+        x: 0,
+        y: '10vh', // Position where cards will appear
+        rotation: 0,
+        scale: 1,
+        opacity: 0,
+      });
+      gsap.set('.text-phase-1', { opacity: 0, y: 20 });
+      gsap.set('.unified-card', { opacity: 0, scale: 0.8 });
+      gsap.set('.text-phase-2', { opacity: 0, scale: 0.9 });
+      gsap.set('.text-phase-3', { opacity: 0, scale: 0.9 }); // Use scale for centered flex
+      gsap.set('.text-phase-4', { opacity: 0, scale: 0.9 });
+      gsap.set('.text-phase-5', { opacity: 0, y: -20 });
+
+      // ═══════════════════════════════════════════════════════════════
+      // TIMELINE DESIGN (total scroll: 300vh)
+      // ═══════════════════════════════════════════════════════════════
+      //
+      // PHASE 1 (0-20%):  60vh  - "50,000+ on Polymarket alone"
+      // PHASE 2 (20-40%): 60vh  - "Plus 36,500+ more across 6 platforms"
+      // PHASE 3 (40-60%): 60vh  - "His reputation is scattered" (KEY)
+      // PHASE 4 (60-77%): 51vh  - "What if you could prove..."
+      // PHASE 5 (77-100%): 69vh - Cards merge + Unified solution
+      //
+      // Each phase: ENTER (fast) → HOLD (readable) → EXIT (quick)
+      // ═══════════════════════════════════════════════════════════════
+
+      // ─────────────────────────────────────────────────────────────
+      // PHASE 1 (0% - 20%): "50,000+ on Polymarket alone"
+      // Enter: 0-5%, Hold: 5-17%, Exit: 17-20%
+      // ─────────────────────────────────────────────────────────────
+      tl.to('.text-phase-1', {
+        opacity: 1,
+        y: 0,
+        duration: 0.05,
+        ease: 'power3.out',
+      }, 0);
+
+      tl.to('.platform-card-0', {
+        opacity: 1,
+        duration: 0.05,
+        ease: 'power3.out',
+      }, 0.01);
+
+      // EXIT Phase 1
+      tl.to('.text-phase-1', {
+        opacity: 0,
+        y: -20,
+        duration: 0.03,
+        ease: 'power2.in',
+      }, 0.17);
+
+      // ─────────────────────────────────────────────────────────────
+      // PHASE 2 (20% - 40%): "Plus 36,500+ more across 6 platforms"
+      // Cards scatter: 20-25%, Text enter: 25-28%, Hold: 28-37%, Exit: 37-40%
+      // ─────────────────────────────────────────────────────────────
+
+      // Cards emerge from behind Polymarket and scatter
+      SCATTER_POSITIONS.forEach((pos, i) => {
+        // Other cards fade in at stacked position
+        if (i > 0) {
+          tl.to(`.platform-card-${i}`, {
+            opacity: 1,
+            duration: 0.03,
+          }, 0.20);
+        }
+        // All cards scatter outward
+        tl.to(`.platform-card-${i}`, {
+          x: `${pos.x}vw`,
+          y: `${pos.y}vh`,
+          rotation: pos.rotate,
+          duration: 0.05,
           ease: 'power2.out',
-          scrollTrigger: {
-            trigger: scene3Ref.current,
-            start: 'top 60%',
-            toggleActions: 'play none none reverse',
-          },
-        }
-      );
+        }, 0.20);
+      });
 
-      gsap.fromTo(
-        '.scene3-line',
-        { scaleX: 0 },
-        {
-          scaleX: 1,
-          duration: 0.8,
-          ease: 'power2.inOut',
-          scrollTrigger: {
-            trigger: scene3Ref.current,
-            start: 'top 50%',
-            toggleActions: 'play none none reverse',
-          },
-        }
-      );
+      // Text enters after cards have scattered
+      tl.to('.text-phase-2', {
+        opacity: 1,
+        scale: 1,
+        duration: 0.03,
+        ease: 'power3.out',
+      }, 0.25);
 
-      // Scene 4: Problem points fade in
-      gsap.fromTo(
-        '.scene4-item',
-        { x: -30, opacity: 0 },
-        {
-          x: 0,
-          opacity: 1,
-          duration: 0.5,
-          stagger: 0.2,
-          scrollTrigger: {
-            trigger: scene4Ref.current,
-            start: 'top 60%',
-            toggleActions: 'play none none reverse',
-          },
-        }
-      );
+      // EXIT Phase 2
+      tl.to('.text-phase-2', {
+        opacity: 0,
+        scale: 0.95,
+        duration: 0.03,
+        ease: 'power2.in',
+      }, 0.37);
 
-      // Scene 5: Wilson Score comparison
-      gsap.fromTo(
-        '.scene5-card',
-        { y: 50, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.7,
-          stagger: 0.2,
-          scrollTrigger: {
-            trigger: scene5Ref.current,
-            start: 'top 60%',
-            toggleActions: 'play none none reverse',
-          },
-        }
-      );
+      // ─────────────────────────────────────────────────────────────
+      // PHASE 3 (40% - 60%): "His reputation is scattered" - KEY MESSAGE
+      // Enter: 40-43%, Hold: 43-57%, Exit: 57-60%
+      // ─────────────────────────────────────────────────────────────
+      tl.to('.text-phase-3', {
+        opacity: 1,
+        scale: 1,
+        duration: 0.03,
+        ease: 'power3.out',
+      }, 0.40);
 
-      gsap.fromTo(
-        '.scene5-bar',
-        { scaleX: 0 },
-        {
-          scaleX: 1,
-          duration: 1,
-          stagger: 0.15,
+      // Cards drift further apart (emphasizing fragmentation)
+      SCATTER_POSITIONS.forEach((pos, i) => {
+        tl.to(`.platform-card-${i}`, {
+          x: `${pos.x * 1.15}vw`,
+          y: `${pos.y * 1.1}vh`,
+          rotation: pos.rotate * 1.3,
+          duration: 0.08,
           ease: 'power2.out',
-          scrollTrigger: {
-            trigger: scene5Ref.current,
-            start: 'top 50%',
-            toggleActions: 'play none none reverse',
-          },
-        }
-      );
+        }, 0.40);
+      });
 
-      // Scene 6: Platforms fly in
-      gsap.fromTo(
-        '.scene6-platform',
-        { scale: 0, rotation: -10, opacity: 0 },
+      // EXIT Phase 3
+      tl.to('.text-phase-3', {
+        opacity: 0,
+        scale: 0.95,
+        duration: 0.03,
+        ease: 'power2.in',
+      }, 0.57);
+
+      // ─────────────────────────────────────────────────────────────
+      // PHASE 4 (60% - 77%): "What if you could prove your total track record?"
+      // Enter: 60-63%, Hold: 63-74%, Exit: 74-77%
+      // ─────────────────────────────────────────────────────────────
+      tl.to('.text-phase-4', {
+        opacity: 1,
+        scale: 1,
+        duration: 0.03,
+        ease: 'power3.out',
+      }, 0.60);
+
+      // EXIT Phase 4
+      tl.to('.text-phase-4', {
+        opacity: 0,
+        scale: 0.95,
+        duration: 0.03,
+        ease: 'power2.in',
+      }, 0.74);
+
+      // ─────────────────────────────────────────────────────────────
+      // PHASE 5 (77% - 100%): Cards merge + Unified solution
+      // Cards merge: 77-85%, Cards fade: 85-87%, Solution enters: 87-92%
+      // ─────────────────────────────────────────────────────────────
+
+      // Cards converge to center and shrink
+      tl.to('.platform-card', {
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scale: 0.3,
+        opacity: 0.8,
+        duration: 0.08,
+        ease: 'power2.inOut',
+      }, 0.77);
+
+      // Cards continue shrinking and fade out completely
+      // (scale below 0.93 is OK for EXIT animations - rule applies to entrances)
+      tl.to('.platform-card', {
+        scale: 0.1,
+        opacity: 0,
+        duration: 0.03,
+        ease: 'power2.in',
+      }, 0.85);
+
+      // Intro text appears
+      tl.to('.text-phase-5', {
+        opacity: 1,
+        y: 0,
+        duration: 0.03,
+        ease: 'power3.out',
+      }, 0.87);
+
+      // Unified card appears
+      tl.to('.unified-card', {
+        opacity: 1,
+        scale: 1,
+        duration: 0.05,
+        ease: 'power2.out', // Changed from back.out - more professional per CLAUDE.md
+        onStart: () => {
+          // Trigger counter animations
+          gsap.to({ val: 0 }, {
+            val: 7,
+            duration: 1,
+            ease: 'power2.out',
+            onUpdate: function() {
+              setAnimatedPlatforms(Math.round(this.targets()[0].val));
+            },
+          });
+          gsap.to({ val: 0 }, {
+            val: 86500,
+            duration: 1.5,
+            ease: 'power2.out',
+            onUpdate: function() {
+              setAnimatedTotalBets(Math.round(this.targets()[0].val));
+            },
+          });
+          gsap.to({ val: 0 }, {
+            val: featuredTrader.truthScore || 1170,
+            duration: 1.2,
+            ease: 'power2.out',
+            onUpdate: function() {
+              setAnimatedScore(Math.round(this.targets()[0].val));
+            },
+          });
+        },
+      }, 0.88);
+
+      // ═══════════════════════════════════════════════════════════════
+      // POST-CINEMATIC SECTIONS
+      // ═══════════════════════════════════════════════════════════════
+
+      gsap.fromTo('.how-it-works-step',
+        { opacity: 0, x: -30 },
         {
-          scale: 1,
-          rotation: 0,
           opacity: 1,
+          x: 0,
           duration: 0.5,
-          stagger: 0.1,
-          ease: 'back.out(1.4)',
-          scrollTrigger: {
-            trigger: scene6Ref.current,
-            start: 'top 60%',
-            toggleActions: 'play none none reverse',
-          },
-        }
-      );
-
-      // Scene 7: CTA pulse
-      gsap.fromTo(
-        '.scene7-cta',
-        { scale: 0.9, opacity: 0 },
-        {
-          scale: 1,
-          opacity: 1,
-          duration: 0.8,
+          stagger: 0.15,
           ease: 'power3.out',
           scrollTrigger: {
-            trigger: scene7Ref.current,
+            trigger: '.how-it-works-section',
+            start: 'top 65%',
+            once: true,
+          },
+        }
+      );
+
+      gsap.fromTo('.platform-grid-item',
+        { opacity: 0, y: 20 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.4,
+          stagger: 0.05,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: '.platforms-section',
             start: 'top 70%',
-            toggleActions: 'play none none reverse',
+            once: true,
+          },
+        }
+      );
+
+      gsap.fromTo('.cta-content',
+        { opacity: 0, y: 30 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: '.cta-section',
+            start: 'top 70%',
+            once: true,
           },
         }
       );
@@ -346,157 +400,254 @@ export default function StoryPage() {
   }, [featuredTrader]);
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-background">
+    <div ref={containerRef} className="bg-background">
       {/* ═══════════════════════════════════════════════════════════════
-          SCENE 1: THE HOOK - Meet the top trader
+          INTRO SECTION
           ═══════════════════════════════════════════════════════════════ */}
-      <section
-        ref={scene1Ref}
-        className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-4"
-      >
-        {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background" />
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-primary/10 blur-[150px]" />
+      <section className="intro-section min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-5">
+        <div className="absolute inset-0 hero-gradient" />
+        <div className="absolute inset-0 bg-dot-grid opacity-20" />
 
-        <div className="relative z-10 text-center max-w-4xl mx-auto">
-          {/* Intro text */}
-          <Badge className="scene1-text mb-6 bg-primary/10 text-primary border-primary/20">
-            <Sparkles className="w-3 h-3 mr-1" />
-            Live case study
-          </Badge>
+        <div className="relative z-10 text-center max-w-3xl mx-auto">
+          <p className="intro-content text-sm text-muted-foreground mb-4 tracking-wider uppercase">Case Study</p>
 
-          <h1 className="scene1-text text-4xl sm:text-5xl lg:text-7xl font-bold mb-6">
-            Meet{' '}
-            <span className="bg-gradient-to-r from-secondary via-amber-400 to-secondary bg-clip-text text-transparent">
-              {featuredTrader?.username || 'Theo4'}
-            </span>
+          <h1 className="intro-content text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 tracking-tight">
+            Meet <span className="bg-gradient-to-r from-purple-500 to-indigo-500 bg-clip-text text-transparent">{featuredTrader?.username || 'Theo4'}</span>
           </h1>
 
-          <p className="scene1-text text-xl sm:text-2xl text-muted-foreground mb-12">
-            One of the top traders on Polymarket
+          <p className="intro-content text-xl sm:text-2xl text-muted-foreground mb-8">
+            One of the top performers on Polymarket with a{' '}
+            <span className="text-success font-semibold">94% win rate</span>
           </p>
 
-          {/* Trader Card */}
-          <div className="scene1-card relative max-w-md mx-auto">
-            {/* Glow */}
-            <div className="absolute -inset-4 bg-gradient-to-br from-purple-500/30 to-indigo-600/30 rounded-[2rem] blur-2xl" />
+          <div className="intro-content inline-flex items-center gap-3 px-6 py-3 rounded-full bg-card/50 border border-border backdrop-blur-sm">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-lg font-bold text-white">
+              {featuredTrader?.username?.[0] || 'T'}
+            </div>
+            <div className="text-left">
+              <p className="font-medium">{featuredTrader?.username || 'Theo4'}</p>
+              <p className="text-xs text-muted-foreground font-mono">
+                {shortenAddress(featuredTrader?.address || '0x7a3f...5a6f')}
+              </p>
+            </div>
+          </div>
 
-            <div className="relative rounded-2xl border border-white/10 bg-surface/90 backdrop-blur-xl p-6 sm:p-8">
-              {/* Header */}
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-3xl">
-                  🔮
+          <p className="intro-content text-muted-foreground mt-12 animate-bounce">
+            Scroll to discover the problem
+          </p>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          CINEMATIC SCROLL-DRIVEN SECTION
+          ═══════════════════════════════════════════════════════════════ */}
+      <section
+        ref={cinematicRef}
+        className="cinematic-section relative h-screen w-full overflow-hidden bg-background"
+      >
+        {/* Subtle background */}
+        <div className="absolute inset-0 bg-dot-grid opacity-10" />
+
+        {/* Platform Cards - absolutely positioned for animation */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          {PLATFORMS.map((platform, index) => (
+            <div
+              key={platform.id}
+              className={`platform-card platform-card-${index} absolute w-24 sm:w-28 md:w-32 opacity-0`}
+              style={{ zIndex: 10 - index }}
+            >
+              <div className={`p-3 sm:p-4 rounded-xl border border-border bg-card shadow-lg shadow-black/20`}>
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 rounded-lg bg-gradient-to-br ${platform.color} flex items-center justify-center shadow-md`}>
+                  <platform.Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
-                <div className="text-left">
-                  <h3 className="text-xl font-bold">{featuredTrader?.username || 'Theo4'}</h3>
-                  <p className="text-sm text-muted-foreground font-mono">
-                    {shortenAddress(featuredTrader?.address || '0x7a3f...5a6f')}
+                <p className="text-xs sm:text-sm font-medium text-center truncate">{platform.name}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground text-center">{platform.predictions}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Text Overlays - different phases */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          {/* Phase 1: Introduction - text positioned above the cards */}
+          <div className="text-phase-1 absolute top-[15%] left-0 right-0 text-center px-5 opacity-0">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+              {featuredTrader?.username || 'Theo4'} made <span className="text-purple-500">50,000+</span> predictions
+            </h2>
+            <p className="text-lg sm:text-xl text-muted-foreground/80">on Polymarket alone...</p>
+          </div>
+
+          {/* Phase 2: Scattered - centered in the viewport */}
+          <div className="text-phase-2 absolute inset-0 flex items-center justify-center opacity-0">
+            <div className="text-center px-5 py-4 rounded-2xl bg-background/80 backdrop-blur-sm border border-border/50">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
+                Plus <span className="text-success">36,500+</span> more
+              </h2>
+              <p className="text-base sm:text-lg text-muted-foreground">
+                across <span className="text-primary font-semibold">6 other platforms</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Phase 3: The Problem - centered with scattered cards */}
+          <div className="text-phase-3 absolute inset-0 flex items-center justify-center opacity-0">
+            <div className="text-center px-5 py-4 rounded-2xl bg-destructive/5 border border-destructive/20 backdrop-blur-sm max-w-lg">
+              <h3 className="text-xl sm:text-2xl font-bold mb-2">
+                His reputation is <span className="text-destructive">scattered</span>
+              </h3>
+              <p className="text-base sm:text-lg text-muted-foreground">
+                Every platform is a fresh start.
+              </p>
+              <p className="text-sm text-muted-foreground/80 mt-2">
+                Your track record doesn't travel with you.
+              </p>
+            </div>
+          </div>
+
+          {/* Phase 4: The Question */}
+          <div className="text-phase-4 absolute inset-0 flex items-center justify-center opacity-0">
+            <div className="text-center px-5">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+                What if you could prove your
+              </h2>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                total track record?
+              </h2>
+            </div>
+          </div>
+
+          {/* Phase 5: Unified card intro text - positioned closer to card */}
+          <div className="text-phase-5 absolute top-[18%] sm:top-[20%] left-0 right-0 text-center px-5 opacity-0">
+            <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-widest mb-2">Introducing</p>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-success to-cyan-400 bg-clip-text text-transparent">
+              Your complete track record
+            </h2>
+          </div>
+        </div>
+
+        {/* Unified Card - appears at the end, positioned below the header */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none pt-8">
+          <div className="unified-card w-full max-w-sm sm:max-w-md mx-5 opacity-0">
+            <div className="rounded-2xl border-2 border-success/50 bg-card p-5 sm:p-6 shadow-2xl shadow-success/20">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-xl sm:text-2xl font-bold text-white shadow-lg">
+                    {featuredTrader?.username?.[0] || 'T'}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-base sm:text-lg">{featuredTrader?.username || 'Theo4'}</h3>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {shortenAddress(featuredTrader?.address || '0x7a3f...5a6f')}
+                    </p>
+                  </div>
+                </div>
+                <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+                  Diamond
+                </Badge>
+              </div>
+
+              {/* Aggregated Stats */}
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
+                <div className="text-center p-2 sm:p-3 rounded-xl bg-primary/10 border border-primary/20">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">Platforms</p>
+                  <p className="text-xl sm:text-2xl font-bold text-primary tabular-nums">{animatedPlatforms}</p>
+                </div>
+                <div className="text-center p-2 sm:p-3 rounded-xl bg-success/10 border border-success/20">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">Predictions</p>
+                  <p className="text-xl sm:text-2xl font-bold text-success tabular-nums">
+                    {animatedTotalBets >= 1000 ? `${(animatedTotalBets / 1000).toFixed(1)}K` : animatedTotalBets}
                   </p>
                 </div>
-                <Badge className="ml-auto bg-cyan-500 text-white">Diamond</Badge>
+                <div className="text-center p-2 sm:p-3 rounded-xl bg-secondary/10 border border-secondary/20">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">TruthScore</p>
+                  <p className="text-xl sm:text-2xl font-bold text-secondary tabular-nums">{animatedScore}</p>
+                </div>
               </div>
 
-              {/* Stats preview */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-4 rounded-xl bg-white/5">
-                  <p className="text-2xl font-bold text-secondary">{featuredTrader?.truthScore || 1170}</p>
-                  <p className="text-xs text-muted-foreground">Score</p>
+              {/* Platform icons row - all 7 platforms */}
+              <div className="flex items-center justify-center gap-1 sm:gap-1.5 mb-4 flex-wrap">
+                {PLATFORMS.map((platform) => (
+                  <div
+                    key={`icon-${platform.id}`}
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br ${platform.color} flex items-center justify-center shrink-0`}
+                  >
+                    <platform.Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 text-sm text-success mb-2">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span className="font-medium">Unified from 7 platforms</span>
                 </div>
-                <div className="text-center p-4 rounded-xl bg-white/5">
-                  <p className="text-2xl font-bold text-success">{featuredTrader?.winRate || 95}%</p>
-                  <p className="text-xs text-muted-foreground">Win Rate</p>
-                </div>
-                <div className="text-center p-4 rounded-xl bg-white/5">
-                  <p className="text-2xl font-bold">{formatNumber(featuredTrader?.totalBets || 86500)}</p>
-                  <p className="text-xs text-muted-foreground">Bets</p>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  One wallet. One score. Verified on-chain.
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center text-muted-foreground/60">
-          <span className="text-sm mb-2">Scroll to explore</span>
-          <ChevronDown className="w-5 h-5 animate-bounce" />
-        </div>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          SCENE 2: THE STATS - Numbers animate
+          HOW IT WORKS
           ═══════════════════════════════════════════════════════════════ */}
-      <section
-        ref={scene2Ref}
-        className="min-h-screen flex flex-col items-center justify-center relative px-4"
-      >
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-            His record is{' '}
-            <span className="text-primary">verified</span>
-          </h2>
-          <p className="text-xl text-muted-foreground mb-16">
-            Every single bet. On the blockchain. Immutable.
-          </p>
-
-          <div className="grid sm:grid-cols-3 gap-6 sm:gap-8">
-            <div className="scene2-stat p-8 rounded-2xl bg-gradient-to-br from-secondary/10 to-secondary/5 border border-secondary/20">
-              <p className="text-5xl sm:text-6xl font-bold text-secondary mb-2">
-                {animatedScore.toLocaleString()}
-              </p>
-              <p className="text-lg text-muted-foreground">TruthScore</p>
-            </div>
-            <div className="scene2-stat p-8 rounded-2xl bg-gradient-to-br from-success/10 to-success/5 border border-success/20">
-              <p className="text-5xl sm:text-6xl font-bold text-success mb-2">
-                {animatedWinRate}%
-              </p>
-              <p className="text-lg text-muted-foreground">Win Rate</p>
-            </div>
-            <div className="scene2-stat p-8 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-              <p className="text-5xl sm:text-6xl font-bold text-primary mb-2">
-                {formatNumber(animatedBets)}
-              </p>
-              <p className="text-lg text-muted-foreground">Total Bets</p>
-            </div>
+      <section className="how-it-works-section py-20 md:py-28 px-5">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
+              <Layers className="w-3 h-3 mr-1" />
+              How It Works
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold">
+              Unify your reputation in <span className="text-primary">3 steps</span>
+            </h2>
           </div>
-        </div>
-      </section>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          SCENE 3: THE QUESTION - How do we verify?
-          ═══════════════════════════════════════════════════════════════ */}
-      <section
-        ref={scene3Ref}
-        className="min-h-screen flex flex-col items-center justify-center relative px-4 bg-gradient-to-b from-background via-surface/30 to-background"
-      >
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-            How do we{' '}
-            <span className="text-primary">know</span>{' '}
-            this is real?
-          </h2>
-          <p className="text-xl text-muted-foreground mb-16">
-            Every score is backed by immutable blockchain data
-          </p>
-
-          {/* Timeline */}
-          <div className="relative flex flex-col md:flex-row items-center justify-center gap-8 md:gap-4">
-            {/* Connector line */}
-            <div className="scene3-line hidden md:block absolute top-1/2 left-[20%] right-[20%] h-1 bg-gradient-to-r from-primary via-primary/50 to-primary origin-left" />
-
+          <div className="space-y-5">
             {[
-              { icon: Database, title: 'On-chain data', desc: 'Pulled directly from blockchain' },
-              { icon: LinkIcon, title: 'Immutable records', desc: 'Cannot be edited or deleted' },
-              { icon: Eye, title: 'Publicly auditable', desc: 'Anyone can verify on-chain' },
-            ].map((step, i) => (
-              <div key={i} className="scene3-step relative z-10 flex flex-col items-center">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center mb-4">
-                  <step.icon className="w-9 h-9 text-primary" />
+              {
+                step: 1,
+                title: 'Connect your wallets',
+                description: 'Link the wallets you use across prediction platforms',
+                icon: Wallet,
+                color: 'text-primary',
+                bg: 'bg-primary/10',
+              },
+              {
+                step: 2,
+                title: 'We fetch your history',
+                description: 'Directly from all 7 blockchains. No APIs. No intermediaries.',
+                icon: Database,
+                color: 'text-success',
+                bg: 'bg-success/10',
+              },
+              {
+                step: 3,
+                title: 'Get your TruthScore',
+                description: 'Verified on-chain. Portable forever. Yours to prove.',
+                icon: Sparkles,
+                color: 'text-secondary',
+                bg: 'bg-secondary/10',
+              },
+            ].map((item) => (
+              <div key={item.step} className="how-it-works-step flex items-start gap-4 p-5 rounded-xl border border-border bg-card">
+                <div className={`w-12 h-12 rounded-xl ${item.bg} flex items-center justify-center shrink-0`}>
+                  <item.icon className={`h-6 w-6 ${item.color}`} />
                 </div>
-                <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary text-white text-sm font-bold flex items-center justify-center">
-                  {i + 1}
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                      {item.step}
+                    </span>
+                    <h3 className="font-semibold text-lg">{item.title}</h3>
+                  </div>
+                  <p className="text-muted-foreground ml-9">{item.description}</p>
                 </div>
-                <h3 className="font-semibold text-lg mb-1">{step.title}</h3>
-                <p className="text-sm text-muted-foreground max-w-[180px]">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -504,160 +655,27 @@ export default function StoryPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          SCENE 4: THE PROBLEM - Pain points
+          SUPPORTED PLATFORMS
           ═══════════════════════════════════════════════════════════════ */}
-      <section
-        ref={scene4Ref}
-        className="min-h-screen flex flex-col items-center justify-center relative px-4"
-      >
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-center">
-            The problem with{' '}
-            <span className="text-destructive">prediction markets</span>
-          </h2>
-          <p className="text-xl text-muted-foreground mb-12 text-center">
-            Your skills are invisible. Until now.
-          </p>
-
-          <div className="space-y-4">
-            {[
-              { text: 'Anyone can claim to be a great trader', icon: '❌' },
-              { text: 'No way to verify track records', icon: '❌' },
-              { text: 'Trading history scattered across platforms', icon: '❌' },
-              { text: 'Screenshots and stats can be faked', icon: '❌' },
-            ].map((item, i) => (
-              <div
-                key={i}
-                className="scene4-item flex items-center gap-4 p-5 rounded-xl bg-destructive/5 border border-destructive/20"
-              >
-                <span className="text-2xl">{item.icon}</span>
-                <p className="text-lg">{item.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════
-          SCENE 5: THE SOLUTION - TruthScore & Wilson
-          ═══════════════════════════════════════════════════════════════ */}
-      <section
-        ref={scene5Ref}
-        className="min-h-screen flex flex-col items-center justify-center relative px-4 bg-gradient-to-b from-background via-surface/30 to-background"
-      >
+      <section className="platforms-section py-20 md:py-28 px-5 bg-surface/30">
         <div className="max-w-4xl mx-auto text-center">
-          <Badge className="mb-6 bg-success/10 text-success border-success/20">
-            <CheckCircle2 className="w-3 h-3 mr-1" />
-            The Solution
-          </Badge>
-
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-            TruthScore:{' '}
-            <span className="text-success">verifiable reputation</span>
+          <h2 className="platform-grid-item text-3xl sm:text-4xl font-bold mb-4">
+            Your reputation. <span className="text-primary">Unified.</span>
           </h2>
-          <p className="text-xl text-muted-foreground mb-12">
-            We use <strong className="text-foreground">Wilson Score</strong> to account for sample size.
-            A "100% win rate" on 3 bets doesn't beat 60% on 1000 bets.
-          </p>
-
-          {/* Wilson Score comparison */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="scene5-card p-6 rounded-2xl bg-destructive/5 border border-destructive/20 text-left">
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-5 h-5 text-destructive" />
-                <h3 className="font-semibold text-destructive">Raw win rate problem</h3>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">3 wins / 3 bets</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 rounded-full bg-white/10 overflow-hidden">
-                      <div className="scene5-bar w-full h-full bg-destructive origin-left" />
-                    </div>
-                    <span className="text-sm font-bold text-destructive">100%</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">650 wins / 1000 bets</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 rounded-full bg-white/10 overflow-hidden">
-                      <div className="scene5-bar w-[65%] h-full bg-muted-foreground origin-left" />
-                    </div>
-                    <span className="text-sm font-bold">65%</span>
-                  </div>
-                </div>
-              </div>
-              <p className="mt-4 text-xs text-muted-foreground border-t border-white/10 pt-4">
-                Lucky beginners rank above proven experts
-              </p>
-            </div>
-
-            <div className="scene5-card p-6 rounded-2xl bg-success/5 border border-success/20 text-left">
-              <div className="flex items-center gap-2 mb-4">
-                <CheckCircle2 className="w-5 h-5 text-success" />
-                <h3 className="font-semibold text-success">Wilson Score solution</h3>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">3 wins / 3 bets</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 rounded-full bg-white/10 overflow-hidden">
-                      <div className="scene5-bar w-[44%] h-full bg-muted-foreground origin-left" />
-                    </div>
-                    <span className="text-sm font-bold">43.8%</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">650 wins / 1000 bets</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 rounded-full bg-white/10 overflow-hidden">
-                      <div className="scene5-bar w-[62%] h-full bg-success origin-left" />
-                    </div>
-                    <span className="text-sm font-bold text-success">62.1%</span>
-                  </div>
-                </div>
-              </div>
-              <p className="mt-4 text-xs text-muted-foreground border-t border-white/10 pt-4">
-                Statistically accounts for sample size
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════
-          SCENE 6: THE ECOSYSTEM - Platforms
-          ═══════════════════════════════════════════════════════════════ */}
-      <section
-        ref={scene6Ref}
-        className="min-h-screen flex flex-col items-center justify-center relative px-4"
-      >
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-            Every prediction.{' '}
-            <span className="text-primary">Every chain.</span>{' '}
-            One score.
-          </h2>
-          <p className="text-xl text-muted-foreground mb-12">
-            We aggregate your history from 7 prediction markets
+          <p className="platform-grid-item text-xl text-muted-foreground mb-12">
+            Across the entire prediction market ecosystem
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {PLATFORMS.map((platform) => (
               <div
                 key={platform.id}
-                className={cn(
-                  "scene6-platform p-5 rounded-2xl border border-white/10 bg-surface/50 hover:bg-surface transition-all",
-                )}
+                className="platform-grid-item p-5 rounded-xl border border-border bg-card shadow-sm text-center hover:border-primary/30 transition-colors"
               >
-                <div className={cn(
-                  "w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br flex items-center justify-center text-2xl",
-                  platform.gradient
-                )}>
-                  {platform.icon}
+                <div className={`w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br ${platform.color} flex items-center justify-center`}>
+                  <platform.Icon className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="font-semibold mb-1">{platform.name}</h3>
-                <p className="text-sm text-secondary font-bold">{platform.volume}</p>
+                <h3 className="font-semibold text-sm">{platform.name}</h3>
               </div>
             ))}
           </div>
@@ -665,70 +683,62 @@ export default function StoryPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          SCENE 7: THE CTA - Final call to action
+          CTA
           ═══════════════════════════════════════════════════════════════ */}
-      <section
-        ref={scene7Ref}
-        className="min-h-screen flex flex-col items-center justify-center relative px-4"
-      >
-        {/* Background glow */}
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent" />
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/20 blur-[150px]" />
+      <section className="cta-section min-h-[80vh] flex flex-col items-center justify-center px-5 relative overflow-hidden">
+        <div className="absolute inset-0 hero-gradient" />
+        <div className="absolute inset-0 bg-dot-grid opacity-20" />
 
-        <div className="scene7-cta relative z-10 max-w-2xl mx-auto text-center">
-          <div className="w-20 h-20 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/30">
-            <Zap className="w-10 h-10 text-white" />
+        <div className="cta-content relative z-10 max-w-xl mx-auto text-center">
+          <div className="w-20 h-20 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
+            <Trophy className="h-10 w-10 text-white" />
           </div>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-            Ready to prove{' '}
-            <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              your skills
-            </span>
-            ?
+          <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+            Your predictions have value
           </h2>
-          <p className="text-xl text-muted-foreground mb-10">
-            Join thousands of traders building their on-chain reputation.
-            Your predictions have value.
+          <p className="text-xl text-muted-foreground mb-4">
+            <span className="text-primary font-semibold">Across every platform.</span>
+          </p>
+          <p className="text-lg text-muted-foreground mb-10">
+            Stop starting from zero.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             {!isConnected ? (
               <ConnectWallet />
             ) : (
-              <>
-                <Button
-                  size="lg"
-                  onClick={() => router.push('/dashboard')}
-                  className="h-14 px-10 text-lg font-semibold shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all"
-                >
-                  Get Started
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => router.push('/leaderboard')}
-                  className="h-14 px-10 text-lg"
-                >
-                  View Leaderboard
-                </Button>
-              </>
+              <Button
+                size="lg"
+                onClick={() => router.push('/dashboard')}
+                className="h-14 px-10 text-lg shadow-lg shadow-primary/20"
+              >
+                Get Started
+                <ArrowRight className="h-5 w-5 ml-2" />
+              </Button>
             )}
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => router.push('/leaderboard')}
+              className="h-14 px-10 text-lg"
+            >
+              View Leaderboard
+            </Button>
           </div>
 
-          <div className="mt-12 flex items-center justify-center gap-6 text-sm text-muted-foreground">
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-success" />
-              Free to start
+              7 platforms
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-success" />
-              No trading fees
+              1 unified score
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-success" />
-              100% on-chain
+              On-chain verified
             </div>
           </div>
         </div>
