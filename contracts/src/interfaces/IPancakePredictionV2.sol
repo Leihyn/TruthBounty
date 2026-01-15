@@ -14,7 +14,6 @@ interface IPancakePredictionV2 {
     enum Position {
         Bull, // 0 - Betting price goes up
         Bear // 1 - Betting price goes down
-
     }
 
     /**

@@ -30,7 +30,11 @@ contract DeployCopyTradingVault is Script {
 
         console.log("Next steps:");
         console.log("1. Verify on BSCScan:");
-        console.log("   forge verify-contract", address(vault), "contracts/CopyTradingVault.sol:CopyTradingVault --chain bscTestnet");
+        console.log(
+            "   forge verify-contract",
+            address(vault),
+            "contracts/CopyTradingVault.sol:CopyTradingVault --chain bscTestnet"
+        );
         console.log("\n2. Update frontend/.env.local:");
         console.log("   NEXT_PUBLIC_COPY_TRADING_VAULT=", address(vault));
     }

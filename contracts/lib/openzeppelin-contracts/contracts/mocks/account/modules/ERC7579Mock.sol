@@ -42,11 +42,10 @@ abstract contract ERC7579HookMock is ERC7579ModuleMock(MODULE_TYPE_HOOK), IERC75
     event PreCheck(address sender, uint256 value, bytes data);
     event PostCheck(bytes hookData);
 
-    function preCheck(
-        address msgSender,
-        uint256 value,
-        bytes calldata msgData
-    ) external returns (bytes memory hookData) {
+    function preCheck(address msgSender, uint256 value, bytes calldata msgData)
+        external
+        returns (bytes memory hookData)
+    {
         emit PreCheck(msgSender, value, msgData);
         return msgData;
     }
@@ -99,24 +98,30 @@ abstract contract ERC7579ValidatorMock is ERC7579ModuleMock(MODULE_TYPE_VALIDATO
         super.onUninstall(data);
     }
 
-    function validateUserOp(
-        PackedUserOperation calldata userOp,
-        bytes32 userOpHash
-    ) public view virtual returns (uint256) {
-        return
-            SignatureChecker.isValidSignatureNow(_associatedSigners[msg.sender], userOpHash, userOp.signature)
-                ? ERC4337Utils.SIG_VALIDATION_SUCCESS
-                : ERC4337Utils.SIG_VALIDATION_FAILED;
+    function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash)
+        public
+        view
+        virtual
+        returns (uint256)
+    {
+        return SignatureChecker.isValidSignatureNow(_associatedSigners[msg.sender], userOpHash, userOp.signature)
+            ? ERC4337Utils.SIG_VALIDATION_SUCCESS
+            : ERC4337Utils.SIG_VALIDATION_FAILED;
     }
 
     function isValidSignatureWithSender(
-        address /*sender*/,
+        address,
+        /*sender*/
         bytes32 hash,
         bytes calldata signature
-    ) public view virtual returns (bytes4) {
-        return
-            SignatureChecker.isValidSignatureNow(_associatedSigners[msg.sender], hash, signature)
-                ? IERC1271.isValidSignature.selector
-                : bytes4(0xffffffff);
+    )
+        public
+        view
+        virtual
+        returns (bytes4)
+    {
+        return SignatureChecker.isValidSignatureNow(_associatedSigners[msg.sender], hash, signature)
+            ? IERC1271.isValidSignature.selector
+            : bytes4(0xffffffff);
     }
 }

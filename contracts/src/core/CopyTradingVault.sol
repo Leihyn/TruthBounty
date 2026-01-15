@@ -91,11 +91,7 @@ contract CopyTradingVault is Ownable, Pausable, ReentrancyGuard {
     event FollowUpdated(address indexed follower, address indexed leader, uint256 allocationBps, uint256 maxBet);
     event FollowRemoved(address indexed follower, address indexed leader);
     event CopyTradeExecuted(
-        address indexed follower,
-        address indexed leader,
-        uint256 indexed epoch,
-        uint256 amount,
-        bool isBull
+        address indexed follower, address indexed leader, uint256 indexed epoch, uint256 amount, bool isBull
     );
     event ExecutorUpdated(address indexed oldExecutor, address indexed newExecutor);
     event FeesWithdrawn(address indexed to, uint256 amount);
@@ -175,10 +171,8 @@ contract CopyTradingVault is Ownable, Pausable, ReentrancyGuard {
 
         // Set unlock time
         uint256 unlockTime = block.timestamp + WITHDRAWAL_DELAY;
-        pendingWithdrawals[msg.sender] = PendingWithdrawal({
-            amount: pendingWithdrawals[msg.sender].amount + amount,
-            unlockTime: unlockTime
-        });
+        pendingWithdrawals[msg.sender] =
+            PendingWithdrawal({amount: pendingWithdrawals[msg.sender].amount + amount, unlockTime: unlockTime});
 
         emit WithdrawalRequested(msg.sender, amount, unlockTime);
     }
@@ -198,7 +192,7 @@ contract CopyTradingVault is Ownable, Pausable, ReentrancyGuard {
         delete pendingWithdrawals[msg.sender];
 
         // Transfer funds
-        (bool success, ) = payable(msg.sender).call{value: pending.amount}("");
+        (bool success,) = payable(msg.sender).call{value: pending.amount}("");
         require(success, "Transfer failed");
 
         emit WithdrawalCompleted(msg.sender, pending.amount);
@@ -232,11 +226,7 @@ contract CopyTradingVault is Ownable, Pausable, ReentrancyGuard {
      * @param allocationBps Percentage of your balance to allocate (in basis points)
      * @param maxBetSize Maximum bet size per trade
      */
-    function follow(
-        address leader,
-        uint256 allocationBps,
-        uint256 maxBetSize
-    ) external whenNotPaused {
+    function follow(address leader, uint256 allocationBps, uint256 maxBetSize) external whenNotPaused {
         if (leader == address(0) || leader == msg.sender) revert InvalidLeader();
         if (allocationBps > MAX_ALLOCATION_BPS) {
             revert AllocationTooHigh(allocationBps, MAX_ALLOCATION_BPS);
@@ -251,13 +241,15 @@ contract CopyTradingVault is Ownable, Pausable, ReentrancyGuard {
         }
 
         // Add new follow
-        follows.push(Follow({
-            leader: leader,
-            allocationBps: allocationBps,
-            maxBetSize: maxBetSize,
-            active: true,
-            createdAt: block.timestamp
-        }));
+        follows.push(
+            Follow({
+                leader: leader,
+                allocationBps: allocationBps,
+                maxBetSize: maxBetSize,
+                active: true,
+                createdAt: block.timestamp
+            })
+        );
 
         // Track follower for leader
         leaderFollowers[leader].push(msg.sender);
@@ -271,11 +263,7 @@ contract CopyTradingVault is Ownable, Pausable, ReentrancyGuard {
      * @param allocationBps New allocation percentage
      * @param maxBetSize New maximum bet size
      */
-    function updateFollow(
-        address leader,
-        uint256 allocationBps,
-        uint256 maxBetSize
-    ) external whenNotPaused {
+    function updateFollow(address leader, uint256 allocationBps, uint256 maxBetSize) external whenNotPaused {
         if (allocationBps > MAX_ALLOCATION_BPS) {
             revert AllocationTooHigh(allocationBps, MAX_ALLOCATION_BPS);
         }
@@ -333,13 +321,12 @@ contract CopyTradingVault is Ownable, Pausable, ReentrancyGuard {
      * @param epoch PancakeSwap prediction round epoch
      * @param isBull True for Bull bet, false for Bear
      */
-    function executeCopyTrade(
-        address follower,
-        address leader,
-        uint256 leaderBetAmount,
-        uint256 epoch,
-        bool isBull
-    ) external onlyExecutor whenNotPaused nonReentrant {
+    function executeCopyTrade(address follower, address leader, uint256 leaderBetAmount, uint256 epoch, bool isBull)
+        external
+        onlyExecutor
+        whenNotPaused
+        nonReentrant
+    {
         // Prevent duplicate execution
         if (hasCopiedEpoch[follower][epoch]) {
             revert AlreadyCopiedEpoch(epoch);
@@ -378,14 +365,16 @@ contract CopyTradingVault is Ownable, Pausable, ReentrancyGuard {
 
         // Record trade
         uint256 tradeId = copyTradeHistory.length;
-        copyTradeHistory.push(CopyTrade({
-            follower: follower,
-            leader: leader,
-            epoch: epoch,
-            amount: copyAmount,
-            isBull: isBull,
-            timestamp: block.timestamp
-        }));
+        copyTradeHistory.push(
+            CopyTrade({
+                follower: follower,
+                leader: leader,
+                epoch: epoch,
+                amount: copyAmount,
+                isBull: isBull,
+                timestamp: block.timestamp
+            })
+        );
         userTradeIds[follower].push(tradeId);
 
         // Update stats
@@ -424,8 +413,9 @@ contract CopyTradingVault is Ownable, Pausable, ReentrancyGuard {
 
             // Try to execute (don't revert on individual failures)
             try this.executeCopyTradeInternal(followers[i], leader, leaderBetAmount, epoch, isBull) {
-                // Success
-            } catch {
+            // Success
+            }
+                catch {
                 // Skip failed executions
             }
         }
@@ -456,14 +446,16 @@ contract CopyTradingVault is Ownable, Pausable, ReentrancyGuard {
         hasCopiedEpoch[follower][epoch] = true;
 
         uint256 tradeId = copyTradeHistory.length;
-        copyTradeHistory.push(CopyTrade({
-            follower: follower,
-            leader: leader,
-            epoch: epoch,
-            amount: copyAmount,
-            isBull: isBull,
-            timestamp: block.timestamp
-        }));
+        copyTradeHistory.push(
+            CopyTrade({
+                follower: follower,
+                leader: leader,
+                epoch: epoch,
+                amount: copyAmount,
+                isBull: isBull,
+                timestamp: block.timestamp
+            })
+        );
         userTradeIds[follower].push(tradeId);
 
         totalCopyTrades++;
@@ -538,20 +530,18 @@ contract CopyTradingVault is Ownable, Pausable, ReentrancyGuard {
     /**
      * @notice Get vault stats for transparency
      */
-    function getVaultStats() external view returns (
-        uint256 _totalValueLocked,
-        uint256 _totalCopyTrades,
-        uint256 _totalVolumeExecuted,
-        uint256 _totalFeesCollected,
-        address _executor
-    ) {
-        return (
-            totalValueLocked,
-            totalCopyTrades,
-            totalVolumeExecuted,
-            totalFeesCollected,
-            executor
-        );
+    function getVaultStats()
+        external
+        view
+        returns (
+            uint256 _totalValueLocked,
+            uint256 _totalCopyTrades,
+            uint256 _totalVolumeExecuted,
+            uint256 _totalFeesCollected,
+            address _executor
+        )
+    {
+        return (totalValueLocked, totalCopyTrades, totalVolumeExecuted, totalFeesCollected, executor);
     }
 
     // ============================================
@@ -594,7 +584,7 @@ contract CopyTradingVault is Ownable, Pausable, ReentrancyGuard {
 
         if (availableFees > 0) {
             totalFeesCollected += availableFees;
-            (bool success, ) = payable(owner()).call{value: availableFees}("");
+            (bool success,) = payable(owner()).call{value: availableFees}("");
             require(success, "Transfer failed");
             emit FeesWithdrawn(owner(), availableFees);
         }

@@ -13,11 +13,11 @@ interface IReputationNFT {
      * @dev Tiers are determined by TruthScore thresholds (0-1300 scale)
      */
     enum ReputationTier {
-        BRONZE,   // 0-199
-        SILVER,   // 200-399
-        GOLD,     // 400-649
+        BRONZE, // 0-199
+        SILVER, // 200-399
+        GOLD, // 400-649
         PLATINUM, // 650-899
-        DIAMOND   // 900+ (with recency bonus up to 1300)
+        DIAMOND // 900+ (with recency bonus up to 1300)
     }
 
     /**

@@ -73,7 +73,8 @@ contract PancakePredictionAdapterTest is Test {
             abi.encode(emptyEpochs, emptyBets, 0)
         );
 
-        (IPlatformAdapter.PredictionData[] memory predictions, uint256 totalCount) = adapter.fetchUserPredictions(user1, 0, 1000);
+        (IPlatformAdapter.PredictionData[] memory predictions, uint256 totalCount) =
+            adapter.fetchUserPredictions(user1, 0, 1000);
 
         assertEq(predictions.length, 0);
         assertEq(totalCount, 0);
@@ -86,9 +87,7 @@ contract PancakePredictionAdapterTest is Test {
 
         IPancakePredictionV2.BetInfo[] memory bets = new IPancakePredictionV2.BetInfo[](1);
         bets[0] = IPancakePredictionV2.BetInfo({
-            position: IPancakePredictionV2.Position.Bull,
-            amount: 1 ether,
-            claimed: false
+            position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: false
         });
 
         // Mock getUserRounds
@@ -117,11 +116,14 @@ contract PancakePredictionAdapterTest is Test {
         });
 
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1), abi.encode(round)
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1),
+            abi.encode(round)
         );
 
         // Fetch predictions
-        (IPlatformAdapter.PredictionData[] memory predictions, uint256 totalCount) = adapter.fetchUserPredictions(user1, 0, 1000);
+        (IPlatformAdapter.PredictionData[] memory predictions, uint256 totalCount) =
+            adapter.fetchUserPredictions(user1, 0, 1000);
 
         assertEq(predictions.length, 1);
         assertEq(totalCount, 1);
@@ -140,9 +142,7 @@ contract PancakePredictionAdapterTest is Test {
 
         IPancakePredictionV2.BetInfo[] memory bets = new IPancakePredictionV2.BetInfo[](1);
         bets[0] = IPancakePredictionV2.BetInfo({
-            position: IPancakePredictionV2.Position.Bull,
-            amount: 0.5 ether,
-            claimed: false
+            position: IPancakePredictionV2.Position.Bull, amount: 0.5 ether, claimed: false
         });
 
         vm.mockCall(
@@ -170,10 +170,12 @@ contract PancakePredictionAdapterTest is Test {
         });
 
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1), abi.encode(round)
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1),
+            abi.encode(round)
         );
 
-        (IPlatformAdapter.PredictionData[] memory predictions, ) = adapter.fetchUserPredictions(user1, 0, 1000);
+        (IPlatformAdapter.PredictionData[] memory predictions,) = adapter.fetchUserPredictions(user1, 0, 1000);
 
         assertEq(predictions.length, 1);
         assertTrue(predictions[0].resolved);
@@ -189,19 +191,13 @@ contract PancakePredictionAdapterTest is Test {
 
         IPancakePredictionV2.BetInfo[] memory bets = new IPancakePredictionV2.BetInfo[](3);
         bets[0] = IPancakePredictionV2.BetInfo({
-            position: IPancakePredictionV2.Position.Bull,
-            amount: 1 ether,
-            claimed: true
+            position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: true
         });
         bets[1] = IPancakePredictionV2.BetInfo({
-            position: IPancakePredictionV2.Position.Bear,
-            amount: 2 ether,
-            claimed: true
+            position: IPancakePredictionV2.Position.Bear, amount: 2 ether, claimed: true
         });
         bets[2] = IPancakePredictionV2.BetInfo({
-            position: IPancakePredictionV2.Position.Bull,
-            amount: 1.5 ether,
-            claimed: false
+            position: IPancakePredictionV2.Position.Bull, amount: 1.5 ether, claimed: false
         });
 
         vm.mockCall(
@@ -213,22 +209,29 @@ contract PancakePredictionAdapterTest is Test {
         // Round 1: Bull wins
         IPancakePredictionV2.Round memory round1 = _createRound(EPOCH_1, 300e8, 310e8, true);
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1), abi.encode(round1)
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1),
+            abi.encode(round1)
         );
 
         // Round 2: Bear wins
         IPancakePredictionV2.Round memory round2 = _createRound(EPOCH_2, 310e8, 305e8, true);
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_2), abi.encode(round2)
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_2),
+            abi.encode(round2)
         );
 
         // Round 3: Bull loses
         IPancakePredictionV2.Round memory round3 = _createRound(EPOCH_3, 305e8, 300e8, true);
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_3), abi.encode(round3)
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_3),
+            abi.encode(round3)
         );
 
-        (IPlatformAdapter.PredictionData[] memory predictions, uint256 totalCount) = adapter.fetchUserPredictions(user1, 0, 1000);
+        (IPlatformAdapter.PredictionData[] memory predictions, uint256 totalCount) =
+            adapter.fetchUserPredictions(user1, 0, 1000);
 
         assertEq(predictions.length, 3);
         assertEq(totalCount, 3);
@@ -253,9 +256,7 @@ contract PancakePredictionAdapterTest is Test {
 
         IPancakePredictionV2.BetInfo[] memory bets = new IPancakePredictionV2.BetInfo[](1);
         bets[0] = IPancakePredictionV2.BetInfo({
-            position: IPancakePredictionV2.Position.Bull,
-            amount: 1 ether,
-            claimed: false
+            position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: false
         });
 
         vm.mockCall(
@@ -267,10 +268,12 @@ contract PancakePredictionAdapterTest is Test {
         // Cancelled round (same price)
         IPancakePredictionV2.Round memory round = _createRound(EPOCH_1, 300e8, 300e8, true);
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1), abi.encode(round)
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1),
+            abi.encode(round)
         );
 
-        (IPlatformAdapter.PredictionData[] memory predictions, ) = adapter.fetchUserPredictions(user1, 0, 1000);
+        (IPlatformAdapter.PredictionData[] memory predictions,) = adapter.fetchUserPredictions(user1, 0, 1000);
 
         assertEq(predictions.length, 1);
         assertTrue(predictions[0].resolved);
@@ -284,9 +287,7 @@ contract PancakePredictionAdapterTest is Test {
 
         IPancakePredictionV2.BetInfo[] memory bets = new IPancakePredictionV2.BetInfo[](1);
         bets[0] = IPancakePredictionV2.BetInfo({
-            position: IPancakePredictionV2.Position.Bull,
-            amount: 1 ether,
-            claimed: false
+            position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: false
         });
 
         vm.mockCall(
@@ -298,10 +299,12 @@ contract PancakePredictionAdapterTest is Test {
         // Unresolved round
         IPancakePredictionV2.Round memory round = _createRound(EPOCH_1, 300e8, 0, false);
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1), abi.encode(round)
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1),
+            abi.encode(round)
         );
 
-        (IPlatformAdapter.PredictionData[] memory predictions, ) = adapter.fetchUserPredictions(user1, 0, 1000);
+        (IPlatformAdapter.PredictionData[] memory predictions,) = adapter.fetchUserPredictions(user1, 0, 1000);
 
         assertEq(predictions.length, 1);
         assertFalse(predictions[0].resolved); // Not finished
@@ -339,19 +342,13 @@ contract PancakePredictionAdapterTest is Test {
 
         IPancakePredictionV2.BetInfo[] memory bets = new IPancakePredictionV2.BetInfo[](3);
         bets[0] = IPancakePredictionV2.BetInfo({
-            position: IPancakePredictionV2.Position.Bull,
-            amount: 1 ether,
-            claimed: true
+            position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: true
         });
         bets[1] = IPancakePredictionV2.BetInfo({
-            position: IPancakePredictionV2.Position.Bear,
-            amount: 2 ether,
-            claimed: true
+            position: IPancakePredictionV2.Position.Bear, amount: 2 ether, claimed: true
         });
         bets[2] = IPancakePredictionV2.BetInfo({
-            position: IPancakePredictionV2.Position.Bull,
-            amount: 1.5 ether,
-            claimed: true
+            position: IPancakePredictionV2.Position.Bull, amount: 1.5 ether, claimed: true
         });
 
         vm.mockCall(
@@ -361,17 +358,27 @@ contract PancakePredictionAdapterTest is Test {
         );
 
         // Mock current epoch
-        vm.mockCall(mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.currentEpoch.selector), abi.encode(EPOCH_3));
+        vm.mockCall(
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.currentEpoch.selector),
+            abi.encode(EPOCH_3)
+        );
 
         // All wins
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1), abi.encode(_createRound(EPOCH_1, 300e8, 310e8, true))
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1),
+            abi.encode(_createRound(EPOCH_1, 300e8, 310e8, true))
         );
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_2), abi.encode(_createRound(EPOCH_2, 310e8, 305e8, true))
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_2),
+            abi.encode(_createRound(EPOCH_2, 310e8, 305e8, true))
         );
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_3), abi.encode(_createRound(EPOCH_3, 305e8, 310e8, true))
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_3),
+            abi.encode(_createRound(EPOCH_3, 305e8, 310e8, true))
         );
 
         IPlatformAdapter.UserStats memory stats = adapter.getUserStats(user1);
@@ -391,10 +398,18 @@ contract PancakePredictionAdapterTest is Test {
         epochs[3] = EPOCH_3 + 1;
 
         IPancakePredictionV2.BetInfo[] memory bets = new IPancakePredictionV2.BetInfo[](4);
-        bets[0] = IPancakePredictionV2.BetInfo({position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: true});
-        bets[1] = IPancakePredictionV2.BetInfo({position: IPancakePredictionV2.Position.Bear, amount: 2 ether, claimed: true});
-        bets[2] = IPancakePredictionV2.BetInfo({position: IPancakePredictionV2.Position.Bull, amount: 1.5 ether, claimed: false});
-        bets[3] = IPancakePredictionV2.BetInfo({position: IPancakePredictionV2.Position.Bull, amount: 0.5 ether, claimed: false});
+        bets[0] = IPancakePredictionV2.BetInfo({
+            position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: true
+        });
+        bets[1] = IPancakePredictionV2.BetInfo({
+            position: IPancakePredictionV2.Position.Bear, amount: 2 ether, claimed: true
+        });
+        bets[2] = IPancakePredictionV2.BetInfo({
+            position: IPancakePredictionV2.Position.Bull, amount: 1.5 ether, claimed: false
+        });
+        bets[3] = IPancakePredictionV2.BetInfo({
+            position: IPancakePredictionV2.Position.Bull, amount: 0.5 ether, claimed: false
+        });
 
         vm.mockCall(
             mockPredictionContract,
@@ -402,26 +417,38 @@ contract PancakePredictionAdapterTest is Test {
             abi.encode(epochs, bets, 0)
         );
 
-        vm.mockCall(mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.currentEpoch.selector), abi.encode(EPOCH_3 + 1));
+        vm.mockCall(
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.currentEpoch.selector),
+            abi.encode(EPOCH_3 + 1)
+        );
 
         // Round 1: Bull wins
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1), abi.encode(_createRound(EPOCH_1, 300e8, 310e8, true))
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1),
+            abi.encode(_createRound(EPOCH_1, 300e8, 310e8, true))
         );
 
         // Round 2: Bear wins
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_2), abi.encode(_createRound(EPOCH_2, 310e8, 305e8, true))
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_2),
+            abi.encode(_createRound(EPOCH_2, 310e8, 305e8, true))
         );
 
         // Round 3: Bull loses (Bear won)
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_3), abi.encode(_createRound(EPOCH_3, 305e8, 300e8, true))
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_3),
+            abi.encode(_createRound(EPOCH_3, 305e8, 300e8, true))
         );
 
         // Round 4: Active (not resolved)
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_3 + 1), abi.encode(_createRound(EPOCH_3 + 1, 300e8, 0, false))
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_3 + 1),
+            abi.encode(_createRound(EPOCH_3 + 1, 300e8, 0, false))
         );
 
         IPlatformAdapter.UserStats memory stats = adapter.getUserStats(user1);
@@ -438,8 +465,12 @@ contract PancakePredictionAdapterTest is Test {
         epochs[1] = EPOCH_2;
 
         IPancakePredictionV2.BetInfo[] memory bets = new IPancakePredictionV2.BetInfo[](2);
-        bets[0] = IPancakePredictionV2.BetInfo({position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: false});
-        bets[1] = IPancakePredictionV2.BetInfo({position: IPancakePredictionV2.Position.Bull, amount: 2 ether, claimed: true});
+        bets[0] = IPancakePredictionV2.BetInfo({
+            position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: false
+        });
+        bets[1] = IPancakePredictionV2.BetInfo({
+            position: IPancakePredictionV2.Position.Bull, amount: 2 ether, claimed: true
+        });
 
         vm.mockCall(
             mockPredictionContract,
@@ -447,16 +478,24 @@ contract PancakePredictionAdapterTest is Test {
             abi.encode(epochs, bets, 0)
         );
 
-        vm.mockCall(mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.currentEpoch.selector), abi.encode(EPOCH_2));
+        vm.mockCall(
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.currentEpoch.selector),
+            abi.encode(EPOCH_2)
+        );
 
         // Round 1: Cancelled
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1), abi.encode(_createRound(EPOCH_1, 300e8, 300e8, true))
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1),
+            abi.encode(_createRound(EPOCH_1, 300e8, 300e8, true))
         );
 
         // Round 2: Bull wins
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_2), abi.encode(_createRound(EPOCH_2, 300e8, 310e8, true))
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_2),
+            abi.encode(_createRound(EPOCH_2, 300e8, 310e8, true))
         );
 
         IPlatformAdapter.UserStats memory stats = adapter.getUserStats(user1);
@@ -478,9 +517,15 @@ contract PancakePredictionAdapterTest is Test {
         epochs[2] = EPOCH_3;
 
         IPancakePredictionV2.BetInfo[] memory bets = new IPancakePredictionV2.BetInfo[](3);
-        bets[0] = IPancakePredictionV2.BetInfo({position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: true});
-        bets[1] = IPancakePredictionV2.BetInfo({position: IPancakePredictionV2.Position.Bear, amount: 2 ether, claimed: true});
-        bets[2] = IPancakePredictionV2.BetInfo({position: IPancakePredictionV2.Position.Bull, amount: 1.5 ether, claimed: false});
+        bets[0] = IPancakePredictionV2.BetInfo({
+            position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: true
+        });
+        bets[1] = IPancakePredictionV2.BetInfo({
+            position: IPancakePredictionV2.Position.Bear, amount: 2 ether, claimed: true
+        });
+        bets[2] = IPancakePredictionV2.BetInfo({
+            position: IPancakePredictionV2.Position.Bull, amount: 1.5 ether, claimed: false
+        });
 
         vm.mockCall(
             mockPredictionContract,
@@ -488,17 +533,27 @@ contract PancakePredictionAdapterTest is Test {
             abi.encode(epochs, bets, 0)
         );
 
-        vm.mockCall(mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.currentEpoch.selector), abi.encode(EPOCH_3));
+        vm.mockCall(
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.currentEpoch.selector),
+            abi.encode(EPOCH_3)
+        );
 
         // 2 wins, 1 loss
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1), abi.encode(_createRound(EPOCH_1, 300e8, 310e8, true))
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1),
+            abi.encode(_createRound(EPOCH_1, 300e8, 310e8, true))
         );
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_2), abi.encode(_createRound(EPOCH_2, 310e8, 305e8, true))
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_2),
+            abi.encode(_createRound(EPOCH_2, 310e8, 305e8, true))
         );
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_3), abi.encode(_createRound(EPOCH_3, 305e8, 300e8, true))
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_3),
+            abi.encode(_createRound(EPOCH_3, 305e8, 300e8, true))
         );
 
         uint256 winRate = adapter.getUserWinRate(user1);
@@ -510,13 +565,18 @@ contract PancakePredictionAdapterTest is Test {
     function test_DidUserWin_BullWins() public {
         IPancakePredictionV2.Round memory round = _createRound(EPOCH_1, 300e8, 310e8, true);
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1), abi.encode(round)
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1),
+            abi.encode(round)
         );
 
-        IPancakePredictionV2.BetInfo memory bet =
-            IPancakePredictionV2.BetInfo({position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: false});
+        IPancakePredictionV2.BetInfo memory bet = IPancakePredictionV2.BetInfo({
+            position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: false
+        });
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.ledger.selector, user1, EPOCH_1), abi.encode(bet)
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.ledger.selector, user1, EPOCH_1),
+            abi.encode(bet)
         );
 
         assertTrue(adapter.didUserWin(user1, EPOCH_1));
@@ -525,13 +585,18 @@ contract PancakePredictionAdapterTest is Test {
     function test_DidUserWin_BearWins() public {
         IPancakePredictionV2.Round memory round = _createRound(EPOCH_1, 300e8, 295e8, true);
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1), abi.encode(round)
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1),
+            abi.encode(round)
         );
 
-        IPancakePredictionV2.BetInfo memory bet =
-            IPancakePredictionV2.BetInfo({position: IPancakePredictionV2.Position.Bear, amount: 1 ether, claimed: false});
+        IPancakePredictionV2.BetInfo memory bet = IPancakePredictionV2.BetInfo({
+            position: IPancakePredictionV2.Position.Bear, amount: 1 ether, claimed: false
+        });
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.ledger.selector, user1, EPOCH_1), abi.encode(bet)
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.ledger.selector, user1, EPOCH_1),
+            abi.encode(bet)
         );
 
         assertTrue(adapter.didUserWin(user1, EPOCH_1));
@@ -541,13 +606,18 @@ contract PancakePredictionAdapterTest is Test {
         // Bull bet but Bear won
         IPancakePredictionV2.Round memory round = _createRound(EPOCH_1, 300e8, 295e8, true);
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1), abi.encode(round)
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.rounds.selector, EPOCH_1),
+            abi.encode(round)
         );
 
-        IPancakePredictionV2.BetInfo memory bet =
-            IPancakePredictionV2.BetInfo({position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: false});
+        IPancakePredictionV2.BetInfo memory bet = IPancakePredictionV2.BetInfo({
+            position: IPancakePredictionV2.Position.Bull, amount: 1 ether, claimed: false
+        });
         vm.mockCall(
-            mockPredictionContract, abi.encodeWithSelector(IPancakePredictionV2.ledger.selector, user1, EPOCH_1), abi.encode(bet)
+            mockPredictionContract,
+            abi.encodeWithSelector(IPancakePredictionV2.ledger.selector, user1, EPOCH_1),
+            abi.encode(bet)
         );
 
         assertFalse(adapter.didUserWin(user1, EPOCH_1));

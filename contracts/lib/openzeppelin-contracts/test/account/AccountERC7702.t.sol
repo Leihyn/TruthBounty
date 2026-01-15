@@ -54,9 +54,7 @@ contract AccountERC7702Test is Test {
             entrypoint,
             vm.readFileBinary(
                 string.concat(
-                    "node_modules/hardhat-predeploy/bin/",
-                    Strings.toChecksumHexString(entrypoint),
-                    ".bytecode"
+                    "node_modules/hardhat-predeploy/bin/", Strings.toChecksumHexString(entrypoint), ".bytecode"
                 )
             )
         );
@@ -64,17 +62,12 @@ contract AccountERC7702Test is Test {
 
     function testExecuteBatch(uint256 argA, uint256 argB) public {
         // Create the mode for batch execution
-        Mode mode = ERC7579Utils.CALLTYPE_BATCH.encodeMode(
-            ERC7579Utils.EXECTYPE_DEFAULT,
-            ModeSelector.wrap(0x00000000),
-            ModePayload.wrap(0x00000000)
-        );
+        Mode mode = ERC7579Utils.CALLTYPE_BATCH
+            .encodeMode(ERC7579Utils.EXECTYPE_DEFAULT, ModeSelector.wrap(0x00000000), ModePayload.wrap(0x00000000));
 
         Execution[] memory execution = new Execution[](2);
         execution[0] = Execution({
-            target: address(_target),
-            value: 1 ether,
-            callData: abi.encodeCall(CallReceiverMock.mockFunctionExtra, ())
+            target: address(_target), value: 1 ether, callData: abi.encodeCall(CallReceiverMock.mockFunctionExtra, ())
         });
         execution[1] = Execution({
             target: address(_target),
@@ -95,10 +88,8 @@ contract AccountERC7702Test is Test {
             paymasterAndData: bytes(""),
             signature: bytes("")
         });
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            _signerPrivateKey,
-            IEntryPointExtra(address(ERC4337Utils.ENTRYPOINT_V08)).getUserOpHash(ops[0])
-        );
+        (uint8 v, bytes32 r, bytes32 s) =
+            vm.sign(_signerPrivateKey, IEntryPointExtra(address(ERC4337Utils.ENTRYPOINT_V08)).getUserOpHash(ops[0]));
         ops[0].signature = abi.encodePacked(r, s, v);
 
         // Expect the events to be emitted

@@ -168,7 +168,12 @@ contract Deploy is Script {
             console.log("\nView on Explorer:");
             console.log(config.explorerUrl, "/address/", addressToString(address(truthBountyCore)));
             console.log("\nVerification (if needed):");
-            console.log("forge verify-contract", addressToString(address(truthBountyCore)), "src/core/TruthBountyCore.sol:TruthBountyCore --chain-id", config.chainId);
+            console.log(
+                "forge verify-contract",
+                addressToString(address(truthBountyCore)),
+                "src/core/TruthBountyCore.sol:TruthBountyCore --chain-id",
+                config.chainId
+            );
         }
 
         console.log("\n");

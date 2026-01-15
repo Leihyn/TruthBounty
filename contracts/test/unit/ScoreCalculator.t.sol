@@ -120,8 +120,7 @@ contract ScoreCalculatorTest is Test {
     // ============================================
 
     function test_CalculateScoreWithBreakdown() public view {
-        IScoreCalculator.ScoreBreakdown memory breakdown =
-            calculator.calculateScoreWithBreakdown(10, 7, 4 * ONE_BNB);
+        IScoreCalculator.ScoreBreakdown memory breakdown = calculator.calculateScoreWithBreakdown(10, 7, 4 * ONE_BNB);
 
         assertEq(breakdown.baseScore, 7000, "Base score (win rate) should be 7000");
         assertEq(breakdown.volumeMultiplier, 20, "Volume multiplier should be 20 (sqrt(400))");
@@ -192,15 +191,9 @@ contract ScoreCalculatorTest is Test {
     }
 
     function test_GetTier_Platinum() public view {
-        assertEq(
-            uint256(calculator.getTier(2000)), uint256(IScoreCalculator.Tier.PLATINUM), "2000 should be PLATINUM"
-        );
-        assertEq(
-            uint256(calculator.getTier(3500)), uint256(IScoreCalculator.Tier.PLATINUM), "3500 should be PLATINUM"
-        );
-        assertEq(
-            uint256(calculator.getTier(4999)), uint256(IScoreCalculator.Tier.PLATINUM), "4999 should be PLATINUM"
-        );
+        assertEq(uint256(calculator.getTier(2000)), uint256(IScoreCalculator.Tier.PLATINUM), "2000 should be PLATINUM");
+        assertEq(uint256(calculator.getTier(3500)), uint256(IScoreCalculator.Tier.PLATINUM), "3500 should be PLATINUM");
+        assertEq(uint256(calculator.getTier(4999)), uint256(IScoreCalculator.Tier.PLATINUM), "4999 should be PLATINUM");
     }
 
     function test_GetTier_Diamond() public view {

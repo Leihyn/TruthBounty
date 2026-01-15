@@ -18,7 +18,6 @@ contract PlatformRegistry is Ownable {
         SPORTS_BETTING, // Sports betting markets
         CATEGORICAL, // Multiple outcome predictions
         CUSTOM // Custom platform types
-
     }
 
     /**

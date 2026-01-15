@@ -43,10 +43,10 @@ contract ReputationNFTv2 is ERC721, Ownable, IReputationNFT {
     mapping(address => uint256[]) private _ownerTokens;
 
     // Verification System
-    mapping(address => bool) public isVerified;  // Address → verified status
-    mapping(address => uint256) public verifiedNFT;  // Verified address → linked NFT
-    mapping(uint256 => address) public nftToVerifiedOwner;  // NFT → verified owner
-    mapping(bytes32 => bool) public usedNullifiers;  // Prevent reuse of verification proofs
+    mapping(address => bool) public isVerified; // Address → verified status
+    mapping(address => uint256) public verifiedNFT; // Verified address → linked NFT
+    mapping(uint256 => address) public nftToVerifiedOwner; // NFT → verified owner
+    mapping(bytes32 => bool) public usedNullifiers; // Prevent reuse of verification proofs
 
     // ============================================
     // Events
@@ -166,11 +166,7 @@ contract ReputationNFTv2 is ERC721, Ownable, IReputationNFT {
      * @param nullifierHash Unique identifier from proof-of-personhood (prevents sybil)
      * @param proof Verification proof (signature from oracle)
      */
-    function verifyAndLinkNFT(
-        uint256 tokenId,
-        bytes32 nullifierHash,
-        bytes calldata proof
-    ) external {
+    function verifyAndLinkNFT(uint256 tokenId, bytes32 nullifierHash, bytes calldata proof) external {
         // Check NFT ownership
         require(ownerOf(tokenId) == msg.sender, "Not NFT owner");
 
@@ -286,7 +282,7 @@ contract ReputationNFTv2 is ERC721, Ownable, IReputationNFT {
         uint256 winRate = totalPredictions > 0 ? (correctPredictions * 10000) / totalPredictions : 0;
 
         // Update metadata
-        metadata.truthScore = truthScore;  // Includes recency bonus
+        metadata.truthScore = truthScore; // Includes recency bonus
         metadata.tier = newTier;
         metadata.totalPredictions = totalPredictions;
         metadata.correctPredictions = correctPredictions;
@@ -385,9 +381,9 @@ contract ReputationNFTv2 is ERC721, Ownable, IReputationNFT {
                         "},",
                         '{"trait_type": "Total Predictions", "value": ',
                         metadata.totalPredictions.toString(),
-                        '},',
+                        "},",
                         '{"trait_type": "Verified", "value": ',
-                        (nftToVerifiedOwner[tokenId] != address(0) ? 'true' : 'false'),
+                        (nftToVerifiedOwner[tokenId] != address(0) ? "true" : "false"),
                         "}]}"
                     )
                 )
@@ -477,12 +473,11 @@ contract ReputationNFTv2 is ERC721, Ownable, IReputationNFT {
      * @dev Verifies proof from oracle (simplified version)
      * @dev In production, this would verify WorldCoin/Gitcoin Passport proofs
      */
-    function _verifyProof(
-        address user,
-        uint256 tokenId,
-        bytes32 nullifierHash,
-        bytes calldata proof
-    ) internal view returns (bool) {
+    function _verifyProof(address user, uint256 tokenId, bytes32 nullifierHash, bytes calldata proof)
+        internal
+        view
+        returns (bool)
+    {
         // For MVP: Oracle signs hash of (user, tokenId, nullifierHash)
         bytes32 messageHash = keccak256(abi.encodePacked(user, tokenId, nullifierHash));
         bytes32 ethSignedHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
@@ -543,7 +538,7 @@ contract ReputationNFTv2 is ERC721, Ownable, IReputationNFT {
         return string(
             abi.encodePacked(
                 '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">',
-                '<defs>',
+                "<defs>",
                 '<linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">',
                 '<stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />',
                 '<stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />',
@@ -553,7 +548,9 @@ contract ReputationNFTv2 is ERC721, Ownable, IReputationNFT {
                 // Title
                 '<text x="200" y="40" font-family="Arial" font-size="24" font-weight="bold" fill="white" text-anchor="middle">TRUTHBOUNTY v2</text>',
                 // Verification Badge
-                verified ? unicode'<circle cx="360" cy="40" r="15" fill="#00FF00"/><text x="360" y="45" font-family="Arial" font-size="16" fill="white" text-anchor="middle">✓</text>' : "",
+                verified
+                    ? unicode'<circle cx="360" cy="40" r="15" fill="#00FF00"/><text x="360" y="45" font-family="Arial" font-size="16" fill="white" text-anchor="middle">✓</text>'
+                    : "",
                 // Tier Badge
                 '<rect x="125" y="60" width="150" height="50" rx="10" fill="',
                 tierColor,

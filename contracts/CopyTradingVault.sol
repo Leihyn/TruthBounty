@@ -24,7 +24,6 @@ interface IPredictionMarket {
  * - Withdrawal of unused funds
  */
 contract CopyTradingVault is Ownable, ReentrancyGuard, Pausable {
-
     // User balance tracking
     mapping(address => uint256) public balances;
 
@@ -44,10 +43,7 @@ contract CopyTradingVault is Ownable, ReentrancyGuard, Pausable {
     event Deposited(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event CopyFollowActivated(
-        address indexed follower,
-        address indexed trader,
-        uint256 allocationPercentage,
-        uint256 maxBetAmount
+        address indexed follower, address indexed trader, uint256 allocationPercentage, uint256 maxBetAmount
     );
     event CopyFollowDeactivated(address indexed follower, address indexed trader);
     event BetCopied(
@@ -80,7 +76,7 @@ contract CopyTradingVault is Ownable, ReentrancyGuard, Pausable {
         require(balances[msg.sender] >= amount, "Insufficient balance");
 
         balances[msg.sender] -= amount;
-        (bool success, ) = msg.sender.call{value: amount}("");
+        (bool success,) = msg.sender.call{value: amount}("");
         require(success, "Withdrawal failed");
 
         emit Withdrawn(msg.sender, amount);
@@ -89,24 +85,14 @@ contract CopyTradingVault is Ownable, ReentrancyGuard, Pausable {
     /**
      * @dev Set or update copy trading settings
      */
-    function setCopyFollow(
-        address trader,
-        uint256 allocationPercentage,
-        uint256 maxBetAmount
-    ) external whenNotPaused {
+    function setCopyFollow(address trader, uint256 allocationPercentage, uint256 maxBetAmount) external whenNotPaused {
         require(trader != address(0), "Invalid trader address");
         require(trader != msg.sender, "Cannot copy yourself");
-        require(
-            allocationPercentage >= 1 && allocationPercentage <= 100,
-            "Allocation must be 1-100%"
-        );
+        require(allocationPercentage >= 1 && allocationPercentage <= 100, "Allocation must be 1-100%");
         require(maxBetAmount > 0, "Max bet amount must be > 0");
 
-        copySettings[msg.sender][trader] = CopySettings({
-            allocationPercentage: allocationPercentage,
-            maxBetAmount: maxBetAmount,
-            isActive: true
-        });
+        copySettings[msg.sender][trader] =
+            CopySettings({allocationPercentage: allocationPercentage, maxBetAmount: maxBetAmount, isActive: true});
 
         emit CopyFollowActivated(msg.sender, trader, allocationPercentage, maxBetAmount);
     }
@@ -159,25 +145,14 @@ contract CopyTradingVault is Ownable, ReentrancyGuard, Pausable {
             market.betBear{value: copyAmount}(epoch);
         }
 
-        emit BetCopied(
-            follower,
-            trader,
-            platform,
-            epoch,
-            copyAmount,
-            isBull ? "Bull" : "Bear"
-        );
+        emit BetCopied(follower, trader, platform, epoch, copyAmount, isBull ? "Bull" : "Bear");
     }
 
     /**
      * @dev Claim rewards from prediction platform and credit to user balance
      * Users can call this directly or we can automate it
      */
-    function claimRewards(address platform, uint256[] calldata epochs)
-        external
-        nonReentrant
-        whenNotPaused
-    {
+    function claimRewards(address platform, uint256[] calldata epochs) external nonReentrant whenNotPaused {
         require(approvedPlatforms[platform], "Platform not approved");
 
         uint256 balanceBefore = address(this).balance;
@@ -200,11 +175,7 @@ contract CopyTradingVault is Ownable, ReentrancyGuard, Pausable {
     function getCopySettings(address follower, address trader)
         external
         view
-        returns (
-            uint256 allocationPercentage,
-            uint256 maxBetAmount,
-            bool isActive
-        )
+        returns (uint256 allocationPercentage, uint256 maxBetAmount, bool isActive)
     {
         CopySettings memory settings = copySettings[follower][trader];
         return (settings.allocationPercentage, settings.maxBetAmount, settings.isActive);
@@ -237,7 +208,7 @@ contract CopyTradingVault is Ownable, ReentrancyGuard, Pausable {
      */
     function emergencyWithdraw() external onlyOwner {
         uint256 balance = address(this).balance;
-        (bool success, ) = owner().call{value: balance}("");
+        (bool success,) = owner().call{value: balance}("");
         require(success, "Emergency withdrawal failed");
     }
 

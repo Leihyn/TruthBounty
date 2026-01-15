@@ -479,7 +479,9 @@ contract FullUserJourneyTest is Test {
         bytes32 proof1 = keccak256(abi.encodePacked(alice, uint256(1)));
         vm.prank(alice);
         core.importPredictions(pancakePlatformId, 10, 6, 0.5 ether, proof1);
-        console.log("Import 1: Score =", core.getUserProfile(alice).truthScore, "Tier =", _tierToString(nft.getTier(tokenId)));
+        console.log(
+            "Import 1: Score =", core.getUserProfile(alice).truthScore, "Tier =", _tierToString(nft.getTier(tokenId))
+        );
 
         // Advance time for rate limit
         skip(1 hours + 1);
@@ -488,7 +490,9 @@ contract FullUserJourneyTest is Test {
         bytes32 proof2 = keccak256(abi.encodePacked(alice, uint256(2)));
         vm.prank(alice);
         core.importPredictions(pancakePlatformId, 50, 35, 3 ether, proof2);
-        console.log("Import 2: Score =", core.getUserProfile(alice).truthScore, "Tier =", _tierToString(nft.getTier(tokenId)));
+        console.log(
+            "Import 2: Score =", core.getUserProfile(alice).truthScore, "Tier =", _tierToString(nft.getTier(tokenId))
+        );
 
         skip(1 hours + 1);
 
@@ -496,7 +500,9 @@ contract FullUserJourneyTest is Test {
         bytes32 proof3 = keccak256(abi.encodePacked(alice, uint256(3)));
         vm.prank(alice);
         core.importPredictions(pancakePlatformId, 100, 75, 10 ether, proof3);
-        console.log("Import 3: Score =", core.getUserProfile(alice).truthScore, "Tier =", _tierToString(nft.getTier(tokenId)));
+        console.log(
+            "Import 3: Score =", core.getUserProfile(alice).truthScore, "Tier =", _tierToString(nft.getTier(tokenId))
+        );
 
         skip(1 hours + 1);
 
@@ -504,7 +510,9 @@ contract FullUserJourneyTest is Test {
         bytes32 proof4 = keccak256(abi.encodePacked(alice, uint256(4)));
         vm.prank(alice);
         core.importPredictions(pancakePlatformId, 300, 240, 50 ether, proof4);
-        console.log("Import 4: Score =", core.getUserProfile(alice).truthScore, "Tier =", _tierToString(nft.getTier(tokenId)));
+        console.log(
+            "Import 4: Score =", core.getUserProfile(alice).truthScore, "Tier =", _tierToString(nft.getTier(tokenId))
+        );
 
         skip(1 hours + 1);
 
@@ -512,7 +520,9 @@ contract FullUserJourneyTest is Test {
         bytes32 proof5 = keccak256(abi.encodePacked(alice, uint256(5)));
         vm.prank(alice);
         core.importPredictions(pancakePlatformId, 500, 425, 200 ether, proof5);
-        console.log("Import 5: Score =", core.getUserProfile(alice).truthScore, "Tier =", _tierToString(nft.getTier(tokenId)));
+        console.log(
+            "Import 5: Score =", core.getUserProfile(alice).truthScore, "Tier =", _tierToString(nft.getTier(tokenId))
+        );
 
         // Final score should be DIAMOND
         IReputationNFT.ReputationTier finalTier = nft.getTier(tokenId);

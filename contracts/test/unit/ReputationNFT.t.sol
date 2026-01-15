@@ -447,9 +447,7 @@ contract ReputationNFTTest is Test {
         uint256 tokenId4 = nft.mint(address(13));
         nft.updateMetadata(tokenId4, 3000, 10, 9, 1 ether, platforms);
         assertEq(
-            uint256(nft.getTier(tokenId4)),
-            uint256(IReputationNFT.ReputationTier.PLATINUM),
-            "3000 should be PLATINUM"
+            uint256(nft.getTier(tokenId4)), uint256(IReputationNFT.ReputationTier.PLATINUM), "3000 should be PLATINUM"
         );
 
         // DIAMOND (5000+)

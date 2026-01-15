@@ -51,7 +51,10 @@ contract PlatformRegistryTest is Test {
 
         vm.prank(owner);
         uint256 platformId = registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         assertEq(platformId, 1, "First platform ID should be 1");
@@ -62,7 +65,10 @@ contract PlatformRegistryTest is Test {
     function test_AddPlatform_Details() public {
         vm.prank(owner);
         uint256 platformId = registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         PlatformRegistry.Platform memory platform = registry.getPlatform(platformId);
@@ -85,7 +91,10 @@ contract PlatformRegistryTest is Test {
         vm.startPrank(owner);
 
         uint256 id1 = registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         uint256 id2 = registry.addPlatform(
@@ -109,7 +118,10 @@ contract PlatformRegistryTest is Test {
         vm.expectRevert();
         vm.prank(unauthorized);
         registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
     }
 
@@ -117,7 +129,10 @@ contract PlatformRegistryTest is Test {
         vm.expectRevert(abi.encodeWithSelector(PlatformRegistry.InvalidAdapter.selector, address(0)));
         vm.prank(owner);
         registry.addPlatform(
-            "PancakePrediction", address(0), "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            address(0),
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
     }
 
@@ -125,7 +140,10 @@ contract PlatformRegistryTest is Test {
         vm.startPrank(owner);
 
         registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         vm.expectRevert(abi.encodeWithSelector(PlatformRegistry.PlatformAlreadyExists.selector, adapter1));
@@ -144,7 +162,10 @@ contract PlatformRegistryTest is Test {
         vm.startPrank(owner);
 
         uint256 platformId = registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         vm.expectEmit(true, true, false, true);
@@ -170,7 +191,10 @@ contract PlatformRegistryTest is Test {
         vm.startPrank(owner);
 
         uint256 platformId = registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         // Change adapter
@@ -194,17 +218,16 @@ contract PlatformRegistryTest is Test {
     function test_UpdatePlatform_RevertWhen_NotOwner() public {
         vm.prank(owner);
         uint256 platformId = registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         vm.expectRevert();
         vm.prank(unauthorized);
         registry.updatePlatform(
-            platformId,
-            "Updated",
-            adapter1,
-            "https://updated.com",
-            PlatformRegistry.PlatformType.BINARY_PREDICTION
+            platformId, "Updated", adapter1, "https://updated.com", PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
     }
 
@@ -242,7 +265,10 @@ contract PlatformRegistryTest is Test {
         vm.startPrank(owner);
 
         uint256 platformId = registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         vm.expectEmit(true, false, false, true);
@@ -261,7 +287,10 @@ contract PlatformRegistryTest is Test {
         vm.startPrank(owner);
 
         uint256 platformId = registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         registry.deactivatePlatform(platformId);
@@ -281,7 +310,10 @@ contract PlatformRegistryTest is Test {
     function test_DeactivatePlatform_RevertWhen_NotOwner() public {
         vm.prank(owner);
         uint256 platformId = registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         vm.expectRevert();
@@ -293,7 +325,10 @@ contract PlatformRegistryTest is Test {
         vm.startPrank(owner);
 
         uint256 platformId = registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         registry.deactivatePlatform(platformId);
@@ -308,7 +343,10 @@ contract PlatformRegistryTest is Test {
         vm.startPrank(owner);
 
         uint256 platformId = registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         vm.expectRevert(abi.encodeWithSelector(PlatformRegistry.PlatformAlreadyActive.selector, platformId));
@@ -324,7 +362,10 @@ contract PlatformRegistryTest is Test {
     function test_GetPlatform() public {
         vm.prank(owner);
         uint256 platformId = registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         PlatformRegistry.Platform memory platform = registry.getPlatform(platformId);
@@ -341,7 +382,10 @@ contract PlatformRegistryTest is Test {
     function test_GetPlatformByAdapter() public {
         vm.prank(owner);
         uint256 platformId = registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         assertEq(registry.getPlatformByAdapter(adapter1), platformId, "Should return correct platform ID");
@@ -359,7 +403,9 @@ contract PlatformRegistryTest is Test {
             "Platform2", adapter2, "https://platform2.com", PlatformRegistry.PlatformType.CATEGORICAL
         );
 
-        registry.addPlatform("Platform3", adapter3, "https://platform3.com", PlatformRegistry.PlatformType.SPORTS_BETTING);
+        registry.addPlatform(
+            "Platform3", adapter3, "https://platform3.com", PlatformRegistry.PlatformType.SPORTS_BETTING
+        );
 
         // Deactivate platform 2
         registry.deactivatePlatform(id2);
@@ -450,7 +496,9 @@ contract PlatformRegistryTest is Test {
             "Binary1", adapter1, "https://binary1.com", PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
-        registry.addPlatform("Sports1", address(200), "https://sports1.com", PlatformRegistry.PlatformType.SPORTS_BETTING);
+        registry.addPlatform(
+            "Sports1", address(200), "https://sports1.com", PlatformRegistry.PlatformType.SPORTS_BETTING
+        );
 
         registry.addPlatform(
             "Binary2", adapter2, "https://binary2.com", PlatformRegistry.PlatformType.BINARY_PREDICTION
@@ -495,7 +543,9 @@ contract PlatformRegistryTest is Test {
             "Categorical type name should match"
         );
         assertEq(
-            registry.getPlatformTypeName(PlatformRegistry.PlatformType.CUSTOM), "Custom", "Custom type name should match"
+            registry.getPlatformTypeName(PlatformRegistry.PlatformType.CUSTOM),
+            "Custom",
+            "Custom type name should match"
         );
     }
 
@@ -508,7 +558,10 @@ contract PlatformRegistryTest is Test {
 
         // Add platforms
         uint256 id1 = registry.addPlatform(
-            "PancakePrediction", adapter1, "https://pancakeswap.finance", PlatformRegistry.PlatformType.BINARY_PREDICTION
+            "PancakePrediction",
+            adapter1,
+            "https://pancakeswap.finance",
+            PlatformRegistry.PlatformType.BINARY_PREDICTION
         );
 
         uint256 id2 = registry.addPlatform(

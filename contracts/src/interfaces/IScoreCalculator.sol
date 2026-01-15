@@ -13,11 +13,11 @@ interface IScoreCalculator {
      * @dev Tiers determine user benefits and platform privileges (0-1300 scale)
      */
     enum Tier {
-        BRONZE,   // 0-199
-        SILVER,   // 200-399
-        GOLD,     // 400-649
+        BRONZE, // 0-199
+        SILVER, // 200-399
+        GOLD, // 400-649
         PLATINUM, // 650-899
-        DIAMOND   // 900+ (with recency bonus up to 1300)
+        DIAMOND // 900+ (with recency bonus up to 1300)
     }
 
     /**
@@ -162,9 +162,7 @@ interface IScoreCalculator {
      * @param totalVolume Volume used in calculation
      * @param score Resulting TruthScore
      */
-    event ScoreCalculated(
-        uint256 totalPredictions, uint256 correctPredictions, uint256 totalVolume, uint256 score
-    );
+    event ScoreCalculated(uint256 totalPredictions, uint256 correctPredictions, uint256 totalVolume, uint256 score);
 
     // ========================================
     // Errors
