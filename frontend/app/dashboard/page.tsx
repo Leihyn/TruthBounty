@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useTruthBounty, useUpdateScore } from '@/hooks/useTruthBounty';
 import { NFTDisplay } from '@/components/NFTDisplay';
 import { ImportPredictions } from '@/components/ImportPredictions';
@@ -262,7 +263,7 @@ interface PendingBet {
   timestamp: string;
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const account = useAccount();
@@ -927,5 +928,24 @@ export default function DashboardPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="container px-4 md:px-6 py-6 space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <Skeleton className="h-48" />
+          <Skeleton className="h-48" />
+        </div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   );
 }
