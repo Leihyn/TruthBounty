@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+
+export const dynamic = 'force-dynamic';
 import { Providers } from "@/components/Providers";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { ErrorBoundary } from "@/components/ErrorBoundary";

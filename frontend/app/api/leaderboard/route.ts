@@ -3,6 +3,8 @@ import { createPublicClient, http, Address } from 'viem';
 import { bscTestnet } from 'viem/chains';
 import { CONTRACTS, TRUTH_BOUNTY_CORE_ABI, REPUTATION_NFT_ABI } from '@/lib/contracts';
 
+export const dynamic = 'force-dynamic';
+
 // Cache configuration
 let cachedData: any = null;
 let cacheTimestamp: number = 0;

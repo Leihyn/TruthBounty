@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 
 /**
  * API Route: Fetch real PancakeSwap Prediction bet history for a wallet
