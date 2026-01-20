@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TIER_NAMES, TIER_COLORS, TIER_THRESHOLDS, ReputationTier } from '@/lib/contracts';
+import { useDiscoveryTraders } from '@/lib/queries';
 import {
   Search,
   Trophy,
@@ -90,15 +91,34 @@ export default function TraderSearchPage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [showAllStats, setShowAllStats] = useState(false);
 
-  const [topTraders, setTopTraders] = useState<LeaderboardEntry[]>([]);
-  const [recentlyActive, setRecentlyActive] = useState<LeaderboardEntry[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
-  const [loadingDiscovery, setLoadingDiscovery] = useState(true);
+
+  // React Query hook for discovery data - automatic caching, shared with leaderboard
+  const { topTraders: discoveryTopTraders, recentlyActive: discoveryRecentlyActive, isLoading: loadingDiscovery } = useDiscoveryTraders(8);
+
+  // Map to local component's LeaderboardEntry format
+  const topTraders: LeaderboardEntry[] = discoveryTopTraders.map(t => ({
+    wallet_address: t.wallet_address,
+    username: t.username,
+    total_bets: t.total_bets,
+    wins: t.wins,
+    win_rate: t.win_rate,
+    truth_score: t.truth_score,
+    total_volume: t.total_volume,
+  }));
+  const recentlyActive: LeaderboardEntry[] = discoveryRecentlyActive.map(t => ({
+    wallet_address: t.wallet_address,
+    username: t.username,
+    total_bets: t.total_bets,
+    wins: t.wins,
+    win_rate: t.win_rate,
+    truth_score: t.truth_score,
+    total_volume: t.total_volume,
+  }));
 
   useEffect(() => {
     setMounted(true);
     loadSearchHistory();
-    fetchDiscoveryData();
   }, []);
 
   const isConnected = mounted && !!account.address;
@@ -130,32 +150,7 @@ export default function TraderSearchPage() {
     } catch (e) {}
   }
 
-  async function fetchDiscoveryData() {
-    setLoadingDiscovery(true);
-    try {
-      const res = await fetch('/api/leaderboard-db?sortBy=score&limit=8');
-      if (res.ok) {
-        const json = await res.json();
-        // API returns { data: [...] } not { leaderboard: [...] }
-        const traders = (json.data || json.leaderboard || []).map((t: any) => ({
-          wallet_address: t.address || t.wallet_address,
-          username: t.username,
-          total_bets: t.totalBets || t.total_bets,
-          wins: t.wins,
-          win_rate: t.winRate || t.win_rate,
-          truth_score: t.truthScore || t.truth_score,
-          total_volume: t.totalVolume || t.total_volume,
-        }));
-        setTopTraders(traders);
-        const byActivity = [...traders].sort((a: LeaderboardEntry, b: LeaderboardEntry) => b.total_bets - a.total_bets);
-        setRecentlyActive(byActivity.slice(0, 4));
-      }
-    } catch (error) {
-      console.error('Error fetching discovery data:', error);
-    } finally {
-      setLoadingDiscovery(false);
-    }
-  }
+  // fetchDiscoveryData removed - now using useDiscoveryTraders() React Query hook
 
   async function handleSearch(address?: string) {
     const targetAddress = address || searchAddress;

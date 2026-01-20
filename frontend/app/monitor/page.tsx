@@ -1,7 +1,8 @@
 'use client'
 
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useMonitorData } from '@/lib/queries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -62,35 +63,25 @@ interface MonitorData {
 }
 
 export default function MonitorPage() {
-  const [data, setData] = useState<MonitorData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  // UI state only - autoRefresh controls polling
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const fetchData = async () => {
-    try {
-      const res = await fetch('/api/copy-trading/monitor');
-      if (!res.ok) throw new Error('Failed to fetch');
-      const json = await res.json();
-      setData(json);
-      setLastUpdate(new Date());
-      setError(null);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query hook - handles fetching, caching, and polling
+  const { data, isLoading: loading, error: queryError, refetch, dataUpdatedAt } = useMonitorData(autoRefresh);
+  const error = queryError?.message || null;
 
+  // Update lastUpdate timestamp when data changes
   useEffect(() => {
-    fetchData();
-
-    if (autoRefresh) {
-      const interval = setInterval(fetchData, 10000); // Refresh every 10s
-      return () => clearInterval(interval);
+    if (dataUpdatedAt) {
+      setLastUpdate(new Date(dataUpdatedAt));
     }
-  }, [autoRefresh]);
+  }, [dataUpdatedAt]);
+
+  // Manual refresh handler
+  const handleRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const getActivityColor = (hoursAgo: number | undefined) => {
     if (!hoursAgo) return 'text-slate-500';
@@ -139,7 +130,7 @@ export default function MonitorPage() {
             <RefreshCw className={`h-4 w-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
             {autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchData}>
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
             Refresh Now
           </Button>
         </div>

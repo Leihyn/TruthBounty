@@ -12,6 +12,7 @@ import { AnimatedCounter } from '@/components/animations/AnimatedCounter';
 import Link from 'next/link';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useHomePlatformStats, useCaseStudyTrader } from '@/lib/queries';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
@@ -40,21 +41,7 @@ import {
 } from 'lucide-react';
 import { PlatformLogo, PLATFORMS } from '@/components/PlatformLogo';
 
-interface PlatformStats {
-  totalTraders: number;
-  totalPredictions: number;
-  totalVolumeBNB: number;
-  totalVolumeUSD: number;
-  supportedChains: number;
-}
-
-interface TraderData {
-  address: string;
-  username?: string;
-  truthScore: number;
-  winRate: number;
-  totalBets: number;
-}
+// Types now imported from queries.ts
 
 const formatNumber = (num: number) => {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -80,53 +67,22 @@ export default function HomePage() {
 
   const caseStudyRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const [caseStudyTrader, setCaseStudyTrader] = useState<TraderData | null>(null);
   const [animatedScore, setAnimatedScore] = useState(0);
   const [animatedWinRate, setAnimatedWinRate] = useState(0);
   const [animatedBets, setAnimatedBets] = useState(0);
 
-  const [stats, setStats] = useState<PlatformStats>({
+  // React Query hooks - automatic caching and deduplication
+  const { data: statsData } = useHomePlatformStats();
+  const { data: caseStudyTrader } = useCaseStudyTrader();
+
+  // Use query data with fallbacks
+  const stats = statsData ?? {
     totalTraders: 0,
     totalPredictions: 0,
     totalVolumeBNB: 0,
     totalVolumeUSD: 0,
     supportedChains: 7,
-  });
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch('/api/stats');
-        if (res.ok) {
-          const data = await res.json();
-          setStats(data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch stats:', error);
-      }
-    };
-
-    const fetchCaseStudyTrader = async () => {
-      try {
-        const res = await fetch('/api/polymarket-leaderboard?limit=1');
-        const data = await res.json();
-        if (data.success && data.data?.[0]) {
-          setCaseStudyTrader(data.data[0]);
-        }
-      } catch (error) {
-        setCaseStudyTrader({
-          address: '0x5668...5839',
-          username: 'Theo4',
-          truthScore: 1000,
-          winRate: 95,
-          totalBets: 86500,
-        });
-      }
-    };
-
-    fetchStats();
-    fetchCaseStudyTrader();
-  }, []);
+  };
 
   // Case study animations - simplified and robust
   useEffect(() => {

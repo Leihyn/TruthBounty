@@ -16,6 +16,12 @@ import { useAccount } from 'wagmi';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TIER_NAMES, TIER_COLORS, ReputationTier } from '@/lib/contracts';
 import { useEffect, useState, useCallback } from 'react';
+import {
+  usePancakeSimulationStats,
+  usePolymarketSimulationStats,
+  useDashboardTrades,
+  SimulationStats as QuerySimulationStats,
+} from '@/lib/queries';
 
 // Demo mode mock data for all tiers
 const DEMO_DATA = {
@@ -278,24 +284,43 @@ function DashboardContent() {
   const isDemo = demoMode === 'bronze' || demoMode === 'silver' || demoMode === 'gold' || demoMode === 'platinum' || demoMode === 'diamond';
   const demoData = isDemo && demoMode ? DEMO_DATA[demoMode] : null;
 
-  // Simulation stats
-  const [pancakeStats, setPancakeStats] = useState<SimulationStats | null>(null);
-  const [polymarketStats, setPolymarketStats] = useState<SimulationStats | null>(null);
-  const [pendingBets, setPendingBets] = useState<PendingBet[]>([]);
-  const [recentTrades, setRecentTrades] = useState<any[]>([]);
-  const [loadingStats, setLoadingStats] = useState(true);
+  // React Query hooks for simulation data - automatic 30s polling
+  const { data: queryPancakeStats, isLoading: isLoadingPancake, refetch: refetchPancake } = usePancakeSimulationStats(
+    isDemo ? undefined : account.address // Disable queries in demo mode
+  );
+  const { data: queryPolymarketStats, isLoading: isLoadingPolymarket, refetch: refetchPolymarket } = usePolymarketSimulationStats(
+    isDemo ? undefined : account.address
+  );
+  const { data: tradesData, isLoading: isLoadingTrades, refetch: refetchTrades } = useDashboardTrades(
+    isDemo ? undefined : account.address
+  );
+
+  // Manual refresh handler using React Query refetch
+  const handleRefresh = useCallback(() => {
+    refetchPancake();
+    refetchPolymarket();
+    refetchTrades();
+  }, [refetchPancake, refetchPolymarket, refetchTrades]);
+
+  // Use demo data in demo mode, otherwise use query data
+  const pancakeStats: SimulationStats | null = isDemo && demoData
+    ? demoData.pancakeStats
+    : queryPancakeStats || null;
+  const polymarketStats: SimulationStats | null = isDemo && demoData
+    ? demoData.polymarketStats
+    : queryPolymarketStats || null;
+  const pendingBets: PendingBet[] = isDemo && demoData
+    ? demoData.pendingBets
+    : tradesData?.pendingBets || [];
+  const recentTrades: any[] = isDemo && demoData
+    ? demoData.recentTrades
+    : tradesData?.recentTrades || [];
+
+  const loadingStats = !isDemo && (isLoadingPancake || isLoadingPolymarket || isLoadingTrades);
 
   useEffect(() => {
     setMounted(true);
-    // If demo mode, load demo data
-    if (demoData) {
-      setPancakeStats(demoData.pancakeStats);
-      setPolymarketStats(demoData.polymarketStats);
-      setPendingBets(demoData.pendingBets);
-      setRecentTrades(demoData.recentTrades);
-      setLoadingStats(false);
-    }
-  }, [demoData]);
+  }, []);
 
   const {
     isRegistered,
@@ -306,126 +331,6 @@ function DashboardContent() {
     isRegistering,
   } = useTruthBounty();
 
-  const fetchSimulationData = useCallback(async () => {
-    if (!account.address) return;
-
-    setLoadingStats(true);
-    try {
-      // Fetch PancakeSwap stats
-      const pancakeRes = await fetch(`/api/copy-trading/simulation?stats=true&follower=${account.address}`);
-      if (pancakeRes.ok) {
-        const data = await pancakeRes.json();
-        const followerStats = data.followers?.find((f: any) =>
-          f.follower.toLowerCase() === account.address?.toLowerCase()
-        );
-        if (followerStats) {
-          // Parse winRate - API returns "50.0%" string
-          let winRateNum = 0;
-          if (typeof followerStats.winRate === 'string') {
-            winRateNum = parseFloat(followerStats.winRate.replace('%', '')) || 0;
-          } else if (typeof followerStats.winRate === 'number') {
-            winRateNum = followerStats.winRate;
-          }
-          setPancakeStats({
-            totalTrades: followerStats.totalTrades || 0,
-            wins: followerStats.wins || 0,
-            losses: followerStats.losses || 0,
-            pending: followerStats.pending || 0,
-            winRate: winRateNum,
-            totalPnl: parseFloat(followerStats.totalPnlBNB || followerStats.totalPnlBnb) || 0,
-            totalVolume: parseFloat(followerStats.totalVolumeBNB || followerStats.totalVolumeBnb) || 0,
-          });
-        }
-      }
-
-      // Fetch Polymarket stats
-      const polyRes = await fetch(`/api/polymarket/simulate?stats=true&follower=${account.address}`);
-      if (polyRes.ok) {
-        const data = await polyRes.json();
-        const followerStats = data.followers?.find((f: any) =>
-          f.follower.toLowerCase() === account.address?.toLowerCase()
-        );
-        if (followerStats) {
-          // Parse winRate - API may return "50.0%" string or number
-          let winRateNum = 0;
-          if (typeof followerStats.winRate === 'string') {
-            winRateNum = parseFloat(followerStats.winRate.replace('%', '')) || 0;
-          } else if (typeof followerStats.winRate === 'number') {
-            winRateNum = followerStats.winRate;
-          }
-          setPolymarketStats({
-            totalTrades: followerStats.totalTrades || 0,
-            wins: followerStats.wins || 0,
-            losses: followerStats.losses || 0,
-            pending: followerStats.pending || 0,
-            winRate: winRateNum,
-            totalPnl: parseFloat(followerStats.totalPnlUsd || followerStats.totalPnlUSD) || 0,
-            totalVolume: parseFloat(followerStats.totalVolumeUsd || followerStats.totalVolumeUSD) || 0,
-          });
-        }
-      }
-
-      // Fetch pending PancakeSwap bets
-      const pancakeBetsRes = await fetch(`/api/copy-trading/simulation?follower=${account.address}&limit=50`);
-      if (pancakeBetsRes.ok) {
-        const data = await pancakeBetsRes.json();
-        const pending = (data.trades || [])
-          .filter((t: any) => t.outcome === 'pending')
-          .map((t: any) => ({
-            id: t.id,
-            platform: 'pancakeswap' as const,
-            market: `Epoch ${t.epoch}`,
-            position: t.isBull ? 'Bull' : 'Bear',
-            amount: parseFloat(t.amountBNB || t.simulated_amount || '0'),
-            timestamp: t.simulatedAt || t.simulated_at,
-          }));
-
-        // Fetch pending Polymarket bets
-        const polyBetsRes = await fetch(`/api/polymarket/simulate?follower=${account.address}&limit=50`);
-        let polyPending: PendingBet[] = [];
-        let polyTrades: any[] = [];
-
-        if (polyBetsRes.ok) {
-          const polyData = await polyBetsRes.json();
-          polyTrades = polyData.trades || [];
-          polyPending = polyTrades
-            .filter((t: any) => t.outcome === 'pending')
-            .map((t: any) => ({
-              id: t.id,
-              platform: 'polymarket' as const,
-              market: t.marketQuestion || t.market_question || `Market ${(t.marketId || t.market_id)?.slice(0, 8)}...`,
-              position: t.outcomeSelected || t.outcome_selected || 'Unknown',
-              amount: parseFloat(t.amountUsd || t.amount_usd || '0'),
-              entryPrice: t.priceAtEntry || t.price_at_entry ? parseFloat(t.priceAtEntry || t.price_at_entry) : undefined,
-              timestamp: t.simulatedAt || t.simulated_at,
-            }));
-        }
-
-        setPendingBets([...pending, ...polyPending].sort((a, b) =>
-          new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
-        ));
-
-        // Get recent resolved trades
-        const recentResolved = [
-          ...(data.trades || []).filter((t: any) => t.outcome !== 'pending').slice(0, 5).map((t: any) => ({ ...t, _platform: 'pancakeswap' })),
-          ...polyTrades.filter((t: any) => t.outcome !== 'pending').slice(0, 5).map((t: any) => ({ ...t, _platform: 'polymarket' })),
-        ].sort((a, b) => new Date(b.resolvedAt || b.resolved_at || b.simulatedAt || b.simulated_at || 0).getTime() - new Date(a.resolvedAt || a.resolved_at || a.simulatedAt || a.simulated_at || 0).getTime());
-        setRecentTrades(recentResolved.slice(0, 10));
-      }
-    } catch (error) {
-      console.error('Error fetching simulation data:', error);
-    } finally {
-      setLoadingStats(false);
-    }
-  }, [account.address]);
-
-  useEffect(() => {
-    if (mounted && account.address) {
-      fetchSimulationData();
-      const interval = setInterval(fetchSimulationData, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [mounted, account.address, fetchSimulationData]);
 
   const handleRegister = async () => {
     setRegisterError(null);
@@ -497,7 +402,7 @@ function DashboardContent() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={fetchSimulationData} disabled={loadingStats} className="h-9 w-9">
+          <Button variant="outline" size="icon" onClick={handleRefresh} disabled={loadingStats} className="h-9 w-9">
             {loadingStats ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
           </Button>
         </div>
@@ -651,7 +556,7 @@ function DashboardContent() {
                 <Badge variant="secondary" className="text-xs">{totalPending}</Badge>
               )}
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={fetchSimulationData} disabled={loadingStats}>
+            <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={loadingStats}>
               <RefreshCw className={`h-3.5 w-3.5 ${loadingStats ? 'animate-spin' : ''}`} />
             </Button>
           </div>

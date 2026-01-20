@@ -1,8 +1,10 @@
 'use client'
 
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useAccount } from 'wagmi';
+import { useQueryClient } from '@tanstack/react-query';
+import { usePlatformMarketsWithFetcher } from '@/lib/queries';
 import { MarketList } from '@/components/polymarket/MarketList';
 import { MarketDetailModal } from '@/components/polymarket/MarketDetailModal';
 import { SimulateBetModal } from '@/components/polymarket/SimulateBetModal';
@@ -36,302 +38,117 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function MarketsPage() {
   const { address } = useAccount();
+  const queryClient = useQueryClient();
+
+  // UI state only - reduced from 55+ useState to 5
   const [selectedMarket, setSelectedMarket] = useState<PolymarketMarket | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [simulateMarket, setSimulateMarket] = useState<PolymarketMarket | null>(null);
   const [isSimulateModalOpen, setIsSimulateModalOpen] = useState(false);
-  const [pancakeMarkets, setPancakeMarkets] = useState<PancakePredictionMarket[]>([]);
-  const [pancakeLoading, setPancakeLoading] = useState(true);
-  const [isMockData, setIsMockData] = useState(false);
-  const [overtimeMarkets, setOvertimeMarkets] = useState<OvertimePredictionMarket[]>([]);
-  const [overtimeLoading, setOvertimeLoading] = useState(true);
-  const [isOvertimeMock, setIsOvertimeMock] = useState(false);
-  const [speedMarkets, setSpeedMarkets] = useState<SpeedMarketDisplay[]>([]);
-  const [speedLoading, setSpeedLoading] = useState(true);
-  const [isSpeedMock, setIsSpeedMock] = useState(false);
-  const [limitlessMarkets, setLimitlessMarkets] = useState<LimitlessPredictionMarket[]>([]);
-  const [limitlessLoading, setLimitlessLoading] = useState(true);
-  const [isLimitlessMock, setIsLimitlessMock] = useState(false);
-  const [azuroMarkets, setAzuroMarkets] = useState<AzuroPredictionMarket[]>([]);
-  const [azuroLoading, setAzuroLoading] = useState(true);
-  const [isAzuroMock, setIsAzuroMock] = useState(false);
-  const [sxbetMarkets, setSXBetMarkets] = useState<SXBetMarket[]>([]);
-  const [sxbetLoading, setSXBetLoading] = useState(true);
-  const [isSXBetMock, setIsSXBetMock] = useState(false);
-  const [gnosisMarkets, setGnosisMarkets] = useState<GnosisPredictionMarket[]>([]);
-  const [gnosisLoading, setGnosisLoading] = useState(true);
-  const [isGnosisMock, setIsGnosisMock] = useState(false);
-  const [driftMarkets, setDriftMarkets] = useState<DriftPredictionMarket[]>([]);
-  const [driftLoading, setDriftLoading] = useState(true);
-  const [isDriftMock, setIsDriftMock] = useState(false);
-  const [kalshiMarkets, setKalshiMarkets] = useState<KalshiPredictionMarket[]>([]);
-  const [kalshiLoading, setKalshiLoading] = useState(true);
-  const [isKalshiMock, setIsKalshiMock] = useState(false);
-  const [manifoldMarkets, setManifoldMarkets] = useState<ManifoldPredictionMarket[]>([]);
-  const [manifoldLoading, setManifoldLoading] = useState(true);
-  const [isManifoldMock, setIsManifoldMock] = useState(false);
-  const [metaculusMarkets, setMetaculusMarkets] = useState<MetaculusPredictionMarket[]>([]);
-  const [metaculusLoading, setMetaculusLoading] = useState(true);
-  const [isMetaculusMock, setIsMetaculusMock] = useState(false);
   const [activeTab, setActiveTab] = useState('pancake');
-  const [refreshing, setRefreshing] = useState(false);
 
-  // Error states for each platform
-  const [pancakeError, setPancakeError] = useState<string | null>(null);
-  const [overtimeError, setOvertimeError] = useState<string | null>(null);
-  const [speedError, setSpeedError] = useState<string | null>(null);
-  const [limitlessError, setLimitlessError] = useState<string | null>(null);
-  const [azuroError, setAzuroError] = useState<string | null>(null);
-  const [sxbetError, setSXBetError] = useState<string | null>(null);
-  const [gnosisError, setGnosisError] = useState<string | null>(null);
-  const [driftError, setDriftError] = useState<string | null>(null);
-  const [kalshiError, setKalshiError] = useState<string | null>(null);
-  const [manifoldError, setManifoldError] = useState<string | null>(null);
-  const [metaculusError, setMetaculusError] = useState<string | null>(null);
+  // React Query hooks for each platform - only active tab polls, others use cache
+  const pancakeQuery = usePlatformMarketsWithFetcher<PancakePredictionMarket>(
+    'pancakeswap', fetchPancakeMarkets, activeTab === 'pancake'
+  );
+  const overtimeQuery = usePlatformMarketsWithFetcher<OvertimePredictionMarket>(
+    'overtime', fetchOvertimeMarkets, activeTab === 'overtime'
+  );
+  const speedQuery = usePlatformMarketsWithFetcher<SpeedMarketDisplay>(
+    'speedmarkets', fetchSpeedMarkets, activeTab === 'speed'
+  );
+  const limitlessQuery = usePlatformMarketsWithFetcher<LimitlessPredictionMarket>(
+    'limitless', fetchLimitlessMarkets, activeTab === 'limitless'
+  );
+  const azuroQuery = usePlatformMarketsWithFetcher<AzuroPredictionMarket>(
+    'azuro', fetchAzuroMarkets, activeTab === 'azuro'
+  );
+  const sxbetQuery = usePlatformMarketsWithFetcher<SXBetMarket>(
+    'sxbet', fetchSXBetMarkets, activeTab === 'sxbet'
+  );
+  const gnosisQuery = usePlatformMarketsWithFetcher<GnosisPredictionMarket>(
+    'gnosis', fetchGnosisMarkets, activeTab === 'gnosis'
+  );
+  const driftQuery = usePlatformMarketsWithFetcher<DriftPredictionMarket>(
+    'drift', fetchDriftMarkets, activeTab === 'drift'
+  );
+  const kalshiQuery = usePlatformMarketsWithFetcher<KalshiPredictionMarket>(
+    'kalshi', fetchKalshiMarkets, activeTab === 'kalshi'
+  );
+  const manifoldQuery = usePlatformMarketsWithFetcher<ManifoldPredictionMarket>(
+    'manifold', fetchManifoldMarkets, activeTab === 'manifold'
+  );
+  const metaculusQuery = usePlatformMarketsWithFetcher<MetaculusPredictionMarket>(
+    'metaculus', fetchMetaculusMarkets, activeTab === 'metaculus'
+  );
 
-  useEffect(() => {
-    loadPancakeMarkets();
-    loadOvertimeMarkets();
-    loadSpeedMarkets();
-    loadLimitlessMarkets();
-    loadAzuroMarkets();
-    loadSXBetMarkets();
-    loadGnosisMarkets();
-    loadDriftMarkets();
-    loadKalshiMarkets();
-    loadManifoldMarkets();
-    loadMetaculusMarkets();
-    const interval = setInterval(() => {
-      loadPancakeMarkets();
-      loadOvertimeMarkets();
-      loadSpeedMarkets();
-      loadLimitlessMarkets();
-      loadAzuroMarkets();
-      loadSXBetMarkets();
-      loadGnosisMarkets();
-      loadDriftMarkets();
-      loadKalshiMarkets();
-      loadManifoldMarkets();
-      loadMetaculusMarkets();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  // Extract data from queries
+  const pancakeMarkets = pancakeQuery.data?.markets || [];
+  const pancakeLoading = pancakeQuery.isLoading;
+  const isMockData = pancakeQuery.data?.isMock || false;
+  const pancakeError = pancakeQuery.data?.error || null;
 
-  async function loadPancakeMarkets() {
-    try {
-      setPancakeError(null);
-      const result = await fetchPancakeMarkets();
-      if ('error' in result && result.error) {
-        setPancakeError(result.error);
-        return;
-      }
-      setPancakeMarkets(result.markets);
-      setIsMockData(result.isMock);
-    } catch (error: any) {
-      console.error('Error loading PancakeSwap markets:', error);
-      setPancakeError(error.message || 'Failed to load PancakeSwap markets');
-    } finally {
-      setPancakeLoading(false);
-    }
-  }
+  const overtimeMarkets = overtimeQuery.data?.markets || [];
+  const overtimeLoading = overtimeQuery.isLoading;
+  const isOvertimeMock = overtimeQuery.data?.isMock || false;
+  const overtimeError = overtimeQuery.data?.error || null;
 
-  async function loadOvertimeMarkets() {
-    try {
-      setOvertimeError(null);
-      const result = await fetchOvertimeMarkets();
-      if ('error' in result && result.error) {
-        setOvertimeError(result.error);
-        return;
-      }
-      setOvertimeMarkets(result.markets);
-      setIsOvertimeMock(result.isMock);
-    } catch (error: any) {
-      console.error('Error loading Overtime markets:', error);
-      setOvertimeError(error.message || 'Failed to load Overtime markets');
-    } finally {
-      setOvertimeLoading(false);
-    }
-  }
+  const speedMarkets = speedQuery.data?.markets || [];
+  const speedLoading = speedQuery.isLoading;
+  const isSpeedMock = speedQuery.data?.isMock || false;
+  const speedError = speedQuery.data?.error || null;
 
-  async function loadSpeedMarkets() {
-    try {
-      setSpeedError(null);
-      const result = await fetchSpeedMarkets();
-      if ('error' in result && result.error) {
-        setSpeedError(result.error);
-        return;
-      }
-      setSpeedMarkets(result.markets);
-      setIsSpeedMock(result.isMock);
-    } catch (error: any) {
-      console.error('Error loading Speed Markets:', error);
-      setSpeedError(error.message || 'Failed to load Speed Markets');
-    } finally {
-      setSpeedLoading(false);
-    }
-  }
+  const limitlessMarkets = limitlessQuery.data?.markets || [];
+  const limitlessLoading = limitlessQuery.isLoading;
+  const isLimitlessMock = limitlessQuery.data?.isMock || false;
+  const limitlessError = limitlessQuery.data?.error || null;
 
-  async function loadLimitlessMarkets() {
-    try {
-      setLimitlessError(null);
-      const result = await fetchLimitlessMarkets();
-      if ('error' in result && result.error) {
-        setLimitlessError(result.error);
-        return;
-      }
-      setLimitlessMarkets(result.markets);
-      setIsLimitlessMock(result.isMock);
-    } catch (error: any) {
-      console.error('Error loading Limitless markets:', error);
-      setLimitlessError(error.message || 'Failed to load Limitless markets');
-    } finally {
-      setLimitlessLoading(false);
-    }
-  }
+  const azuroMarkets = azuroQuery.data?.markets || [];
+  const azuroLoading = azuroQuery.isLoading;
+  const isAzuroMock = azuroQuery.data?.isMock || false;
+  const azuroError = azuroQuery.data?.error || null;
 
-  async function loadAzuroMarkets() {
-    try {
-      setAzuroError(null);
-      const result = await fetchAzuroMarkets();
-      if ('error' in result && result.error) {
-        setAzuroError(result.error);
-        return;
-      }
-      setAzuroMarkets(result.markets);
-      setIsAzuroMock(result.isMock);
-    } catch (error: any) {
-      console.error('Error loading Azuro markets:', error);
-      setAzuroError(error.message || 'Failed to load Azuro markets');
-    } finally {
-      setAzuroLoading(false);
-    }
-  }
+  const sxbetMarkets = sxbetQuery.data?.markets || [];
+  const sxbetLoading = sxbetQuery.isLoading;
+  const isSXBetMock = sxbetQuery.data?.isMock || false;
+  const sxbetError = sxbetQuery.data?.error || null;
 
-  async function loadSXBetMarkets() {
-    try {
-      setSXBetError(null);
-      const result = await fetchSXBetMarkets();
-      if ('error' in result && result.error) {
-        setSXBetError(result.error);
-        return;
-      }
-      setSXBetMarkets(result.markets);
-      setIsSXBetMock(result.isMock);
-    } catch (error: any) {
-      console.error('Error loading SX Bet markets:', error);
-      setSXBetError(error.message || 'Failed to load SX Bet markets');
-    } finally {
-      setSXBetLoading(false);
-    }
-  }
+  const gnosisMarkets = gnosisQuery.data?.markets || [];
+  const gnosisLoading = gnosisQuery.isLoading;
+  const isGnosisMock = gnosisQuery.data?.isMock || false;
+  const gnosisError = gnosisQuery.data?.error || null;
 
-  async function loadGnosisMarkets() {
-    try {
-      setGnosisError(null);
-      const result = await fetchGnosisMarkets();
-      if ('error' in result && result.error) {
-        setGnosisError(result.error);
-        return;
-      }
-      setGnosisMarkets(result.markets);
-      setIsGnosisMock(result.isMock);
-    } catch (error: any) {
-      console.error('Error loading Gnosis/Omen markets:', error);
-      setGnosisError(error.message || 'Failed to load Gnosis/Omen markets');
-    } finally {
-      setGnosisLoading(false);
-    }
-  }
+  const driftMarkets = driftQuery.data?.markets || [];
+  const driftLoading = driftQuery.isLoading;
+  const isDriftMock = driftQuery.data?.isMock || false;
+  const driftError = driftQuery.data?.error || null;
 
-  async function loadDriftMarkets() {
-    try {
-      setDriftError(null);
-      const result = await fetchDriftMarkets();
-      if ('error' in result && result.error) {
-        setDriftError(result.error);
-        return;
-      }
-      setDriftMarkets(result.markets);
-      setIsDriftMock(result.isMock);
-    } catch (error: any) {
-      console.error('Error loading Drift markets:', error);
-      setDriftError(error.message || 'Failed to load Drift markets');
-    } finally {
-      setDriftLoading(false);
-    }
-  }
+  const kalshiMarkets = kalshiQuery.data?.markets || [];
+  const kalshiLoading = kalshiQuery.isLoading;
+  const isKalshiMock = kalshiQuery.data?.isMock || false;
+  const kalshiError = kalshiQuery.data?.error || null;
 
-  async function loadKalshiMarkets() {
-    try {
-      setKalshiError(null);
-      const result = await fetchKalshiMarkets();
-      if ('error' in result && result.error) {
-        setKalshiError(result.error);
-        return;
-      }
-      setKalshiMarkets(result.markets);
-      setIsKalshiMock(result.isMock);
-    } catch (error: any) {
-      console.error('Error loading Kalshi markets:', error);
-      setKalshiError(error.message || 'Failed to load Kalshi markets');
-    } finally {
-      setKalshiLoading(false);
-    }
-  }
+  const manifoldMarkets = manifoldQuery.data?.markets || [];
+  const manifoldLoading = manifoldQuery.isLoading;
+  const isManifoldMock = manifoldQuery.data?.isMock || false;
+  const manifoldError = manifoldQuery.data?.error || null;
 
-  async function loadManifoldMarkets() {
-    try {
-      setManifoldError(null);
-      const result = await fetchManifoldMarkets();
-      if ('error' in result && result.error) {
-        setManifoldError(result.error);
-        return;
-      }
-      setManifoldMarkets(result.markets);
-      setIsManifoldMock(result.isMock);
-    } catch (error: any) {
-      console.error('Error loading Manifold markets:', error);
-      setManifoldError(error.message || 'Failed to load Manifold markets');
-    } finally {
-      setManifoldLoading(false);
-    }
-  }
+  const metaculusMarkets = metaculusQuery.data?.markets || [];
+  const metaculusLoading = metaculusQuery.isLoading;
+  const isMetaculusMock = metaculusQuery.data?.isMock || false;
+  const metaculusError = metaculusQuery.data?.error || null;
 
-  async function loadMetaculusMarkets() {
-    try {
-      setMetaculusError(null);
-      const result = await fetchMetaculusMarkets();
-      if ('error' in result && result.error) {
-        setMetaculusError(result.error);
-        return;
-      }
-      setMetaculusMarkets(result.markets);
-      setIsMetaculusMock(result.isMock);
-    } catch (error: any) {
-      console.error('Error loading Metaculus markets:', error);
-      setMetaculusError(error.message || 'Failed to load Metaculus markets');
-    } finally {
-      setMetaculusLoading(false);
-    }
-  }
+  // Check if any query is fetching (for refresh button state)
+  const refreshing = pancakeQuery.isFetching || overtimeQuery.isFetching ||
+    speedQuery.isFetching || limitlessQuery.isFetching || azuroQuery.isFetching ||
+    sxbetQuery.isFetching || gnosisQuery.isFetching || driftQuery.isFetching ||
+    kalshiQuery.isFetching || manifoldQuery.isFetching || metaculusQuery.isFetching;
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await Promise.all([
-      loadPancakeMarkets(),
-      loadOvertimeMarkets(),
-      loadSpeedMarkets(),
-      loadLimitlessMarkets(),
-      loadAzuroMarkets(),
-      loadSXBetMarkets(),
-      loadGnosisMarkets(),
-      loadDriftMarkets(),
-      loadKalshiMarkets(),
-      loadManifoldMarkets(),
-      loadMetaculusMarkets(),
-    ]);
-    setRefreshing(false);
-  };
+  // Manual refresh handler using React Query's refetch
+  const handleRefresh = useCallback(async () => {
+    // Invalidate all platform market queries to force refetch
+    await queryClient.invalidateQueries({ queryKey: ['platform-markets'] });
+  }, [queryClient]);
 
   const handleSelectMarket = (market: PolymarketMarket) => {
     setSelectedMarket(market);
@@ -549,7 +366,7 @@ export default function MarketsPage() {
                   key={market.id}
                   market={market}
                   walletAddress={address}
-                  onBetPlaced={loadPancakeMarkets}
+                  onBetPlaced={() => pancakeQuery.refetch()}
                 />
               ))}
             </div>
@@ -603,7 +420,7 @@ export default function MarketsPage() {
                   key={market.id}
                   market={market}
                   walletAddress={address}
-                  onBetPlaced={loadSpeedMarkets}
+                  onBetPlaced={() => speedQuery.refetch()}
                 />
               ))}
             </div>
@@ -657,7 +474,7 @@ export default function MarketsPage() {
                   key={market.id}
                   market={market}
                   walletAddress={address}
-                  onBetPlaced={loadOvertimeMarkets}
+                  onBetPlaced={() => overtimeQuery.refetch()}
                 />
               ))}
             </div>
@@ -711,7 +528,7 @@ export default function MarketsPage() {
                   key={market.id}
                   market={market}
                   walletAddress={address}
-                  onBetPlaced={loadLimitlessMarkets}
+                  onBetPlaced={() => limitlessQuery.refetch()}
                 />
               ))}
             </div>
@@ -781,7 +598,7 @@ export default function MarketsPage() {
                   key={market.id}
                   market={market}
                   walletAddress={address}
-                  onBetPlaced={loadAzuroMarkets}
+                  onBetPlaced={() => azuroQuery.refetch()}
                 />
               ))}
             </div>
@@ -835,7 +652,7 @@ export default function MarketsPage() {
                   key={market.id}
                   market={market}
                   walletAddress={address}
-                  onBetPlaced={loadSXBetMarkets}
+                  onBetPlaced={() => sxbetQuery.refetch()}
                 />
               ))}
             </div>
@@ -897,7 +714,7 @@ export default function MarketsPage() {
                   }}
                   platformId="gnosis"
                   walletAddress={address}
-                  onBetPlaced={loadGnosisMarkets}
+                  onBetPlaced={() => gnosisQuery.refetch()}
                 />
               ))}
             </div>
@@ -959,7 +776,7 @@ export default function MarketsPage() {
                   }}
                   platformId="drift"
                   walletAddress={address}
-                  onBetPlaced={loadDriftMarkets}
+                  onBetPlaced={() => driftQuery.refetch()}
                 />
               ))}
             </div>
@@ -1020,7 +837,7 @@ export default function MarketsPage() {
                   }}
                   platformId="kalshi"
                   walletAddress={address}
-                  onBetPlaced={loadKalshiMarkets}
+                  onBetPlaced={() => kalshiQuery.refetch()}
                 />
               ))}
             </div>
@@ -1081,7 +898,7 @@ export default function MarketsPage() {
                   }}
                   platformId="manifold"
                   walletAddress={address}
-                  onBetPlaced={loadManifoldMarkets}
+                  onBetPlaced={() => manifoldQuery.refetch()}
                 />
               ))}
             </div>
@@ -1141,7 +958,7 @@ export default function MarketsPage() {
                   }}
                   platformId="metaculus"
                   walletAddress={address}
-                  onBetPlaced={loadMetaculusMarkets}
+                  onBetPlaced={() => metaculusQuery.refetch()}
                 />
               ))}
             </div>

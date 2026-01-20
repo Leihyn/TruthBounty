@@ -12,6 +12,9 @@ const BSC_RPC_URLS = [
   'https://bsc-dataseed4.binance.org/',
 ];
 
+// Timeout for RPC calls (3 seconds per attempt)
+const RPC_TIMEOUT_MS = 3000;
+
 // Contract function selectors
 const SELECTORS = {
   currentEpoch: '0x76671808',
@@ -44,42 +47,50 @@ interface RoundData {
 }
 
 async function rpcCall(method: string, params: any[], rpcUrl: string): Promise<string> {
-  const response = await fetch(rpcUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: Date.now(),
-      method,
-      params,
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
 
-  if (!response.ok) {
-    throw new Error(`RPC error: ${response.status}`);
+  try {
+    const response = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: Date.now(),
+        method,
+        params,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`RPC error: ${response.status}`);
+    }
+
+    const data: RpcResponse = await response.json();
+    if (data.error) {
+      throw new Error(`RPC error: ${data.error.message}`);
+    }
+
+    return data.result || '0x';
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const data: RpcResponse = await response.json();
-  if (data.error) {
-    throw new Error(`RPC error: ${data.error.message}`);
-  }
-
-  return data.result || '0x';
 }
 
 async function callContract(contractAddress: string, data: string): Promise<string> {
-  let lastError: Error | null = null;
+  // Race all RPC endpoints in parallel - first successful response wins
+  const rpcPromises = BSC_RPC_URLS.map(rpcUrl =>
+    rpcCall('eth_call', [{ to: contractAddress, data }, 'latest'], rpcUrl)
+  );
 
-  for (const rpcUrl of BSC_RPC_URLS) {
-    try {
-      return await rpcCall('eth_call', [{ to: contractAddress, data }, 'latest'], rpcUrl);
-    } catch (error) {
-      lastError = error as Error;
-      continue;
-    }
+  // Use Promise.any to get the first successful result
+  try {
+    return await Promise.any(rpcPromises);
+  } catch (aggregateError) {
+    // All promises failed
+    throw new Error('All RPC endpoints failed');
   }
-
-  throw lastError || new Error('All RPC endpoints failed');
 }
 
 function encodeUint256(value: bigint | number): string {
@@ -109,6 +120,50 @@ function decodeRoundData(hex: string): RoundData {
     rewardBaseCalAmount: getSlot(11),
     rewardAmount: getSlot(12),
     oracleCalled: getSlot(13) !== BigInt(0),
+  };
+}
+
+function generateMockRounds() {
+  const now = Math.floor(Date.now() / 1000);
+  const roundDuration = 300; // 5 minutes per round
+  const baseEpoch = 250000;
+
+  const rounds = [];
+  for (let i = 0; i < 10; i++) {
+    const epoch = baseEpoch - i;
+    const startTime = now - (i * roundDuration) - 60;
+    const lockTime = startTime + 60;
+    const closeTime = lockTime + roundDuration;
+
+    // Realistic pool sizes (10-50 BNB total)
+    const totalBNB = 10 + Math.random() * 40;
+    const bullRatio = 0.4 + Math.random() * 0.2;
+    const bullBNB = totalBNB * bullRatio;
+    const bearBNB = totalBNB * (1 - bullRatio);
+
+    // Lock price around 600-650 USD
+    const lockPrice = Math.floor((600 + Math.random() * 50) * 1e8);
+    const priceChange = (Math.random() - 0.5) * 10;
+    const closePrice = i === 0 ? 0 : Math.floor(lockPrice + priceChange * 1e8);
+
+    rounds.push({
+      id: `round-${epoch}`,
+      epoch: epoch.toString(),
+      startTimestamp: startTime.toString(),
+      lockTimestamp: lockTime.toString(),
+      closeTimestamp: closeTime.toString(),
+      lockPrice: lockPrice.toString(),
+      closePrice: closePrice.toString(),
+      totalAmount: Math.floor(totalBNB * 1e18).toString(),
+      bullAmount: Math.floor(bullBNB * 1e18).toString(),
+      bearAmount: Math.floor(bearBNB * 1e18).toString(),
+      oracleCalled: i > 0,
+    });
+  }
+
+  return {
+    currentEpoch: baseEpoch.toString(),
+    rounds,
   };
 }
 
@@ -160,15 +215,21 @@ export async function GET() {
       currentEpoch: currentEpoch.toString(),
       rounds,
       timestamp: Date.now(),
+      isMock: false,
     });
   } catch (error) {
-    console.error('[PancakeSwap API] Error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    console.error('[PancakeSwap API] RPC failed, using mock data:', error instanceof Error ? error.message : error);
+
+    // Return mock data when RPC endpoints are unavailable
+    const mockData = generateMockRounds();
+
+    return NextResponse.json({
+      success: true,
+      currentEpoch: mockData.currentEpoch,
+      rounds: mockData.rounds,
+      timestamp: Date.now(),
+      isMock: true,
+      warning: 'Using simulated data - BSC RPC endpoints unavailable',
+    });
   }
 }

@@ -1,7 +1,7 @@
 'use client'
 
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TIER_NAMES, TIER_COLORS, ReputationTier, TIER_THRESHOLDS } from '@/lib/contracts';
+import { useLeaderboard, useRefreshLeaderboard } from '@/lib/queries';
+import { useQuery } from '@tanstack/react-query';
 import {
   Trophy,
   Medal,
@@ -100,9 +102,7 @@ export default function LeaderboardPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
-  const [simulatedData, setSimulatedData] = useState<LeaderboardEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // UI state only - data state managed by React Query
   const [leaderboardMode, setLeaderboardMode] = useState<'live' | 'simulated'>('live');
   const [sortBy, setSortBy] = useState('score');
   const [tierFilter, setTierFilter] = useState('all');
@@ -114,354 +114,77 @@ export default function LeaderboardPage() {
   const [selectedUser, setSelectedUser] = useState<LeaderboardEntry | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchLeaderboard = async () => {
-    setIsLoading(true);
-    try {
-      // Fetch all platform leaderboards in parallel (12 platforms)
-      const [polyRes, pancakeRes, overtimeRes, speedRes, limitlessRes, azuroRes, sxbetRes, gnosisRes, driftRes, kalshiRes, manifoldRes, metaculusRes] = await Promise.all([
-        fetch(`/api/polymarket-leaderboard?limit=100`).catch(() => null),
-        fetch(`/api/pancakeswap-leaderboard?limit=100`).catch(() => null),
-        fetch(`/api/overtime-leaderboard?limit=100`).catch(() => null),
-        fetch(`/api/speedmarkets-leaderboard?limit=100`).catch(() => null),
-        fetch(`/api/limitless-leaderboard?limit=100`).catch(() => null),
-        fetch(`/api/azuro-leaderboard?limit=100`).catch(() => null),
-        fetch(`/api/sxbet-leaderboard?limit=100`).catch(() => null),
-        fetch(`/api/gnosis-leaderboard?limit=100`).catch(() => null),
-        fetch(`/api/drift-leaderboard?limit=100`).catch(() => null),
-        fetch(`/api/kalshi-leaderboard?limit=100`).catch(() => null),
-        fetch(`/api/manifold-leaderboard?limit=100`).catch(() => null),
-        fetch(`/api/metaculus-leaderboard?limit=100`).catch(() => null),
-      ]);
+  // React Query hooks - automatic caching, retry, and deduplication
+  const { data: unifiedLeaderboard, isLoading: isLoadingLive, refetch: refetchLive } = useLeaderboard(500);
+  const refreshMutation = useRefreshLeaderboard();
 
-      // Parse JSON responses with error handling
-      const [polyResult, pancakeResult, overtimeResult, speedResult, limitlessResult, azuroResult, sxbetResult, gnosisResult, driftResult, kalshiResult, manifoldResult, metaculusResult] = await Promise.all([
-        polyRes?.ok ? polyRes.json().catch(() => ({ data: [] })) : { data: [] },
-        pancakeRes?.ok ? pancakeRes.json().catch(() => ({ data: [] })) : { data: [] },
-        overtimeRes?.ok ? overtimeRes.json().catch(() => ({ data: [] })) : { data: [] },
-        speedRes?.ok ? speedRes.json().catch(() => ({ data: [] })) : { data: [] },
-        limitlessRes?.ok ? limitlessRes.json().catch(() => ({ data: [] })) : { data: [] },
-        azuroRes?.ok ? azuroRes.json().catch(() => ({ data: [] })) : { data: [] },
-        sxbetRes?.ok ? sxbetRes.json().catch(() => ({ data: [] })) : { data: [] },
-        gnosisRes?.ok ? gnosisRes.json().catch(() => ({ data: [] })) : { data: [] },
-        driftRes?.ok ? driftRes.json().catch(() => ({ data: [] })) : { data: [] },
-        kalshiRes?.ok ? kalshiRes.json().catch(() => ({ data: [] })) : { data: [] },
-        manifoldRes?.ok ? manifoldRes.json().catch(() => ({ data: [] })) : { data: [] },
-        metaculusRes?.ok ? metaculusRes.json().catch(() => ({ data: [] })) : { data: [] },
-      ]);
-
-      // Process Polymarket data
-      const polyData = (polyResult.data || [])
-        .map((entry: any) => ({
-          ...entry,
-          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
-          rawScore: entry.truthScore,
-          normalizedScore: entry.truthScore,
-          platforms: ['Polymarket'],
-          pnl: entry.pnl,
-          losses: entry.losses,
-          platformBreakdown: entry.platformBreakdown || [{
-            platform: 'Polymarket',
-            bets: entry.totalBets || 0,
-            winRate: entry.winRate || 0,
-            score: entry.truthScore || 0,
-            volume: entry.totalVolume,
-            pnl: entry.pnl,
-          }],
-        }));
-
-      // Process PancakeSwap data
-      const pancakeData = (pancakeResult.data || [])
-        .map((entry: any) => ({
-          ...entry,
-          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
-          rawScore: entry.truthScore,
-          normalizedScore: entry.truthScore,
-          platforms: ['PancakeSwap Prediction'],
-          pnl: entry.pnl,
-          losses: entry.losses,
-          platformBreakdown: entry.platformBreakdown || [{
-            platform: 'PancakeSwap Prediction',
-            bets: entry.totalBets || 0,
-            winRate: entry.winRate || 0,
-            score: entry.truthScore || 0,
-            volume: entry.totalVolume,
-            pnl: entry.pnl,
-          }],
-        }));
-
-      // Process Overtime data
-      const overtimeData = (overtimeResult.data || [])
-        .map((entry: any) => ({
-          ...entry,
-          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
-          rawScore: entry.truthScore,
-          normalizedScore: entry.truthScore,
-          platforms: ['Overtime'],
-          pnl: entry.pnl,
-          losses: entry.losses,
-          platformBreakdown: entry.platformBreakdown || [{
-            platform: 'Overtime',
-            bets: entry.totalBets || 0,
-            winRate: entry.winRate || 0,
-            score: entry.truthScore || 0,
-            volume: entry.totalVolume,
-            pnl: entry.pnl,
-          }],
-        }));
-
-      // Process Speed Markets data
-      const speedData = (speedResult.data || [])
-        .map((entry: any) => ({
-          ...entry,
-          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
-          rawScore: entry.truthScore,
-          normalizedScore: entry.truthScore,
-          platforms: ['Speed Markets'],
-          pnl: entry.pnl,
-          losses: entry.losses,
-          platformBreakdown: entry.platformBreakdown || [{
-            platform: 'Speed Markets',
-            bets: entry.totalBets || 0,
-            winRate: entry.winRate || 0,
-            score: entry.truthScore || 0,
-            volume: entry.totalVolume,
-            pnl: entry.pnl,
-          }],
-        }));
-
-      // Process Limitless data
-      const limitlessData = (limitlessResult.data || [])
-        .map((entry: any) => ({
-          ...entry,
-          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
-          rawScore: entry.truthScore,
-          normalizedScore: entry.truthScore,
-          platforms: ['Limitless'],
-          pnl: entry.pnl,
-          losses: entry.losses,
-          platformBreakdown: entry.platformBreakdown || [{
-            platform: 'Limitless',
-            bets: entry.totalBets || 0,
-            winRate: entry.winRate || 0,
-            score: entry.truthScore || 0,
-            volume: entry.totalVolume,
-            pnl: entry.pnl,
-          }],
-        }));
-
-      // Process Azuro data
-      const azuroData = (azuroResult.data || [])
-        .map((entry: any) => ({
-          ...entry,
-          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
-          rawScore: entry.truthScore,
-          normalizedScore: entry.truthScore,
-          platforms: ['Azuro'],
-          pnl: entry.pnl,
-          losses: entry.losses,
-          platformBreakdown: entry.platformBreakdown || [{
-            platform: 'Azuro',
-            bets: entry.totalBets || 0,
-            winRate: entry.winRate || 0,
-            score: entry.truthScore || 0,
-            volume: entry.totalVolume,
-            pnl: entry.pnl,
-          }],
-        }));
-
-      // Process SX Bet data with volume sanity check
-      // (volumes over $10M per user are likely data errors from decimal handling)
-      const sxbetData = (sxbetResult.data || [])
-        .map((entry: any) => {
-          let volume = parseFloat(entry.totalVolume) || 0;
-          let pnl = entry.pnl || 0;
-
-          // Sanity check: if volume is over $10M, it's likely a decimal error
-          // Real SX Bet volumes are typically under $1M per user
-          if (volume > 10000000) {
-            // This indicates the API returned raw stake instead of betTimeValue
-            // Divide by 1e12 to correct (difference between 1e18 and 1e6 decimals)
-            volume = volume / 1e12;
-            pnl = pnl / 1e12;
-          }
-
-          return {
-            ...entry,
-            totalVolume: volume.toFixed(2),
-            totalPredictions: entry.totalBets || entry.totalPredictions || 0,
-            rawScore: entry.truthScore,
-            normalizedScore: entry.truthScore,
-            platforms: ['SX Bet'],
-            pnl: pnl,
-            losses: entry.losses,
-            platformBreakdown: entry.platformBreakdown || [{
-              platform: 'SX Bet',
-              bets: entry.totalBets || 0,
-              winRate: entry.winRate || 0,
-              score: entry.truthScore || 0,
-              volume: volume.toFixed(2),
-              pnl: pnl,
-            }],
-          };
-        });
-
-      // Process Gnosis/Omen data
-      const gnosisData = (gnosisResult.data || [])
-        .map((entry: any) => ({
-          ...entry,
-          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
-          rawScore: entry.truthScore,
-          normalizedScore: entry.truthScore,
-          platforms: ['Gnosis/Omen'],
-          platformBreakdown: [{
-            platform: 'Gnosis/Omen',
-            bets: entry.totalBets || 0,
-            winRate: entry.winRate || 0,
-            score: entry.truthScore || 0,
-            volume: entry.totalVolume,
-            pnl: entry.pnl || 0,
-          }],
-        }));
-
-      // Process Drift data
-      const driftData = (driftResult.data || [])
-        .map((entry: any) => ({
-          ...entry,
-          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
-          rawScore: entry.truthScore,
-          normalizedScore: entry.truthScore,
-          platforms: ['Drift BET'],
-          platformBreakdown: [{
-            platform: 'Drift BET',
-            bets: entry.totalBets || 0,
-            winRate: entry.winRate || 0,
-            score: entry.truthScore || 0,
-            volume: entry.totalVolume,
-            pnl: entry.pnl || 0,
-          }],
-        }));
-
-      // Process Kalshi data
-      const kalshiData = (kalshiResult.data || [])
-        .map((entry: any) => ({
-          ...entry,
-          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
-          rawScore: entry.truthScore,
-          normalizedScore: entry.truthScore,
-          platforms: ['Kalshi'],
-          platformBreakdown: [{
-            platform: 'Kalshi',
-            bets: entry.totalBets || 0,
-            winRate: entry.winRate || 0,
-            score: entry.truthScore || 0,
-            volume: entry.totalVolume,
-            pnl: entry.pnl || 0,
-          }],
-        }));
-
-      // Process Manifold data
-      const manifoldData = (manifoldResult.data || [])
-        .map((entry: any) => ({
-          ...entry,
-          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
-          rawScore: entry.truthScore,
-          normalizedScore: entry.truthScore,
-          platforms: ['Manifold Markets'],
-          platformBreakdown: [{
-            platform: 'Manifold Markets',
-            bets: entry.totalBets || 0,
-            winRate: entry.winRate || 0,
-            score: entry.truthScore || 0,
-            volume: entry.totalVolume,
-            pnl: entry.pnl || 0,
-          }],
-        }));
-
-      // Process Metaculus data
-      const metaculusData = (metaculusResult.data || [])
-        .map((entry: any) => ({
-          ...entry,
-          totalPredictions: entry.totalBets || entry.totalPredictions || 0,
-          rawScore: entry.truthScore,
-          normalizedScore: entry.truthScore,
-          platforms: ['Metaculus'],
-          platformBreakdown: [{
-            platform: 'Metaculus',
-            bets: entry.totalBets || 0,
-            winRate: entry.winRate || 0,
-            score: entry.truthScore || 0,
-            volume: entry.totalVolume,
-            pnl: entry.pnl || 0,
-          }],
-        }));
-
-      // Combine all 12 platform datasets
-      const allData = [...polyData, ...pancakeData, ...overtimeData, ...speedData, ...limitlessData, ...azuroData, ...sxbetData, ...gnosisData, ...driftData, ...kalshiData, ...manifoldData, ...metaculusData];
-
-      // Sort by score for global ranking
-      allData.sort((a, b) => b.truthScore - a.truthScore);
-
-      // Add global rank and tier based on score
-      const dataWithTiers = allData.map((entry: any, index: number) => ({
-        ...entry,
-        rank: index + 1,
-        tier: getTierFromScore(entry.truthScore),
-      }));
-
-      setLeaderboardData(dataWithTiers);
-    } catch (err) {
-      console.error('Leaderboard fetch error:', err);
-      setLeaderboardData([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchSimulatedLeaderboard = async (platform: string) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/simulated-leaderboard?platform=${platform}&limit=100`);
+  // Simulated leaderboard query (separate, only runs when needed)
+  const { data: simulatedResult, isLoading: isLoadingSimulated, refetch: refetchSimulated } = useQuery({
+    queryKey: ['simulated-leaderboard', simulatedPlatform],
+    queryFn: async () => {
+      const res = await fetch(`/api/simulated-leaderboard?platform=${simulatedPlatform}&limit=100`);
       if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    },
+    staleTime: 60 * 1000, // 1 minute
+    enabled: leaderboardMode === 'simulated', // Only fetch when in simulated mode
+  });
 
-      const result = await res.json();
-      const data = (result.data || []).map((entry: any, index: number) => ({
-        ...entry,
-        rank: entry.rank || index + 1,
-        totalPredictions: entry.totalBets || 0,
-        correctPredictions: entry.wins || 0,
-        rawScore: entry.truthScore,
-        normalizedScore: entry.truthScore,
-        tier: getTierFromScore(entry.truthScore),
-        nftTokenId: 0,
-        platforms: entry.platforms || [result.platform],
-        platformBreakdown: [{
-          platform: result.platform,
-          bets: entry.totalBets || 0,
-          winRate: entry.winRate || 0,
-          score: entry.truthScore || 0,
-          volume: entry.totalVolume,
-          pnl: entry.pnl || 0,
-        }],
-      }));
+  const isLoading = leaderboardMode === 'simulated' ? isLoadingSimulated : isLoadingLive;
 
-      setSimulatedData(data);
-    } catch (err) {
-      console.error('Simulated leaderboard fetch error:', err);
-      setSimulatedData([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Transform unified leaderboard data from API to component format
+  const leaderboardData: LeaderboardEntry[] = useMemo(() => {
+    if (!unifiedLeaderboard?.data) return [];
+    return (unifiedLeaderboard.data || []).map((entry: any, index: number) => ({
+      ...entry,
+      rank: entry.rank || index + 1,
+      totalPredictions: entry.totalBets || entry.totalPredictions || 0,
+      correctPredictions: entry.wins || 0,
+      rawScore: entry.truthScore,
+      normalizedScore: entry.truthScore,
+      tier: getTierFromScore(entry.truthScore),
+      nftTokenId: 0,
+      platforms: entry.platforms || [],
+      platformBreakdown: entry.platformBreakdown || [],
+    }));
+  }, [unifiedLeaderboard]);
 
-  useEffect(() => {
-    fetchLeaderboard();
-  }, []); // Fetch once on mount, filtering/sorting is client-side
+  // Transform simulated leaderboard data
+  const simulatedData: LeaderboardEntry[] = useMemo(() => {
+    if (!simulatedResult?.data) return [];
+    return (simulatedResult.data || []).map((entry: any, index: number) => ({
+      ...entry,
+      rank: entry.rank || index + 1,
+      totalPredictions: entry.totalBets || 0,
+      correctPredictions: entry.wins || 0,
+      rawScore: entry.truthScore,
+      normalizedScore: entry.truthScore,
+      tier: getTierFromScore(entry.truthScore),
+      nftTokenId: 0,
+      platforms: entry.platforms || [simulatedResult.platform],
+      platformBreakdown: [{
+        platform: simulatedResult.platform,
+        bets: entry.totalBets || 0,
+        winRate: entry.winRate || 0,
+        score: entry.truthScore || 0,
+        volume: entry.totalVolume,
+        pnl: entry.pnl || 0,
+      }],
+    }));
+  }, [simulatedResult]);
 
-  useEffect(() => {
+  // Refresh handler for manual refresh button
+  const handleRefresh = useCallback(() => {
     if (leaderboardMode === 'simulated') {
-      fetchSimulatedLeaderboard(simulatedPlatform);
+      refetchSimulated();
+    } else {
+      refetchLive();
     }
-  }, [leaderboardMode, simulatedPlatform]);
+  }, [leaderboardMode, refetchSimulated, refetchLive]);
+
+  // Data fetching removed - now using React Query hooks above (useLeaderboard, useQuery)
+  // The /api/unified-leaderboard endpoint handles aggregation server-side
+  // Old fetchLeaderboard() and fetchSimulatedLeaderboard() replaced with React Query
 
   // When filtering by platform, use raw scores and re-rank within platform
   const filteredData = (() => {
@@ -717,7 +440,7 @@ export default function LeaderboardPage() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => leaderboardMode === 'simulated' ? fetchSimulatedLeaderboard(simulatedPlatform) : fetchLeaderboard()}
+            onClick={handleRefresh}
             disabled={isLoading}
             className="h-9 w-9 shrink-0"
           >

@@ -1,7 +1,8 @@
 'use client'
 
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useCopyTradingSimStats, usePancakeSimulationTab } from '@/lib/queries';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,31 +41,10 @@ import { COPY_TRADING_VAULT_ABI, COPY_VAULT_ADDRESS } from '@/lib/contracts';
 import { PolymarketSimulationTab } from '@/components/PolymarketSimulation';
 
 function SimulationTab({ followerAddress }: { followerAddress?: string }) {
-  const [stats, setStats] = useState<any>(null);
-  const [trades, setTrades] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const statsRes = await fetch(`/api/copy-trading/simulation?stats=true${followerAddress ? `&follower=${followerAddress}` : ''}`);
-        const statsData = await statsRes.json();
-        setStats(statsData);
-
-        const tradesRes = await fetch(`/api/copy-trading/simulation?limit=20${followerAddress ? `&follower=${followerAddress}` : ''}`);
-        const tradesData = await tradesRes.json();
-        setTrades(tradesData.trades || []);
-      } catch (error) {
-        console.error('Error fetching simulation data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, [followerAddress]);
+  // React Query hook with automatic 30s polling
+  const { data, isLoading: loading } = usePancakeSimulationTab(followerAddress);
+  const stats = data?.stats || null;
+  const trades = data?.trades || [];
 
   if (loading) {
     return (
@@ -207,25 +187,12 @@ export default function CopyTradingDashboard() {
   const [mounted, setMounted] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [simStats, setSimStats] = useState<any>(null);
+
+  // React Query hook for simulation stats - automatic 30s polling
+  const { data: simStats } = useCopyTradingSimStats();
 
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    const fetchSimStats = async () => {
-      try {
-        const res = await fetch('/api/copy-trading/simulation?stats=true');
-        const data = await res.json();
-        setSimStats(data);
-      } catch (e) {
-        console.error('Error fetching sim stats:', e);
-      }
-    };
-    fetchSimStats();
-    const interval = setInterval(fetchSimStats, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   const isConnected = mounted && !!account.address;
