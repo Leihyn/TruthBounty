@@ -20,6 +20,17 @@ import { TIER_NAMES, TIER_COLORS, ReputationTier, TIER_THRESHOLDS } from '@/lib/
 import { useLeaderboard, useRefreshLeaderboard } from '@/lib/queries';
 import { useQuery } from '@tanstack/react-query';
 import {
+  PAGE_HEADER,
+  PATTERNS,
+  formatVolume as formatVolumeFromTokens,
+  shortenAddress as shortenAddressFromTokens,
+  getTierFromScore as getTierFromScoreToken,
+  TierName,
+} from '@/components/ui/design-tokens';
+import { TraderCard } from '@/components/ui/trader-card';
+import { SectionDivider } from '@/components/ui/section-divider';
+import { PlatformBadgeList } from '@/components/ui/platform-badge';
+import {
   Trophy,
   Medal,
   Search,
@@ -65,12 +76,18 @@ interface LeaderboardEntry {
 
 const ITEMS_PER_PAGE = 20;
 
+// Map TierName to ReputationTier for compatibility with existing code
+const TIER_NAME_TO_ENUM: Record<TierName, ReputationTier> = {
+  diamond: ReputationTier.DIAMOND,
+  platinum: ReputationTier.PLATINUM,
+  gold: ReputationTier.GOLD,
+  silver: ReputationTier.SILVER,
+  bronze: ReputationTier.BRONZE,
+};
+
 function getTierFromScore(score: number): ReputationTier {
-  if (score >= TIER_THRESHOLDS[ReputationTier.DIAMOND]) return ReputationTier.DIAMOND;
-  if (score >= TIER_THRESHOLDS[ReputationTier.PLATINUM]) return ReputationTier.PLATINUM;
-  if (score >= TIER_THRESHOLDS[ReputationTier.GOLD]) return ReputationTier.GOLD;
-  if (score >= TIER_THRESHOLDS[ReputationTier.SILVER]) return ReputationTier.SILVER;
-  return ReputationTier.BRONZE;
+  const tierName = getTierFromScoreToken(score);
+  return TIER_NAME_TO_ENUM[tierName];
 }
 
 const TIER_FILTER_MAP: Record<string, ReputationTier | null> = {
@@ -266,30 +283,9 @@ export default function LeaderboardPage() {
     setTimeout(() => setCopiedAddress(null), 2000);
   };
 
-  const shortenAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-
-  const formatVolume = (vol: string, platforms?: string[]) => {
-    try {
-      // All platforms now return decimal strings (not wei)
-      const v = parseFloat(vol) || 0;
-      const platform = platforms?.[0] || '';
-
-      // Determine currency symbol based on platform
-      const isUSD = platform === 'Polymarket' || platform === 'Limitless' || platform === 'SX Bet' || platform === 'Gnosis/Omen' || platform === 'Gnosis' || platform === 'Drift BET' || platform === 'Drift' || platform === 'Kalshi';
-      const isBNB = platform === 'PancakeSwap Prediction';
-      const isETH = platform === 'Overtime' || platform === 'Speed Markets' || platform === 'Azuro';
-
-      let symbol = '$';
-      let suffix = '';
-      if (isBNB) { symbol = ''; suffix = ' BNB'; }
-      else if (isETH) { symbol = ''; suffix = ' ETH'; }
-
-      if (v >= 1000000) return `${symbol}${(v/1000000).toFixed(1)}M${suffix}`;
-      if (v >= 1000) return `${symbol}${(v/1000).toFixed(1)}K${suffix}`;
-      if (v >= 1) return `${symbol}${v.toFixed(1)}${suffix}`;
-      return `${symbol}${v.toFixed(2)}${suffix}`;
-    } catch { return '0'; }
-  };
+  // Use design token utilities
+  const shortenAddress = shortenAddressFromTokens;
+  const formatVolume = formatVolumeFromTokens;
 
   // Separate top 3 and rest
   const top3 = filteredData.slice(0, 3);
@@ -301,71 +297,73 @@ export default function LeaderboardPage() {
 
 
   return (
-    <div className="container px-4 sm:px-6 py-6 max-w-6xl mx-auto space-y-6">
-      {/* Mode Toggle Tabs */}
-      <div className="flex items-center gap-1 p-1 bg-surface rounded-lg border border-border/50 w-fit">
-        <button
-          onClick={() => setLeaderboardMode('live')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-            leaderboardMode === 'live'
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground hover:bg-surface-raised'
-          }`}
-        >
-          <Radio className="w-4 h-4" />
-          Live
-        </button>
-        <button
-          onClick={() => setLeaderboardMode('simulated')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-            leaderboardMode === 'simulated'
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground hover:bg-surface-raised'
-          }`}
-        >
-          <FlaskConical className="w-4 h-4" />
-          Simulated
-        </button>
-      </div>
+    <div className="flex flex-col min-h-screen">
+      {/* Compact Header Bar - title, toggle, and stats in one row */}
+      <section className="border-b border-border/50 bg-background">
+        <div className={`container px-5 md:px-6 ${PATTERNS.maxWidthLg}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4">
+            {/* Left: Title */}
+            <div className="flex items-center gap-4">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                {leaderboardMode === 'simulated'
+                  ? `${SIMULATED_PLATFORMS.find(p => p.value === simulatedPlatform)?.label || 'Simulated'} Leaderboard`
+                  : platformFilter === 'all' ? 'Leaderboard' :
+                    platformFilter === 'polymarket' ? 'Polymarket' :
+                    platformFilter === 'pancakeswap' ? 'PancakeSwap' :
+                    platformFilter === 'overtime' ? 'Overtime' :
+                    platformFilter === 'speedmarkets' ? 'Speed Markets' :
+                    platformFilter === 'limitless' ? 'Limitless' :
+                    platformFilter === 'azuro' ? 'Azuro' :
+                    platformFilter === 'sxbet' ? 'SX Bet' : platformFilter === 'gnosis' ? 'Gnosis/Omen' : platformFilter === 'drift' ? 'Drift BET' : platformFilter === 'kalshi' ? 'Kalshi' : platformFilter === 'manifold' ? 'Manifold' : platformFilter === 'metaculus' ? 'Metaculus' : 'Leaderboard'}
+              </h1>
+              {/* Mode Toggle - inline with title */}
+              <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-surface/50 border border-border/50">
+                <button
+                  onClick={() => setLeaderboardMode('live')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    leaderboardMode === 'live'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                  }`}
+                >
+                  <Radio className="w-3 h-3" />
+                  Live
+                </button>
+                <button
+                  onClick={() => setLeaderboardMode('simulated')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    leaderboardMode === 'simulated'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                  }`}
+                >
+                  <FlaskConical className="w-3 h-3" />
+                  Simulated
+                </button>
+              </div>
+            </div>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {leaderboardMode === 'simulated'
-              ? `${SIMULATED_PLATFORMS.find(p => p.value === simulatedPlatform)?.label || 'Simulated'} Leaderboard`
-              : platformFilter === 'all' ? 'Global Leaderboard' :
-                platformFilter === 'polymarket' ? 'Polymarket Leaderboard' :
-                platformFilter === 'pancakeswap' ? 'PancakeSwap Leaderboard' :
-                platformFilter === 'overtime' ? 'Overtime Leaderboard' :
-                platformFilter === 'speedmarkets' ? 'Speed Markets Leaderboard' :
-                platformFilter === 'limitless' ? 'Limitless Leaderboard' :
-                platformFilter === 'azuro' ? 'Azuro Leaderboard' :
-                platformFilter === 'sxbet' ? 'SX Bet Leaderboard' : platformFilter === 'gnosis' ? 'Gnosis/Omen Leaderboard' : platformFilter === 'drift' ? 'Drift BET Leaderboard' : platformFilter === 'kalshi' ? 'Kalshi Leaderboard' : platformFilter === 'manifold' ? 'Manifold Leaderboard' : platformFilter === 'metaculus' ? 'Metaculus Leaderboard' : 'Leaderboard'}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {leaderboardMode === 'simulated'
-              ? 'Rankings from simulated paper trades'
-              : platformFilter === 'all'
-                ? 'Cross-platform ranking by TruthScore'
-                : `Platform ranking by TruthScore`}
-          </p>
-        </div>
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-muted-foreground" />
-            <span className="font-semibold">{filteredData.length}</span>
-            <span className="text-muted-foreground hidden sm:inline">traders</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-secondary" />
-            <span className="font-semibold text-secondary">{filteredData[0]?.truthScore || 0}</span>
-            <span className="text-muted-foreground hidden sm:inline">top score</span>
+            {/* Right: Stats */}
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-muted-foreground" />
+                <span className="font-semibold">{filteredData.length}</span>
+                <span className="text-muted-foreground">traders</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Trophy className="w-4 h-4 text-secondary" />
+                <span className="font-semibold text-secondary">{filteredData[0]?.truthScore || 0}</span>
+                <span className="text-muted-foreground">top</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Sticky Filters */}
+      {/* Main Content Section */}
+      <section className="py-4">
+        <div className={`container px-5 md:px-6 ${PATTERNS.maxWidthLg}`}>
+          {/* Sticky Filters */}
       <div className="sticky top-16 z-10 bg-background/95 backdrop-blur-sm py-3 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-border/50">
         <div className="flex flex-wrap items-center gap-2">
           <Select value={sortBy} onValueChange={setSortBy}>
@@ -467,224 +465,118 @@ export default function LeaderboardPage() {
         </Card>
       ) : (
         <>
-          {/* Podium - Top 3 */}
+          {/* Podium - Top 3 - Using TraderCard component */}
+          {/* pt-6 provides space for rank badges that extend above cards */}
           {top3.length > 0 && currentPage === 1 && tierFilter === 'all' && !searchQuery && (
-            <div className="grid grid-cols-3 gap-3 items-end">
-              {/* 2nd Place */}
-              {top3[1] && (() => {
-                const entry = top3[1];
-                const tier = getTierFromScore(entry.truthScore);
-                return (
-                  <button
-                    key={entry.address}
-                    onClick={() => { setSelectedUser(entry); setIsModalOpen(true); }}
-                    className="flex flex-col p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-gray-400/10 to-surface border-gray-400/30 transition-all hover:scale-[1.02]"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-gray-400/20">
-                        <span className="text-base sm:text-lg font-bold text-gray-400">2</span>
-                      </div>
-                      <Badge className={`${TIER_COLORS[tier]} text-white text-[10px]`}>{TIER_NAMES[tier]}</Badge>
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border-2 border-gray-400/50">
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs sm:text-sm font-bold">
-                          {entry.address.slice(2, 4).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="text-left min-w-0">
-                        {entry.username ? (
-                          <span className="text-xs sm:text-sm font-medium truncate block">{entry.username}</span>
-                        ) : (
-                          <code className="font-mono text-xs sm:text-sm truncate block">{shortenAddress(entry.address)}</code>
-                        )}
-                        <div className="flex items-center gap-1">
-                          <p className="text-[10px] text-muted-foreground">{entry.totalPredictions.toLocaleString()} bets</p>
-                          {entry.platforms?.includes('Polymarket') && (
-                            <span className="px-1 py-0 rounded bg-purple-500/20 text-purple-400 text-[8px]">Poly</span>
-                          )}
-                          {entry.platforms?.includes('PancakeSwap Prediction') && (
-                            <span className="px-1 py-0 rounded bg-amber-500/20 text-amber-400 text-[8px]">Cake</span>
-                          )}
-                          {entry.platforms?.includes('Overtime') && (
-                            <span className="px-1 py-0 rounded bg-blue-500/20 text-blue-400 text-[8px]">OT</span>
-                          )}
-                          {entry.platforms?.includes('Speed Markets') && (
-                            <span className="px-1 py-0 rounded bg-green-500/20 text-green-400 text-[8px]">Speed</span>
-                          )}
-                          {entry.platforms?.includes('Limitless') && (
-                            <span className="px-1 py-0 rounded bg-pink-500/20 text-pink-400 text-[8px]">LMT</span>
-                          )}
-                          {entry.platforms?.includes('Azuro') && (
-                            <span className="px-1 py-0 rounded bg-cyan-500/20 text-cyan-400 text-[8px]">AZR</span>
-                          )}
-                          {entry.platforms?.includes('SX Bet') && (
-                            <span className="px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 text-[8px]">SX</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-1 mt-auto">
-                      <div className="p-1.5 rounded-lg bg-surface/50 text-center">
-                        <p className="text-base sm:text-lg font-bold">{entry.truthScore}</p>
-                        <p className="text-[9px] text-muted-foreground">Score</p>
-                      </div>
-                      <div className="p-1.5 rounded-lg bg-surface/50 text-center">
-                        <p className="text-base sm:text-lg font-bold text-success">{entry.winRate.toFixed(0)}%</p>
-                        <p className="text-[9px] text-muted-foreground">Win</p>
-                      </div>
-                      <div className="p-1.5 rounded-lg bg-surface/50 text-center">
-                        <p className="text-xs sm:text-sm font-bold text-primary">{formatVolume(entry.totalVolume, entry.platforms)}</p>
-                        <p className="text-[9px] text-muted-foreground">Vol</p>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })()}
+            <div className={`grid gap-4 mb-6 pt-6 ${
+              top3.length === 1 ? 'grid-cols-1 max-w-md mx-auto items-end' :
+              top3.length === 2 ? 'grid-cols-2 max-w-3xl mx-auto items-start' :
+              'grid-cols-3 items-end'
+            }`}>
+              {/* For 3 traders: 2nd | 1st | 3rd (podium order) - items-end for staggered heights */}
+              {/* For 2 traders: 1st | 2nd (side by side, equal) - items-start for top alignment */}
+              {/* For 1 trader: just 1st centered */}
 
-              {/* 1st Place - Elevated */}
-              {top3[0] && (() => {
-                const entry = top3[0];
-                const tier = getTierFromScore(entry.truthScore);
-                return (
-                  <button
-                    key={entry.address}
-                    onClick={() => { setSelectedUser(entry); setIsModalOpen(true); }}
-                    className="flex flex-col p-3 sm:p-5 rounded-xl border-2 bg-gradient-to-br from-secondary/20 to-surface border-secondary/50 transition-all hover:scale-[1.02] -mt-4 shadow-lg shadow-secondary/10"
-                  >
-                    <div className="flex items-center justify-between mb-2 sm:mb-3">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-secondary/20">
-                        <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-secondary" />
-                      </div>
-                      <Badge className={`${TIER_COLORS[tier]} text-white`}>{TIER_NAMES[tier]}</Badge>
-                    </div>
-                    <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                      <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-secondary/50">
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-sm sm:text-base font-bold">
-                          {entry.address.slice(2, 4).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="text-left min-w-0">
-                        {entry.username ? (
-                          <span className="text-sm sm:text-base font-semibold truncate block">{entry.username}</span>
-                        ) : (
-                          <code className="font-mono text-sm sm:text-base truncate block">{shortenAddress(entry.address)}</code>
-                        )}
-                        <div className="flex items-center gap-1">
-                          <p className="text-xs text-muted-foreground">{entry.totalPredictions.toLocaleString()} bets</p>
-                          {entry.platforms?.includes('Polymarket') && (
-                            <span className="px-1 py-0 rounded bg-purple-500/20 text-purple-400 text-[9px]">Poly</span>
-                          )}
-                          {entry.platforms?.includes('PancakeSwap Prediction') && (
-                            <span className="px-1 py-0 rounded bg-amber-500/20 text-amber-400 text-[9px]">Cake</span>
-                          )}
-                          {entry.platforms?.includes('Overtime') && (
-                            <span className="px-1 py-0 rounded bg-blue-500/20 text-blue-400 text-[9px]">OT</span>
-                          )}
-                          {entry.platforms?.includes('Speed Markets') && (
-                            <span className="px-1 py-0 rounded bg-green-500/20 text-green-400 text-[9px]">Speed</span>
-                          )}
-                          {entry.platforms?.includes('Limitless') && (
-                            <span className="px-1 py-0 rounded bg-pink-500/20 text-pink-400 text-[9px]">LMT</span>
-                          )}
-                          {entry.platforms?.includes('Azuro') && (
-                            <span className="px-1 py-0 rounded bg-cyan-500/20 text-cyan-400 text-[9px]">AZR</span>
-                          )}
-                          {entry.platforms?.includes('SX Bet') && (
-                            <span className="px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 text-[9px]">SX</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 mt-auto">
-                      <div className="p-2 rounded-lg bg-surface/50 text-center">
-                        <p className="text-lg sm:text-2xl font-bold text-secondary">{entry.truthScore}</p>
-                        <p className="text-[10px] text-muted-foreground">Score</p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-surface/50 text-center">
-                        <p className="text-lg sm:text-2xl font-bold text-success">{entry.winRate.toFixed(0)}%</p>
-                        <p className="text-[10px] text-muted-foreground">Win</p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-surface/50 text-center">
-                        <p className="text-sm sm:text-lg font-bold text-primary">{formatVolume(entry.totalVolume, entry.platforms)}</p>
-                        <p className="text-[10px] text-muted-foreground">Vol</p>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })()}
-
-              {/* 3rd Place */}
-              {top3[2] && (() => {
-                const entry = top3[2];
-                const tier = getTierFromScore(entry.truthScore);
-                return (
-                  <button
-                    key={entry.address}
-                    onClick={() => { setSelectedUser(entry); setIsModalOpen(true); }}
-                    className="flex flex-col p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-amber-600/10 to-surface border-amber-600/30 transition-all hover:scale-[1.02]"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-amber-600/20">
-                        <span className="text-base sm:text-lg font-bold text-amber-600">3</span>
-                      </div>
-                      <Badge className={`${TIER_COLORS[tier]} text-white text-[10px]`}>{TIER_NAMES[tier]}</Badge>
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border-2 border-amber-600/50">
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs sm:text-sm font-bold">
-                          {entry.address.slice(2, 4).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="text-left min-w-0">
-                        {entry.username ? (
-                          <span className="text-xs sm:text-sm font-medium truncate block">{entry.username}</span>
-                        ) : (
-                          <code className="font-mono text-xs sm:text-sm truncate block">{shortenAddress(entry.address)}</code>
-                        )}
-                        <div className="flex items-center gap-1">
-                          <p className="text-[10px] text-muted-foreground">{entry.totalPredictions.toLocaleString()} bets</p>
-                          {entry.platforms?.includes('Polymarket') && (
-                            <span className="px-1 py-0 rounded bg-purple-500/20 text-purple-400 text-[8px]">Poly</span>
-                          )}
-                          {entry.platforms?.includes('PancakeSwap Prediction') && (
-                            <span className="px-1 py-0 rounded bg-amber-500/20 text-amber-400 text-[8px]">Cake</span>
-                          )}
-                          {entry.platforms?.includes('Overtime') && (
-                            <span className="px-1 py-0 rounded bg-blue-500/20 text-blue-400 text-[8px]">OT</span>
-                          )}
-                          {entry.platforms?.includes('Speed Markets') && (
-                            <span className="px-1 py-0 rounded bg-green-500/20 text-green-400 text-[8px]">Speed</span>
-                          )}
-                          {entry.platforms?.includes('Limitless') && (
-                            <span className="px-1 py-0 rounded bg-pink-500/20 text-pink-400 text-[8px]">LMT</span>
-                          )}
-                          {entry.platforms?.includes('Azuro') && (
-                            <span className="px-1 py-0 rounded bg-cyan-500/20 text-cyan-400 text-[8px]">AZR</span>
-                          )}
-                          {entry.platforms?.includes('SX Bet') && (
-                            <span className="px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 text-[8px]">SX</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-1 mt-auto">
-                      <div className="p-1.5 rounded-lg bg-surface/50 text-center">
-                        <p className="text-base sm:text-lg font-bold">{entry.truthScore}</p>
-                        <p className="text-[9px] text-muted-foreground">Score</p>
-                      </div>
-                      <div className="p-1.5 rounded-lg bg-surface/50 text-center">
-                        <p className="text-base sm:text-lg font-bold text-success">{entry.winRate.toFixed(0)}%</p>
-                        <p className="text-[9px] text-muted-foreground">Win</p>
-                      </div>
-                      <div className="p-1.5 rounded-lg bg-surface/50 text-center">
-                        <p className="text-xs sm:text-sm font-bold text-primary">{formatVolume(entry.totalVolume, entry.platforms)}</p>
-                        <p className="text-[9px] text-muted-foreground">Vol</p>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })()}
+              {top3.length >= 3 ? (
+                <>
+                  {/* 2nd Place - Left */}
+                  <TraderCard
+                    key={top3[1].address}
+                    address={top3[1].address}
+                    username={top3[1].username}
+                    rank={2}
+                    truthScore={top3[1].truthScore}
+                    winRate={top3[1].winRate}
+                    totalPredictions={top3[1].totalPredictions}
+                    totalVolume={top3[1].totalVolume}
+                    platforms={top3[1].platforms}
+                    variant="podium"
+                    onClick={() => { setSelectedUser(top3[1]); setIsModalOpen(true); }}
+                    customFormatVolume={formatVolume}
+                  />
+                  {/* 1st Place - Center */}
+                  <TraderCard
+                    key={top3[0].address}
+                    address={top3[0].address}
+                    username={top3[0].username}
+                    rank={1}
+                    truthScore={top3[0].truthScore}
+                    winRate={top3[0].winRate}
+                    totalPredictions={top3[0].totalPredictions}
+                    totalVolume={top3[0].totalVolume}
+                    platforms={top3[0].platforms}
+                    variant="podium"
+                    featured
+                    onClick={() => { setSelectedUser(top3[0]); setIsModalOpen(true); }}
+                    customFormatVolume={formatVolume}
+                  />
+                  {/* 3rd Place - Right */}
+                  <TraderCard
+                    key={top3[2].address}
+                    address={top3[2].address}
+                    username={top3[2].username}
+                    rank={3}
+                    truthScore={top3[2].truthScore}
+                    winRate={top3[2].winRate}
+                    totalPredictions={top3[2].totalPredictions}
+                    totalVolume={top3[2].totalVolume}
+                    platforms={top3[2].platforms}
+                    variant="podium"
+                    onClick={() => { setSelectedUser(top3[2]); setIsModalOpen(true); }}
+                    customFormatVolume={formatVolume}
+                  />
+                </>
+              ) : top3.length === 2 ? (
+                <>
+                  {/* 1st Place - Left (same size as 2nd for balanced 2-card layout) */}
+                  <TraderCard
+                    key={top3[0].address}
+                    address={top3[0].address}
+                    username={top3[0].username}
+                    rank={1}
+                    truthScore={top3[0].truthScore}
+                    winRate={top3[0].winRate}
+                    totalPredictions={top3[0].totalPredictions}
+                    totalVolume={top3[0].totalVolume}
+                    platforms={top3[0].platforms}
+                    variant="podium"
+                    onClick={() => { setSelectedUser(top3[0]); setIsModalOpen(true); }}
+                    customFormatVolume={formatVolume}
+                  />
+                  {/* 2nd Place - Right */}
+                  <TraderCard
+                    key={top3[1].address}
+                    address={top3[1].address}
+                    username={top3[1].username}
+                    rank={2}
+                    truthScore={top3[1].truthScore}
+                    winRate={top3[1].winRate}
+                    totalPredictions={top3[1].totalPredictions}
+                    totalVolume={top3[1].totalVolume}
+                    platforms={top3[1].platforms}
+                    variant="podium"
+                    onClick={() => { setSelectedUser(top3[1]); setIsModalOpen(true); }}
+                    customFormatVolume={formatVolume}
+                  />
+                </>
+              ) : (
+                /* Single trader - centered */
+                <TraderCard
+                  key={top3[0].address}
+                  address={top3[0].address}
+                  username={top3[0].username}
+                  rank={1}
+                  truthScore={top3[0].truthScore}
+                  winRate={top3[0].winRate}
+                  totalPredictions={top3[0].totalPredictions}
+                  totalVolume={top3[0].totalVolume}
+                  platforms={top3[0].platforms}
+                  variant="podium"
+                  featured
+                  onClick={() => { setSelectedUser(top3[0]); setIsModalOpen(true); }}
+                  customFormatVolume={formatVolume}
+                />
+              )}
             </div>
           )}
 
@@ -747,27 +639,7 @@ export default function LeaderboardPage() {
                             </span>
                             <span>{entry.totalPredictions.toLocaleString()} bets</span>
                             <span className="hidden sm:inline">{formatVolume(entry.totalVolume, entry.platforms)} vol</span>
-                            {entry.platforms?.includes('Polymarket') && (
-                              <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 text-[10px]">Poly</span>
-                            )}
-                            {entry.platforms?.includes('PancakeSwap Prediction') && (
-                              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px]">Cake</span>
-                            )}
-                            {entry.platforms?.includes('Overtime') && (
-                              <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[10px]">Overtime</span>
-                            )}
-                            {entry.platforms?.includes('Speed Markets') && (
-                              <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 text-[10px]">Speed</span>
-                            )}
-                            {entry.platforms?.includes('Limitless') && (
-                              <span className="px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-400 text-[10px]">Limitless</span>
-                            )}
-                            {entry.platforms?.includes('Azuro') && (
-                              <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 text-[10px]">Azuro</span>
-                            )}
-                            {entry.platforms?.includes('SX Bet') && (
-                              <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px]">SX Bet</span>
-                            )}
+                            <PlatformBadgeList platforms={entry.platforms || []} size="sm" max={3} />
                           </div>
                         </div>
 
@@ -845,6 +717,8 @@ export default function LeaderboardPage() {
           )}
         </>
       )}
+        </div>
+      </section>
 
       {/* User Detail Modal */}
       <UserDetailModal

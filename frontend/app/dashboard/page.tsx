@@ -241,6 +241,8 @@ import {
   DollarSign,
   Zap,
 } from 'lucide-react';
+import { PLATFORM_COLORS, getPlatformKey, shortenAddress } from '@/components/ui/design-tokens';
+import { PlatformBadge } from '@/components/ui/platform-badge';
 
 const TIER_THRESHOLDS: Record<ReputationTier, number> = {
   [ReputationTier.BRONZE]: 0,
@@ -393,7 +395,7 @@ function DashboardContent() {
             )}
           </div>
           <div className="flex items-center gap-2 mt-1">
-            <code className="text-xs text-muted-foreground font-mono">{isDemo ? '0x7a3f...8c2d' : `${address?.slice(0, 6)}...${address?.slice(-4)}`}</code>
+            <code className="text-xs text-muted-foreground font-mono">{isDemo ? '0x7a3f...8c2d' : shortenAddress(address || '')}</code>
             {(isRegistered && nftMetadata) || (isDemo && demoData) ? (
               <Badge className={`${TIER_COLORS[isDemo && demoData ? demoData.tier : nftMetadata!.tier]} text-white text-[10px]`}>
                 {TIER_NAMES[isDemo && demoData ? demoData.tier : nftMetadata!.tier]}
@@ -454,10 +456,8 @@ function DashboardContent() {
         <Card className="border-border/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center">
-                <Zap className="h-3.5 w-3.5 text-white" />
-              </div>
-              PancakeSwap Simulation
+              <PlatformBadge platform="PancakeSwap" size="md" />
+              Simulation
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -501,10 +501,8 @@ function DashboardContent() {
         <Card className="border-border/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center">
-                <BarChart3 className="h-3.5 w-3.5 text-white" />
-              </div>
-              Polymarket Simulation
+              <PlatformBadge platform="Polymarket" size="md" />
+              Simulation
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -590,17 +588,10 @@ function DashboardContent() {
                   className="flex items-center justify-between p-3 rounded-lg bg-surface hover:bg-surface-raised transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      bet.platform === 'pancakeswap'
-                        ? 'bg-gradient-to-br from-amber-500 to-yellow-500'
-                        : 'bg-gradient-to-br from-purple-500 to-blue-600'
-                    }`}>
-                      {bet.platform === 'pancakeswap' ? (
-                        <Zap className="h-4 w-4 text-white" />
-                      ) : (
-                        <BarChart3 className="h-4 w-4 text-white" />
-                      )}
-                    </div>
+                    <PlatformBadge
+                      platform={bet.platform === 'pancakeswap' ? 'PancakeSwap' : 'Polymarket'}
+                      size="md"
+                    />
                     <div>
                       <p className="text-sm font-medium line-clamp-1">{bet.market}</p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -669,9 +660,10 @@ function DashboardContent() {
                         <p className="text-sm font-medium line-clamp-1">
                           {isPancake ? `Epoch ${trade.epoch}` : (trade.marketQuestion || trade.market_question || 'Unknown market')?.slice(0, 40)}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {isPancake ? 'PancakeSwap' : 'Polymarket'} • {isPancake ? (trade.isBull ? 'Bull' : 'Bear') : (trade.outcomeSelected || trade.outcome_selected || 'Unknown')}
-                        </p>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <PlatformBadge platform={isPancake ? 'PancakeSwap' : 'Polymarket'} size="xs" />
+                          <span>• {isPancake ? (trade.isBull ? 'Bull' : 'Bear') : (trade.outcomeSelected || trade.outcome_selected || 'Unknown')}</span>
+                        </div>
                       </div>
                     </div>
                     <div className="text-right">

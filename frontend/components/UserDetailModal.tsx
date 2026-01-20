@@ -21,9 +21,12 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatEther } from 'viem';
 import { TIER_NAMES, TIER_COLORS, TIER_THRESHOLDS, ReputationTier } from '@/lib/contracts';
 import { CopyTradeButton } from './CopyTradeButton';
+import { shortenAddress } from '@/components/ui/design-tokens';
+import { PlatformBadge } from '@/components/ui/platform-badge';
 
 interface PlatformBreakdown {
   platform: string;
@@ -68,26 +71,7 @@ interface UserDetailModalProps {
   userData: UserData | null;
 }
 
-const PLATFORM_ICONS: Record<string, string> = {
-  'PancakeSwap Prediction': '🥞',
-  'Polymarket': '🔮',
-  'Azuro Protocol': '⚡',
-  'Azuro': '⚡',
-  'Thales': '🎯',
-  'Overtime': '⚽',
-  'Speed Markets': '⚡',
-  'Limitless': '♾️',
-  'SX Bet': '🎰',
-  'Gnosis/Omen': '🦉',
-  'Gnosis': '🦉',
-  'Omen': '🦉',
-  'Drift BET': '🌊',
-  'Drift': '🌊',
-  'Kalshi': '📊',
-  'Manifold Markets': '📈',
-  'Manifold': '📈',
-  'Metaculus': '🔬',
-};
+// Platform icons removed - using PlatformBadge component with design tokens instead
 
 const PLATFORM_CHAINS: Record<string, string> = {
   'PancakeSwap Prediction': 'BSC',
@@ -146,6 +130,7 @@ function getTierFromScore(score: number): ReputationTier {
 }
 
 export function UserDetailModal({ isOpen, onClose, userData }: UserDetailModalProps) {
+  const router = useRouter();
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
 
@@ -156,8 +141,6 @@ export function UserDetailModal({ isOpen, onClose, userData }: UserDetailModalPr
     setCopiedAddress(true);
     setTimeout(() => setCopiedAddress(false), 2000);
   };
-
-  const formatAddress = (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`;
 
   // Determine volume currency based on platform
   const primaryPlatform = userData.platforms?.[0] || '';
@@ -260,7 +243,7 @@ export function UserDetailModal({ isOpen, onClose, userData }: UserDetailModalPr
                 <p className="font-semibold text-base mb-0.5">{userData.username}</p>
               )}
               <div className="flex items-center gap-2">
-                <code className="text-sm font-mono">{formatAddress(userData.address)}</code>
+                <code className="text-sm font-mono">{shortenAddress(userData.address)}</code>
                 <button
                   onClick={handleCopyAddress}
                   className="p-1.5 rounded-md hover:bg-surface/50 transition-colors"
@@ -329,13 +312,13 @@ export function UserDetailModal({ isOpen, onClose, userData }: UserDetailModalPr
               <p className="text-[10px] text-muted-foreground mb-1.5 font-medium uppercase tracking-wide">Platforms</p>
               <div className="flex gap-2 flex-wrap">
                 {userData.platforms.map((platform) => (
-                  <div
+                  <PlatformBadge
                     key={platform}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-surface border border-border/50"
-                  >
-                    <span className="text-sm">{PLATFORM_ICONS[platform] || '📊'}</span>
-                    <span className="text-xs font-medium">{platform.split(' ')[0]}</span>
-                  </div>
+                    platform={platform}
+                    size="md"
+                    showFullName
+                    className="border border-border/50"
+                  />
                 ))}
               </div>
             </div>
@@ -382,7 +365,7 @@ export function UserDetailModal({ isOpen, onClose, userData }: UserDetailModalPr
                         className="flex items-center justify-between p-3 rounded-lg bg-surface/50 border border-border/30 hover:border-border/50 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-xl">{PLATFORM_ICONS[platform.platform] || '📊'}</span>
+                          <PlatformBadge platform={platform.platform} size="md" />
                           <div>
                             <p className="font-medium text-sm">{platform.platform}</p>
                             <p className="text-xs text-muted-foreground">
@@ -442,9 +425,9 @@ export function UserDetailModal({ isOpen, onClose, userData }: UserDetailModalPr
                       variant={selectedPlatform === platform ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setSelectedPlatform(platform)}
-                      className="h-8"
+                      className="h-8 gap-1.5"
                     >
-                      {PLATFORM_ICONS[platform]} {platform.split(' ')[0]}
+                      <PlatformBadge platform={platform} size="xs" />
                     </Button>
                   ))}
                 </div>
@@ -514,9 +497,12 @@ export function UserDetailModal({ isOpen, onClose, userData }: UserDetailModalPr
               variant="outline"
               size="sm"
               className="flex-1"
-              onClick={() => window.open(`/profile/${userData.address}`, '_blank')}
+              onClick={() => {
+                onClose();
+                router.push(`/profile/${userData.address}`);
+              }}
             >
-              <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+              <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
               Full Profile
             </Button>
           </div>

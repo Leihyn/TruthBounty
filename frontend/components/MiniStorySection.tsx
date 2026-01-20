@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles, Shield, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { shortenAddress, formatNumber } from '@/components/ui/design-tokens';
 
 // Register GSAP plugins
 if (typeof window !== 'undefined') {
@@ -21,14 +22,6 @@ interface TraderData {
   winRate: number;
   totalBets: number;
 }
-
-const formatNumber = (num: number) => {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num?.toLocaleString() || '0';
-};
-
-const shortenAddress = (addr: string) => `${addr?.slice(0, 6)}...${addr?.slice(-4)}`;
 
 export function MiniStorySection() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -269,7 +262,7 @@ export function MiniStorySection() {
 
           {/* CTA */}
           <div className="mini-story-text text-center">
-            <Link href="/story">
+            <Link href="/case-study">
               <Button
                 size="lg"
                 variant="outline"

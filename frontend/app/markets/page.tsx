@@ -35,6 +35,7 @@ import { Compass, Waves, Building2, TrendingUp as TrendingIcon, Microscope } fro
 import { GenericMarketCard, GenericMarket } from '@/components/shared/GenericMarketCard';
 import { AlertTriangle, Timer, BarChart3, RefreshCw, TrendingUp, Clock, Zap, Activity, Trophy, Gauge, Infinity, Gamepad2, DollarSign } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PLATFORM_COLORS, PAGE_HEADER, TAB_STYLES } from '@/components/ui/design-tokens';
 
 export default function MarketsPage() {
   const { address } = useAccount();
@@ -168,13 +169,13 @@ export default function MarketsPage() {
   return (
     <div className="container px-4 md:px-6 py-6 space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      <div className={PAGE_HEADER.container}>
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Activity className="w-5 h-5 text-primary" />
-            <h1 className="text-xl sm:text-2xl font-bold">Markets</h1>
+            <h1 className={PAGE_HEADER.title}>Markets</h1>
           </div>
-          <p className="text-sm text-muted-foreground">Live prediction markets across platforms - Simulate bets on real events</p>
+          <p className={PAGE_HEADER.subtitle}>Live prediction markets across platforms - Simulate bets on real events</p>
         </div>
         <div className="flex items-center gap-3">
           {liveCount > 0 && (
@@ -214,122 +215,146 @@ export default function MarketsPage() {
 
       {/* Platform Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full h-auto min-h-[48px] p-1 bg-surface/50 border border-border/50 flex flex-wrap gap-1">
-          <TabsTrigger
-            value="pancake"
-            className="flex-1 min-w-[80px] gap-1.5 px-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500/10 data-[state=active]:to-yellow-500/10 data-[state=active]:border-amber-500/30"
-          >
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center">
-              <Timer className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-medium text-xs sm:text-sm hidden sm:inline">PancakeSwap</span>
-            <span className="font-medium text-xs sm:hidden">Pancake</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="speed"
-            className="flex-1 min-w-[80px] gap-1.5 px-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500/10 data-[state=active]:to-red-500/10 data-[state=active]:border-orange-500/30"
-          >
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
-              <Gauge className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-medium text-xs sm:text-sm">Speed</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="overtime"
-            className="flex-1 min-w-[80px] gap-1.5 px-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500/10 data-[state=active]:to-indigo-500/10 data-[state=active]:border-blue-500/30"
-          >
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-              <Trophy className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-medium text-xs sm:text-sm">Sports</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="limitless"
-            className="flex-1 min-w-[80px] gap-1.5 px-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500/10 data-[state=active]:to-emerald-500/10 data-[state=active]:border-green-500/30"
-          >
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-              <Infinity className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-medium text-xs sm:text-sm">Limitless</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="polymarket"
-            className="flex-1 min-w-[80px] gap-1.5 px-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/10 data-[state=active]:to-blue-500/10 data-[state=active]:border-purple-500/30"
-          >
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center">
-              <BarChart3 className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-medium text-xs sm:text-sm hidden sm:inline">Polymarket</span>
-            <span className="font-medium text-xs sm:hidden">Poly</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="azuro"
-            className="flex-1 min-w-[80px] gap-1.5 px-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/10 data-[state=active]:to-blue-500/10 data-[state=active]:border-cyan-500/30"
-          >
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-              <Zap className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-medium text-xs sm:text-sm">Azuro</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="sxbet"
-            className="flex-1 min-w-[80px] gap-1.5 px-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500/10 data-[state=active]:to-teal-500/10 data-[state=active]:border-emerald-500/30"
-          >
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-              <DollarSign className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-medium text-xs sm:text-sm hidden sm:inline">SX Bet</span>
-            <span className="font-medium text-xs sm:hidden">SX</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="gnosis"
-            className="flex-1 min-w-[80px] gap-1.5 px-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500/10 data-[state=active]:to-green-500/10 data-[state=active]:border-emerald-500/30"
-          >
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
-              <Compass className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-medium text-xs sm:text-sm">Omen</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="drift"
-            className="flex-1 min-w-[80px] gap-1.5 px-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500/10 data-[state=active]:to-cyan-500/10 data-[state=active]:border-blue-500/30"
-          >
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
-              <Waves className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-medium text-xs sm:text-sm">Drift</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="kalshi"
-            className="flex-1 min-w-[80px] gap-1.5 px-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/10 data-[state=active]:to-indigo-500/10 data-[state=active]:border-purple-500/30"
-          >
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-              <Building2 className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-medium text-xs sm:text-sm">Kalshi</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="manifold"
-            className="flex-1 min-w-[80px] gap-1.5 px-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500/10 data-[state=active]:to-orange-500/10 data-[state=active]:border-amber-500/30"
-          >
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-              <TrendingIcon className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-medium text-xs sm:text-sm">Manifold</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="metaculus"
-            className="flex-1 min-w-[80px] gap-1.5 px-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-rose-500/10 data-[state=active]:to-pink-500/10 data-[state=active]:border-rose-500/30"
-          >
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center">
-              <Microscope className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-medium text-xs sm:text-sm">Metaculus</span>
-          </TabsTrigger>
-        </TabsList>
+        {/* Scrollable tab container */}
+        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className="inline-flex w-max sm:w-full h-auto min-h-[48px] p-1.5 bg-surface/50 border border-border/50 rounded-xl gap-1">
+              {/* Crypto Section */}
+              <div className="flex items-center gap-1">
+                <TabsTrigger
+                  value="pancake"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500/15 data-[state=active]:to-yellow-500/15 data-[state=active]:border data-[state=active]:border-amber-500/30"
+                >
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center shrink-0">
+                    <Timer className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="hidden sm:inline">Pancake</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="speed"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500/15 data-[state=active]:to-red-500/15 data-[state=active]:border data-[state=active]:border-orange-500/30"
+                >
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shrink-0">
+                    <Gauge className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="hidden sm:inline">Speed</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="drift"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500/15 data-[state=active]:to-cyan-500/15 data-[state=active]:border data-[state=active]:border-blue-500/30"
+                >
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shrink-0">
+                    <Waves className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="hidden sm:inline">Drift</span>
+                </TabsTrigger>
+              </div>
+
+              {/* Divider */}
+              <div className="w-px h-6 bg-border/50 mx-1 hidden sm:block" />
+
+              {/* Sports Section */}
+              <div className="flex items-center gap-1">
+                <TabsTrigger
+                  value="overtime"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500/15 data-[state=active]:to-indigo-500/15 data-[state=active]:border data-[state=active]:border-blue-500/30"
+                >
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0">
+                    <Trophy className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="hidden sm:inline">Sports</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="azuro"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/15 data-[state=active]:to-blue-500/15 data-[state=active]:border data-[state=active]:border-cyan-500/30"
+                >
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shrink-0">
+                    <Zap className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="hidden sm:inline">Azuro</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="sxbet"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500/15 data-[state=active]:to-teal-500/15 data-[state=active]:border data-[state=active]:border-emerald-500/30"
+                >
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0">
+                    <DollarSign className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="hidden sm:inline">SX Bet</span>
+                </TabsTrigger>
+              </div>
+
+              {/* Divider */}
+              <div className="w-px h-6 bg-border/50 mx-1 hidden sm:block" />
+
+              {/* Predictions Section */}
+              <div className="flex items-center gap-1">
+                <TabsTrigger
+                  value="polymarket"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/15 data-[state=active]:to-blue-500/15 data-[state=active]:border data-[state=active]:border-purple-500/30"
+                >
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shrink-0">
+                    <BarChart3 className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="hidden sm:inline">Poly</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="limitless"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500/15 data-[state=active]:to-emerald-500/15 data-[state=active]:border data-[state=active]:border-green-500/30"
+                >
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shrink-0">
+                    <Infinity className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="hidden sm:inline">Limitless</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="gnosis"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500/15 data-[state=active]:to-green-500/15 data-[state=active]:border data-[state=active]:border-emerald-500/30"
+                >
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shrink-0">
+                    <Compass className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="hidden sm:inline">Omen</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="kalshi"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/15 data-[state=active]:to-indigo-500/15 data-[state=active]:border data-[state=active]:border-purple-500/30"
+                >
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shrink-0">
+                    <Building2 className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="hidden sm:inline">Kalshi</span>
+                </TabsTrigger>
+              </div>
+
+              {/* Divider */}
+              <div className="w-px h-6 bg-border/50 mx-1 hidden sm:block" />
+
+              {/* Research Section */}
+              <div className="flex items-center gap-1">
+                <TabsTrigger
+                  value="manifold"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500/15 data-[state=active]:to-orange-500/15 data-[state=active]:border data-[state=active]:border-amber-500/30"
+                >
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0">
+                    <TrendingIcon className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="hidden sm:inline">Manifold</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="metaculus"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-rose-500/15 data-[state=active]:to-pink-500/15 data-[state=active]:border data-[state=active]:border-rose-500/30"
+                >
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center shrink-0">
+                    <Microscope className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="hidden sm:inline">Metaculus</span>
+                </TabsTrigger>
+              </div>
+            </TabsList>
+        </div>
 
         {/* PancakeSwap Tab */}
-        <TabsContent value="pancake" className="mt-4">
+        <TabsContent value="pancake" className={TAB_STYLES.content}>
           {/* Error alert */}
           {pancakeError && (
             <Alert className="mb-4 border-destructive/30 bg-destructive/5">
@@ -374,7 +399,7 @@ export default function MarketsPage() {
         </TabsContent>
 
         {/* Speed Markets Tab */}
-        <TabsContent value="speed" className="mt-4">
+        <TabsContent value="speed" className={TAB_STYLES.content}>
           {/* Error alert */}
           {speedError && (
             <Alert className="mb-4 border-destructive/30 bg-destructive/5">
@@ -428,7 +453,7 @@ export default function MarketsPage() {
         </TabsContent>
 
         {/* Overtime Tab */}
-        <TabsContent value="overtime" className="mt-4">
+        <TabsContent value="overtime" className={TAB_STYLES.content}>
           {/* Error alert */}
           {overtimeError && (
             <Alert className="mb-4 border-destructive/30 bg-destructive/5">
@@ -482,7 +507,7 @@ export default function MarketsPage() {
         </TabsContent>
 
         {/* Limitless Tab */}
-        <TabsContent value="limitless" className="mt-4">
+        <TabsContent value="limitless" className={TAB_STYLES.content}>
           {/* Error alert */}
           {limitlessError && (
             <Alert className="mb-4 border-destructive/30 bg-destructive/5">
@@ -536,7 +561,7 @@ export default function MarketsPage() {
         </TabsContent>
 
         {/* Polymarket Tab */}
-        <TabsContent value="polymarket" className="mt-4">
+        <TabsContent value="polymarket" className={TAB_STYLES.content}>
           {/* Simulation info banner */}
           <Alert className="mb-4 border-primary/30 bg-primary/5">
             <Zap className="h-4 w-4 text-primary" />
@@ -552,7 +577,7 @@ export default function MarketsPage() {
         </TabsContent>
 
         {/* Azuro Tab */}
-        <TabsContent value="azuro" className="mt-4">
+        <TabsContent value="azuro" className={TAB_STYLES.content}>
           {/* Error alert */}
           {azuroError && (
             <Alert className="mb-4 border-destructive/30 bg-destructive/5">
@@ -606,7 +631,7 @@ export default function MarketsPage() {
         </TabsContent>
 
         {/* SX Bet Tab */}
-        <TabsContent value="sxbet" className="mt-4">
+        <TabsContent value="sxbet" className={TAB_STYLES.content}>
           {/* Error alert */}
           {sxbetError && (
             <Alert className="mb-4 border-destructive/30 bg-destructive/5">
@@ -660,7 +685,7 @@ export default function MarketsPage() {
         </TabsContent>
 
         {/* Gnosis/Omen Tab */}
-        <TabsContent value="gnosis" className="mt-4">
+        <TabsContent value="gnosis" className={TAB_STYLES.content}>
           {/* Error alert */}
           {gnosisError && (
             <Alert className="mb-4 border-destructive/30 bg-destructive/5">
@@ -722,7 +747,7 @@ export default function MarketsPage() {
         </TabsContent>
 
         {/* Drift Tab */}
-        <TabsContent value="drift" className="mt-4">
+        <TabsContent value="drift" className={TAB_STYLES.content}>
           {/* Error alert */}
           {driftError && (
             <Alert className="mb-4 border-destructive/30 bg-destructive/5">
@@ -784,7 +809,7 @@ export default function MarketsPage() {
         </TabsContent>
 
         {/* Kalshi Tab */}
-        <TabsContent value="kalshi" className="mt-4">
+        <TabsContent value="kalshi" className={TAB_STYLES.content}>
           {/* Error alert */}
           {kalshiError && (
             <Alert className="mb-4 border-destructive/30 bg-destructive/5">
@@ -845,7 +870,7 @@ export default function MarketsPage() {
         </TabsContent>
 
         {/* Manifold Tab */}
-        <TabsContent value="manifold" className="mt-4">
+        <TabsContent value="manifold" className={TAB_STYLES.content}>
           {/* Error alert */}
           {manifoldError && (
             <Alert className="mb-4 border-destructive/30 bg-destructive/5">
@@ -906,7 +931,7 @@ export default function MarketsPage() {
         </TabsContent>
 
         {/* Metaculus Tab */}
-        <TabsContent value="metaculus" className="mt-4">
+        <TabsContent value="metaculus" className={TAB_STYLES.content}>
           {/* Error alert */}
           {metaculusError && (
             <Alert className="mb-4 border-destructive/30 bg-destructive/5">

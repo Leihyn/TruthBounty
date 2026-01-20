@@ -127,7 +127,7 @@ export default function RootLayout({
                         Markets
                       </Link>
                       <Link
-                        href="/story"
+                        href="/case-study"
                         className="hover:text-foreground transition-colors"
                       >
                         Case Study

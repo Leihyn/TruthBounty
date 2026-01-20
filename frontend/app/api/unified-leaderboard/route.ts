@@ -131,6 +131,7 @@ export async function GET(request: NextRequest) {
   const offset = parseInt(searchParams.get('offset') || '0');
   const platform = searchParams.get('platform');
   const forceRefresh = searchParams.get('refresh') === 'true';
+  const addressLookup = searchParams.get('address')?.toLowerCase();
 
   const protocol = request.headers.get('x-forwarded-proto') || 'http';
   const host = request.headers.get('host') || 'localhost:3000';
@@ -161,6 +162,29 @@ export async function GET(request: NextRequest) {
 
   // Calculate actual cache age after potential refresh
   const cacheAge = cache.lastUpdate > 0 ? Date.now() - cache.lastUpdate : 0;
+
+  // Address lookup - find a specific user by address
+  if (addressLookup) {
+    const user = cache.data.find(entry =>
+      entry.address?.toLowerCase() === addressLookup
+    );
+
+    if (user) {
+      return NextResponse.json({
+        success: true,
+        data: user,
+        cached: cache.lastUpdate > 0,
+        cacheAge: Math.round(cacheAge / 1000),
+      });
+    }
+
+    return NextResponse.json({
+      success: false,
+      error: 'User not found',
+      cached: cache.lastUpdate > 0,
+      cacheAge: Math.round(cacheAge / 1000),
+    }, { status: 404 });
+  }
 
   // Filter by platform if specified
   let data = cache.data;

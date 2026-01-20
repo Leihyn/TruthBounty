@@ -39,6 +39,7 @@ import {
 import Link from 'next/link';
 import { COPY_TRADING_VAULT_ABI, COPY_VAULT_ADDRESS } from '@/lib/contracts';
 import { PolymarketSimulationTab } from '@/components/PolymarketSimulation';
+import { PAGE_HEADER, TAB_STYLES, shortenAddress } from '@/components/ui/design-tokens';
 
 function SimulationTab({ followerAddress }: { followerAddress?: string }) {
   // React Query hook with automatic 30s polling
@@ -391,10 +392,6 @@ export default function CopyTradingDashboard() {
     });
   };
 
-  function shortenAddress(addr: string): string {
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-  }
-
   function formatTimeRemaining(unlockTimestamp: number): string {
     const now = Date.now() / 1000;
     const remaining = unlockTimestamp - now;
@@ -436,15 +433,15 @@ export default function CopyTradingDashboard() {
     <div className="container px-4 md:px-6 py-6 max-w-5xl">
       {/* Header - Better mobile spacing */}
       <div className="mb-5">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div className={PAGE_HEADER.container}>
           <div>
             <div className="flex items-center gap-2 mb-1">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
                 <TrendingUp className="h-4 w-4 text-white" />
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Copy trading</h1>
+              <h1 className={PAGE_HEADER.title}>Copy trading</h1>
             </div>
-            <p className="text-sm text-muted-foreground">Automatically copy trades from top performers</p>
+            <p className={PAGE_HEADER.subtitle}>Automatically copy trades from top performers</p>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs border-success/30 text-success bg-success/5">
@@ -468,7 +465,7 @@ export default function CopyTradingDashboard() {
       {/* Stats Row - Better mobile horizontal scroll */}
       <div className="mb-5 overflow-hidden">
         <div className="flex gap-3 overflow-x-auto pb-3 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-4 snap-x scrollbar-hide">
-          <Card className="border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent min-w-[150px] md:min-w-0 snap-start shrink-0 md:shrink">
+          <Card className="border-border/50 bg-card min-w-[150px] md:min-w-0 snap-start shrink-0 md:shrink">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -482,7 +479,7 @@ export default function CopyTradingDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent min-w-[140px] md:min-w-0 snap-start shrink-0 md:shrink">
+          <Card className="border-border/50 bg-card min-w-[140px] md:min-w-0 snap-start shrink-0 md:shrink">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
@@ -495,7 +492,7 @@ export default function CopyTradingDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 bg-gradient-to-br from-success/10 via-success/5 to-transparent min-w-[150px] md:min-w-0 snap-start shrink-0 md:shrink">
+          <Card className="border-border/50 bg-card min-w-[150px] md:min-w-0 snap-start shrink-0 md:shrink">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-success/20 flex items-center justify-center">
@@ -510,7 +507,7 @@ export default function CopyTradingDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 bg-gradient-to-br from-secondary/10 via-secondary/5 to-transparent min-w-[130px] md:min-w-0 snap-start shrink-0 md:shrink">
+          <Card className="border-border/50 bg-card min-w-[130px] md:min-w-0 snap-start shrink-0 md:shrink">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-secondary/20 flex items-center justify-center">
@@ -527,46 +524,31 @@ export default function CopyTradingDashboard() {
 
       {/* Tabs - Improved styling */}
       <Tabs defaultValue="deposit" className="space-y-4">
-        <TabsList className="w-full h-12 p-1 bg-surface/50 border border-border/50 grid grid-cols-5">
-          <TabsTrigger
-            value="deposit"
-            className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/15 data-[state=active]:to-blue-600/10 data-[state=active]:border-primary/30"
-          >
+        <TabsList className={`${TAB_STYLES.list} rounded-xl grid grid-cols-5`}>
+          <TabsTrigger value="deposit" className={TAB_STYLES.trigger}>
             <Wallet className="w-4 h-4" />
             <span className="hidden sm:inline">Funds</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="leaders"
-            className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-secondary/15 data-[state=active]:to-amber-500/10 data-[state=active]:border-secondary/30"
-          >
+          <TabsTrigger value="leaders" className={TAB_STYLES.trigger}>
             <Users className="w-4 h-4" />
             <span className="hidden sm:inline">Leaders</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="simulation"
-            className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/15 data-[state=active]:to-purple-600/10 data-[state=active]:border-purple-500/30"
-          >
+          <TabsTrigger value="simulation" className={TAB_STYLES.trigger}>
             <FlaskConical className="w-4 h-4" />
             <span className="hidden sm:inline">PancakeSwap</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="polymarket"
-            className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500/15 data-[state=active]:to-blue-600/10 data-[state=active]:border-blue-500/30"
-          >
+          <TabsTrigger value="polymarket" className={TAB_STYLES.trigger}>
             <BarChart3 className="w-4 h-4" />
             <span className="hidden sm:inline">Polymarket</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="transparency"
-            className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-success/15 data-[state=active]:to-emerald-500/10 data-[state=active]:border-success/30"
-          >
+          <TabsTrigger value="transparency" className={TAB_STYLES.trigger}>
             <Shield className="w-4 h-4" />
             <span className="hidden sm:inline">Security</span>
           </TabsTrigger>
         </TabsList>
 
         {/* Deposit/Withdraw Tab */}
-        <TabsContent value="deposit" className="mt-4">
+        <TabsContent value="deposit" className={TAB_STYLES.content}>
           {/* Desktop: Side by side */}
           <div className="hidden md:grid md:grid-cols-2 gap-4">
             {/* Deposit */}
@@ -693,7 +675,7 @@ export default function CopyTradingDashboard() {
           <div className="md:hidden space-y-4">
             {/* Deposit Card */}
             <Card className="border-border/50 overflow-hidden">
-              <div className="bg-gradient-to-r from-primary/10 to-transparent p-4">
+              <div className="bg-primary/5 p-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
                     <Plus className="h-5 w-5 text-primary" />
@@ -736,7 +718,7 @@ export default function CopyTradingDashboard() {
 
             {/* Withdraw Card */}
             <Card className="border-border/50 overflow-hidden">
-              <div className="bg-gradient-to-r from-amber-500/10 to-transparent p-4">
+              <div className="bg-amber-500/5 p-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
                     <Minus className="h-5 w-5 text-amber-500" />
@@ -817,7 +799,7 @@ export default function CopyTradingDashboard() {
         </TabsContent>
 
         {/* Leaders Tab */}
-        <TabsContent value="leaders" className="mt-4">
+        <TabsContent value="leaders" className={TAB_STYLES.content}>
           <Card className="border-border/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Follow top traders</CardTitle>
@@ -881,20 +863,20 @@ export default function CopyTradingDashboard() {
         </TabsContent>
 
         {/* Simulation Tab */}
-        <TabsContent value="simulation" className="mt-4">
+        <TabsContent value="simulation" className={TAB_STYLES.content}>
           <SimulationTab followerAddress={address} />
         </TabsContent>
 
         {/* Polymarket Tab */}
-        <TabsContent value="polymarket" className="mt-4">
+        <TabsContent value="polymarket" className={TAB_STYLES.content}>
           <PolymarketSimulationTab followerAddress={address} />
         </TabsContent>
 
         {/* Transparency Tab */}
-        <TabsContent value="transparency" className="mt-4 space-y-4">
+        <TabsContent value="transparency" className={`${TAB_STYLES.content} space-y-4`}>
           {/* Contract Health Status */}
           <Card className="border-border/50 overflow-hidden">
-            <div className={`p-4 ${isContractPaused ? 'bg-gradient-to-r from-destructive/10 via-destructive/5 to-transparent' : 'bg-gradient-to-r from-success/10 via-success/5 to-transparent'}`}>
+            <div className={`p-4 ${isContractPaused ? 'bg-destructive/5' : 'bg-success/5'}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-12 h-12 rounded-xl ${isContractPaused ? 'bg-destructive/20' : 'bg-success/20'} flex items-center justify-center`}>
@@ -942,7 +924,7 @@ export default function CopyTradingDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-br from-surface to-surface-raised border border-border/30">
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-surface border border-border/30">
                   <div className="w-9 h-9 rounded-lg bg-warning/15 flex items-center justify-center shrink-0">
                     <Clock className="h-4 w-4 text-warning" />
                   </div>
@@ -954,7 +936,7 @@ export default function CopyTradingDashboard() {
                     <p className="text-xs text-muted-foreground">Prevents flash loan attacks</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-br from-surface to-surface-raised border border-border/30">
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-surface border border-border/30">
                   <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
                     <Lock className="h-4 w-4 text-primary" />
                   </div>
@@ -966,7 +948,7 @@ export default function CopyTradingDashboard() {
                     <p className="text-xs text-muted-foreground">Limits exposure during beta</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-br from-surface to-surface-raised border border-border/30">
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-surface border border-border/30">
                   <div className="w-9 h-9 rounded-lg bg-purple-500/15 flex items-center justify-center shrink-0">
                     <Users className="h-4 w-4 text-purple-500" />
                   </div>
@@ -978,7 +960,7 @@ export default function CopyTradingDashboard() {
                     <p className="text-xs text-muted-foreground">Max per leader prevents concentration</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-br from-surface to-surface-raised border border-border/30">
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-surface border border-border/30">
                   <div className="w-9 h-9 rounded-lg bg-success/15 flex items-center justify-center shrink-0">
                     <Shield className="h-4 w-4 text-success" />
                   </div>

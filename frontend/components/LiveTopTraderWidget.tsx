@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronUp, ChevronDown, Sparkles, ExternalLink, X } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { shortenAddress, formatNumber } from '@/components/ui/design-tokens';
 
 interface TraderData {
   address: string;
@@ -19,14 +20,6 @@ interface LiveTopTraderWidgetProps {
   /** Optional label type - 'live' (default), 'featured', or 'sponsored' */
   labelType?: 'live' | 'featured' | 'sponsored';
 }
-
-const formatNumber = (num: number) => {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num?.toLocaleString() || '0';
-};
-
-const shortenAddress = (addr: string) => `${addr?.slice(0, 6)}...${addr?.slice(-4)}`;
 
 const LABEL_CONFIG = {
   live: { text: 'Live', bg: 'bg-secondary/20', color: 'text-secondary', border: 'border-secondary/30' },
@@ -94,27 +87,27 @@ export function LiveTopTraderWidget({ className, labelType = 'live' }: LiveTopTr
     >
       {/* Collapsed State */}
       {!isExpanded && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => setIsExpanded(true)}
             className="flex items-center gap-2 px-3 py-2 rounded-full bg-surface/95 backdrop-blur-xl border border-border/50 shadow-lg hover:shadow-xl hover:border-primary/30 transition-all group"
           >
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-xs font-bold text-white">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
               {trader.username?.[0] || '?'}
             </div>
-            <span className="font-medium text-sm">{trader.username || shortenAddress(trader.address)}</span>
-            <Badge className={`${labelConfig.bg} ${labelConfig.color} ${labelConfig.border} text-[10px] font-semibold px-1.5 py-0`}>
+            <span className="font-medium text-sm leading-none">{trader.username || shortenAddress(trader.address)}</span>
+            <Badge className={`${labelConfig.bg} ${labelConfig.color} ${labelConfig.border} text-[10px] font-semibold px-1.5 py-0 leading-none`}>
               {labelConfig.text}
             </Badge>
-            <ChevronUp className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
+            <ChevronUp className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
           </button>
           {/* Dismiss button */}
           <button
             onClick={handleDismiss}
-            className="p-1.5 rounded-full bg-surface/95 backdrop-blur-xl border border-border/50 shadow-lg hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive transition-all"
+            className="flex items-center justify-center w-7 h-7 rounded-full bg-surface/95 backdrop-blur-xl border border-border/50 shadow-lg hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive transition-all"
             title="Dismiss"
           >
-            <X className="w-3 h-3" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}

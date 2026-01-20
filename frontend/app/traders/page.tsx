@@ -12,7 +12,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TIER_NAMES, TIER_COLORS, TIER_THRESHOLDS, ReputationTier } from '@/lib/contracts';
-import { useDiscoveryTraders } from '@/lib/queries';
+import {
+  useDiscoveryTraders,
+  useTraderSearch,
+  useTraderFollowStatus,
+  TraderSearchResult,
+  TraderBet,
+} from '@/lib/queries';
 import {
   Search,
   Trophy,
@@ -32,19 +38,12 @@ import {
 } from 'lucide-react';
 import { isAddress } from 'viem';
 import Link from 'next/link';
+import { shortenAddress } from '@/components/ui/design-tokens';
+import { PlatformBadge, PlatformBadgeList } from '@/components/ui/platform-badge';
 
-interface TraderStats {
-  wallet_address: string;
-  username?: string;
-  total_bets: number;
-  wins: number;
-  losses: number;
-  win_rate: number;
-  total_score: number;
-  total_volume: string;
-  platforms: string[];
-  last_bet_at?: string;
-}
+// Re-export types for internal use (mapped from React Query hook types)
+type TraderStats = TraderSearchResult;
+type Bet = TraderBet;
 
 interface LeaderboardEntry {
   wallet_address: string;
@@ -54,19 +53,6 @@ interface LeaderboardEntry {
   win_rate: number;
   truth_score: number;
   total_volume: string;
-}
-
-interface Bet {
-  id: string;
-  market_id: string;
-  platform: string;
-  position: string;
-  amount: string;
-  won: boolean | null;
-  claimed_amount: string | null;
-  placed_at: string;
-  resolved_at?: string;
-  market_name?: string;
 }
 
 function getTierFromScore(score: number): ReputationTier {
@@ -83,18 +69,31 @@ const MAX_HISTORY = 5;
 export default function TraderSearchPage() {
   const account = useAccount();
   const [mounted, setMounted] = useState(false);
-  const [searchAddress, setSearchAddress] = useState('');
-  const [searchError, setSearchError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [traderStats, setTraderStats] = useState<TraderStats | null>(null);
-  const [bets, setBets] = useState<Bet[]>([]);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
+  const [activeSearchAddress, setActiveSearchAddress] = useState<string | undefined>(undefined);
+  const [validationError, setValidationError] = useState('');
   const [showAllStats, setShowAllStats] = useState(false);
-
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
 
-  // React Query hook for discovery data - automatic caching, shared with leaderboard
+  // React Query hooks - declarative data fetching with caching
   const { topTraders: discoveryTopTraders, recentlyActive: discoveryRecentlyActive, isLoading: loadingDiscovery } = useDiscoveryTraders(8);
+
+  // Trader search with React Query - only fetches when activeSearchAddress is set
+  const {
+    data: searchData,
+    isLoading: searchLoading,
+    isFetching: searchFetching,
+  } = useTraderSearch(activeSearchAddress);
+
+  // Extract data from search results
+  const traderStats = searchData?.profile || null;
+  const bets = searchData?.bets || [];
+  const searchError = searchData?.error || validationError;
+  const loading = searchLoading || searchFetching;
+
+  // Check follow status using React Query
+  const { data: followData } = useTraderFollowStatus(account.address, traderStats?.wallet_address);
+  const isFollowing = followData?.isFollowing || false;
 
   // Map to local component's LeaderboardEntry format
   const topTraders: LeaderboardEntry[] = discoveryTopTraders.map(t => ({
@@ -150,86 +149,32 @@ export default function TraderSearchPage() {
     } catch (e) {}
   }
 
-  // fetchDiscoveryData removed - now using useDiscoveryTraders() React Query hook
+  // Simplified search handler - triggers React Query hook by setting activeSearchAddress
+  function handleSearch(address?: string) {
+    const targetAddress = address || searchInput;
 
-  async function handleSearch(address?: string) {
-    const targetAddress = address || searchAddress;
+    // Validate before triggering the query
     if (!targetAddress.trim()) {
-      setSearchError('Please enter an address');
+      setValidationError('Please enter an address');
       return;
     }
     if (!isAddress(targetAddress)) {
-      setSearchError('Invalid Ethereum address');
+      setValidationError('Invalid Ethereum address');
       return;
     }
 
-    setSearchError('');
-    setLoading(true);
-    setTraderStats(null);
-    setBets([]);
+    // Clear any previous validation error
+    setValidationError('');
 
-    try {
-      saveToHistory(targetAddress);
+    // Save to history
+    saveToHistory(targetAddress);
 
-      // Fetch trader profile from correct API endpoint
-      const profileRes = await fetch(`/api/trader/${targetAddress}`);
-      if (profileRes.ok) {
-        const data = await profileRes.json();
-        if (data.profile) {
-          // Map profile to TraderStats format
-          setTraderStats({
-            wallet_address: data.profile.wallet_address,
-            username: data.profile.username,
-            total_bets: data.profile.total_bets,
-            wins: data.profile.wins,
-            losses: data.profile.losses,
-            win_rate: data.profile.win_rate,
-            total_score: data.profile.total_score,
-            total_volume: data.profile.total_volume,
-            platforms: data.profile.platforms?.map((p: any) => p.name) || [],
-            last_bet_at: data.profile.recent_bets?.[0]?.timestamp,
-          });
-
-          // Map recent bets
-          setBets((data.profile.recent_bets || []).map((bet: any) => ({
-            id: bet.id,
-            market_id: bet.market_id,
-            platform: bet.platform,
-            position: bet.position,
-            amount: bet.amount,
-            won: bet.won,
-            claimed_amount: bet.claimed_amount,
-            placed_at: bet.timestamp,
-          })));
-        } else {
-          setSearchError('No data found for this address.');
-        }
-      } else if (profileRes.status === 404) {
-        setSearchError('Trader not found. They may not have any indexed bets yet.');
-      } else {
-        setSearchError('Unable to fetch trader data.');
-      }
-
-      if (isConnected && userAddress) {
-        const followRes = await fetch(`/api/copy-trade/follow?address=${userAddress}&trader=${targetAddress}`);
-        if (followRes.ok) {
-          const followData = await followRes.json();
-          setIsFollowing(followData.isFollowing || false);
-        }
-      }
-    } catch (error) {
-      setSearchError('Failed to fetch trader data');
-    } finally {
-      setLoading(false);
-    }
+    // Trigger React Query fetch by setting the address
+    setActiveSearchAddress(targetAddress);
   }
 
   function formatBNB(wei: string): string {
     return (Number(wei) / 1e18).toFixed(4);
-  }
-
-  function shortenAddress(addr: string): string {
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   }
 
   function calculateProfit(amount: string, claimedAmount: string | null, won: boolean | null): string {
@@ -257,8 +202,8 @@ export default function TraderSearchPage() {
           <Input
             type="text"
             placeholder="Enter wallet address (0x...)"
-            value={searchAddress}
-            onChange={(e) => { setSearchAddress(e.target.value); setSearchError(''); }}
+            value={searchInput}
+            onChange={(e) => { setSearchInput(e.target.value); setValidationError(''); }}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             className="pl-9 h-11"
           />
@@ -348,11 +293,7 @@ export default function TraderSearchPage() {
 
               <CardContent className="p-4 space-y-3">
                 {/* Platforms */}
-                <div className="flex flex-wrap gap-1.5">
-                  {traderStats.platforms.map((p) => (
-                    <Badge key={p} variant="secondary" className="text-xs">{p}</Badge>
-                  ))}
-                </div>
+                <PlatformBadgeList platforms={traderStats.platforms} size="sm" max={5} />
 
                 {/* Actions */}
                 <div className="flex gap-2">
@@ -370,7 +311,7 @@ export default function TraderSearchPage() {
                   )}
                 </div>
 
-                <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => { setTraderStats(null); setBets([]); setSearchAddress(''); }}>
+                <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => { setActiveSearchAddress(undefined); setSearchInput(''); }}>
                   <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
                   New search
                 </Button>
@@ -409,7 +350,7 @@ export default function TraderSearchPage() {
                         <div key={bet.id} className="flex items-center justify-between p-3 rounded-lg bg-surface/30 border border-border/30 hover:bg-surface/50 transition-colors">
                           <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="outline" className="text-xs">{bet.position}</Badge>
-                            <Badge variant="secondary" className="text-xs">{bet.platform}</Badge>
+                            <PlatformBadge platform={bet.platform} size="xs" />
                             {bet.won === true && <Badge className="bg-success text-xs">Won</Badge>}
                             {bet.won === false && <Badge className="bg-destructive text-xs">Lost</Badge>}
                             {bet.won === null && <Badge variant="outline" className="text-xs">Pending</Badge>}
@@ -444,7 +385,7 @@ export default function TraderSearchPage() {
               <div className="flex flex-wrap gap-2">
                 {searchHistory.map((addr) => (
                   <div key={addr} className="flex items-center gap-1 bg-surface rounded-lg px-3 py-1.5 border border-border/50 group">
-                    <button onClick={() => { setSearchAddress(addr); handleSearch(addr); }} className="text-xs font-mono hover:text-primary transition-colors">
+                    <button onClick={() => { setSearchInput(addr); handleSearch(addr); }} className="text-xs font-mono hover:text-primary transition-colors">
                       {shortenAddress(addr)}
                     </button>
                     <button onClick={() => removeFromHistory(addr)} className="text-muted-foreground hover:text-destructive transition-colors ml-1 opacity-0 group-hover:opacity-100">
@@ -481,21 +422,21 @@ export default function TraderSearchPage() {
                 {/* Featured #1 - Spans 2 rows on md+ */}
                 {featuredTrader && (
                   <button
-                    onClick={() => { setSearchAddress(featuredTrader.wallet_address); handleSearch(featuredTrader.wallet_address); }}
-                    className="col-span-2 md:col-span-1 md:row-span-2 p-4 sm:p-5 rounded-xl border border-secondary/30 bg-gradient-to-br from-secondary/5 to-surface hover:border-secondary/50 transition-all text-left group"
+                    onClick={() => { setSearchInput(featuredTrader.wallet_address); handleSearch(featuredTrader.wallet_address); }}
+                    className="col-span-2 md:col-span-1 md:row-span-2 p-4 sm:p-5 rounded-xl border border-border/50 bg-card hover:border-primary/30 hover:bg-surface-raised transition-all text-left group"
                   >
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-8 h-8 rounded-full bg-secondary/20 text-secondary flex items-center justify-center font-bold">1</div>
                       <Badge className={`${TIER_COLORS[getTierFromScore(featuredTrader.truth_score)]} text-white`}>{TIER_NAMES[getTierFromScore(featuredTrader.truth_score)]}</Badge>
                     </div>
                     <p className="font-mono text-sm text-muted-foreground group-hover:text-foreground transition-colors mb-3">{shortenAddress(featuredTrader.wallet_address)}</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="text-2xl font-bold text-success">{featuredTrader.win_rate.toFixed(1)}%</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-center p-2 rounded-lg bg-success/10 border border-success/20">
+                        <p className="text-xl font-bold text-success">{featuredTrader.win_rate.toFixed(1)}%</p>
                         <p className="text-xs text-muted-foreground">Win rate</p>
                       </div>
-                      <div>
-                        <p className="text-2xl font-bold text-secondary">{featuredTrader.truth_score}</p>
+                      <div className="text-center p-2 rounded-lg bg-secondary/10 border border-secondary/20">
+                        <p className="text-xl font-bold text-secondary">{featuredTrader.truth_score}</p>
                         <p className="text-xs text-muted-foreground">Score</p>
                       </div>
                     </div>
@@ -509,7 +450,7 @@ export default function TraderSearchPage() {
                   return (
                     <button
                       key={trader.wallet_address}
-                      onClick={() => { setSearchAddress(trader.wallet_address); handleSearch(trader.wallet_address); }}
+                      onClick={() => { setSearchInput(trader.wallet_address); handleSearch(trader.wallet_address); }}
                       className="p-3 rounded-xl border border-border/50 bg-card hover:border-primary/30 hover:bg-surface-raised transition-all text-left group"
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -547,7 +488,7 @@ export default function TraderSearchPage() {
                   return (
                     <button
                       key={trader.wallet_address}
-                      onClick={() => { setSearchAddress(trader.wallet_address); handleSearch(trader.wallet_address); }}
+                      onClick={() => { setSearchInput(trader.wallet_address); handleSearch(trader.wallet_address); }}
                       className="min-w-[200px] sm:min-w-0 p-3 rounded-xl border border-border/50 bg-card hover:border-primary/30 hover:bg-surface-raised transition-all snap-center"
                     >
                       <div className="flex items-center gap-2.5">

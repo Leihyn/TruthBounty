@@ -68,6 +68,7 @@ export interface PlatformStats {
 
 // ============================================
 // Query Keys - Centralized for cache management
+// ALL query keys MUST be defined here for consistency
 // ============================================
 
 export const queryKeys = {
@@ -83,25 +84,114 @@ export const queryKeys = {
   // Markets
   markets: (platform: string) => ['markets', platform] as const,
   allMarkets: () => ['markets', 'all'] as const,
+  platformMarkets: (platform: string) => ['platform-markets', platform] as const,
 
   // User profiles
   userProfile: (address: string) => ['user-profile', address] as const,
+  traderProfile: (address: string) => ['trader-profile', address.toLowerCase()] as const,
+  traderFollowStatus: (userAddress: string, traderAddress: string) =>
+    ['trader-follow-status', userAddress.toLowerCase(), traderAddress.toLowerCase()] as const,
+  traderSearch: (address: string) => ['trader-search', address.toLowerCase()] as const,
 
   // Stats
   platformStats: () => ['platform-stats'] as const,
   dashboardStats: () => ['dashboard-stats'] as const,
+  caseStudyTrader: () => ['case-study-trader'] as const,
+
+  // Simulation / Copy Trading
+  simulation: {
+    stats: (platform: 'pancakeswap' | 'polymarket', address?: string) =>
+      ['simulation', platform, 'stats', address] as const,
+    trades: (address?: string) => ['simulation', 'trades', address] as const,
+    monitor: () => ['copy-trading', 'monitor'] as const,
+    simStats: () => ['copy-trading', 'sim-stats'] as const,
+    pancakeTab: (followerAddress?: string) =>
+      ['copy-trading', 'pancake-sim-tab', followerAddress] as const,
+  },
 };
+
+// ============================================
+// Error Types and Helpers
+// ============================================
+
+/**
+ * Standard error type for API calls
+ * Provides consistent error structure across all hooks
+ */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status?: number,
+    public code?: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+/**
+ * Parse error response from API
+ */
+function parseApiError(res: Response, fallbackMessage: string): ApiError {
+  const status = res.status;
+
+  // Common HTTP error messages
+  const statusMessages: Record<number, string> = {
+    400: 'Bad request - please check your input',
+    401: 'Unauthorized - please connect your wallet',
+    403: 'Forbidden - you do not have access',
+    404: 'Not found',
+    429: 'Too many requests - please wait and try again',
+    500: 'Server error - please try again later',
+    502: 'Service temporarily unavailable',
+    503: 'Service temporarily unavailable',
+  };
+
+  const message = statusMessages[status] || fallbackMessage;
+  return new ApiError(message, status);
+}
 
 // ============================================
 // Fetch Helpers
 // ============================================
 
+/**
+ * Standard JSON fetch with error handling
+ * Throws ApiError for failed requests with meaningful messages
+ */
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
+    throw parseApiError(res, `API error: ${res.status}`);
   }
   return res.json();
+}
+
+/**
+ * Fetch with timeout support
+ * Use for endpoints that may be slow/unreliable
+ */
+async function fetchWithTimeout<T>(
+  url: string,
+  timeoutMs: number = 10000,
+): Promise<T> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) {
+      throw parseApiError(res, `API error: ${res.status}`);
+    }
+    return res.json();
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new ApiError('Request timed out - please try again', 408, 'TIMEOUT');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 // ============================================
@@ -298,6 +388,120 @@ export function useUserProfile(address: string | undefined) {
 }
 
 // ============================================
+// Trader Search Hooks (for /traders page)
+// ============================================
+
+export interface TraderSearchResult {
+  wallet_address: string;
+  username?: string;
+  total_bets: number;
+  wins: number;
+  losses: number;
+  win_rate: number;
+  total_score: number;
+  total_volume: string;
+  platforms: string[];
+  last_bet_at?: string;
+}
+
+export interface TraderBet {
+  id: string;
+  market_id: string;
+  platform: string;
+  position: string;
+  amount: string;
+  won: boolean | null;
+  claimed_amount: string | null;
+  placed_at: string;
+  resolved_at?: string;
+  market_name?: string;
+}
+
+/**
+ * Search for a trader by address - cached for instant re-lookups
+ * Returns profile data and recent bets
+ */
+export function useTraderSearch(address: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.traderSearch(address || ''),
+    queryFn: async (): Promise<{ profile: TraderSearchResult | null; bets: TraderBet[]; error?: string }> => {
+      if (!address) return { profile: null, bets: [] };
+
+      try {
+        const profileRes = await fetch(`/api/trader/${address}`);
+
+        if (profileRes.status === 404) {
+          return { profile: null, bets: [], error: 'Trader not found. They may not have any indexed bets yet.' };
+        }
+
+        if (!profileRes.ok) {
+          return { profile: null, bets: [], error: 'Unable to fetch trader data.' };
+        }
+
+        const data = await profileRes.json();
+
+        if (!data.profile) {
+          return { profile: null, bets: [], error: 'No data found for this address.' };
+        }
+
+        // Transform profile data
+        const profile: TraderSearchResult = {
+          wallet_address: data.profile.wallet_address,
+          username: data.profile.username,
+          total_bets: data.profile.total_bets,
+          wins: data.profile.wins,
+          losses: data.profile.losses,
+          win_rate: data.profile.win_rate,
+          total_score: data.profile.total_score,
+          total_volume: data.profile.total_volume,
+          platforms: data.profile.platforms?.map((p: any) => p.name) || [],
+          last_bet_at: data.profile.recent_bets?.[0]?.timestamp,
+        };
+
+        // Transform bets data
+        const bets: TraderBet[] = (data.profile.recent_bets || []).map((bet: any) => ({
+          id: bet.id,
+          market_id: bet.market_id,
+          platform: bet.platform,
+          position: bet.position,
+          amount: bet.amount,
+          won: bet.won,
+          claimed_amount: bet.claimed_amount,
+          placed_at: bet.timestamp,
+        }));
+
+        return { profile, bets };
+      } catch (error: any) {
+        return { profile: null, bets: [], error: 'Failed to fetch trader data' };
+      }
+    },
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    gcTime: 10 * 60 * 1000, // Keep in garbage collection for 10 minutes
+    enabled: !!address,
+  });
+}
+
+/**
+ * Check if a user is following a trader
+ */
+export function useTraderFollowStatus(userAddress: string | undefined, traderAddress: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.traderFollowStatus(userAddress || '', traderAddress || ''),
+    queryFn: async () => {
+      if (!userAddress || !traderAddress) return { isFollowing: false };
+
+      const res = await fetch(`/api/copy-trade/follow?address=${userAddress}&trader=${traderAddress}`);
+      if (!res.ok) return { isFollowing: false };
+
+      const data = await res.json();
+      return { isFollowing: data.isFollowing || false };
+    },
+    staleTime: 30 * 1000, // 30 seconds
+    enabled: !!userAddress && !!traderAddress,
+  });
+}
+
+// ============================================
 // Dashboard Stats Hooks
 // ============================================
 
@@ -371,7 +575,7 @@ export interface CaseStudyTrader {
  */
 export function useCaseStudyTrader() {
   return useQuery({
-    queryKey: ['case-study-trader'],
+    queryKey: queryKeys.caseStudyTrader(),
     queryFn: async () => {
       const res = await fetch('/api/polymarket-leaderboard?limit=1');
       const data = await res.json();
@@ -398,7 +602,7 @@ export function useCaseStudyTrader() {
 
 export function useSimulationStats() {
   return useQuery({
-    queryKey: ['simulation-stats'],
+    queryKey: queryKeys.simulation.simStats(),
     queryFn: () => fetchJson<any>('/api/copy-trading-stats'),
     staleTime: 30 * 1000, // Refresh more frequently for simulation
     refetchInterval: 30 * 1000, // Auto-refresh every 30 seconds
@@ -435,7 +639,7 @@ export interface PendingBet {
  */
 export function usePancakeSimulationStats(address: string | undefined) {
   return useQuery({
-    queryKey: ['simulation', 'pancakeswap', 'stats', address],
+    queryKey: queryKeys.simulation.stats('pancakeswap', address),
     queryFn: async () => {
       if (!address) return null;
       const res = await fetch(`/api/copy-trading/simulation?stats=true&follower=${address}`);
@@ -476,7 +680,7 @@ export function usePancakeSimulationStats(address: string | undefined) {
  */
 export function usePolymarketSimulationStats(address: string | undefined) {
   return useQuery({
-    queryKey: ['simulation', 'polymarket', 'stats', address],
+    queryKey: queryKeys.simulation.stats('polymarket', address),
     queryFn: async () => {
       if (!address) return null;
       const res = await fetch(`/api/polymarket/simulate?stats=true&follower=${address}`);
@@ -517,7 +721,7 @@ export function usePolymarketSimulationStats(address: string | undefined) {
  */
 export function useDashboardTrades(address: string | undefined) {
   return useQuery({
-    queryKey: ['simulation', 'trades', address],
+    queryKey: queryKeys.simulation.trades(address),
     queryFn: async () => {
       if (!address) return { pendingBets: [], recentTrades: [] };
 
@@ -599,7 +803,7 @@ export interface PlatformMarketsResult {
  */
 export function useMonitorData(enabled: boolean = true) {
   return useQuery({
-    queryKey: ['copy-trading', 'monitor'],
+    queryKey: queryKeys.simulation.monitor(),
     queryFn: async () => {
       const res = await fetch('/api/copy-trading/monitor');
       if (!res.ok) throw new Error('Failed to fetch');
@@ -621,7 +825,7 @@ export function usePlatformMarketsWithFetcher<T>(
   enabled: boolean = true
 ) {
   return useQuery({
-    queryKey: ['platform-markets', platform],
+    queryKey: queryKeys.platformMarkets(platform),
     queryFn: async (): Promise<{ markets: T[]; isMock: boolean; error?: string }> => {
       try {
         const result = await fetcher();
@@ -646,7 +850,7 @@ export function usePlatformMarketsWithFetcher<T>(
  */
 export function useCopyTradingSimStats() {
   return useQuery({
-    queryKey: ['copy-trading', 'sim-stats'],
+    queryKey: queryKeys.simulation.simStats(),
     queryFn: async () => {
       const res = await fetch('/api/copy-trading/simulation?stats=true');
       if (!res.ok) return null;
@@ -663,7 +867,7 @@ export function useCopyTradingSimStats() {
  */
 export function usePancakeSimulationTab(followerAddress?: string) {
   return useQuery({
-    queryKey: ['copy-trading', 'pancake-sim-tab', followerAddress],
+    queryKey: queryKeys.simulation.pancakeTab(followerAddress),
     queryFn: async () => {
       const suffix = followerAddress ? `&follower=${followerAddress}` : '';
 
@@ -764,5 +968,129 @@ export function useInvalidateLeaderboard() {
   return () => {
     queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
     queryClient.invalidateQueries({ queryKey: ['platform-leaderboard'] });
+  };
+}
+
+// ============================================
+// Mutation Hooks with Cache Invalidation
+// ============================================
+
+/**
+ * Mutation to follow/unfollow a trader
+ * Automatically invalidates follow status cache on success
+ */
+export function useFollowTraderMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      userAddress,
+      traderAddress,
+      action,
+    }: {
+      userAddress: string;
+      traderAddress: string;
+      action: 'follow' | 'unfollow';
+    }) => {
+      const res = await fetch('/api/copy-trade/follow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userAddress, traderAddress, action }),
+      });
+      if (!res.ok) throw new Error('Failed to update follow status');
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate the specific follow status query
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.traderFollowStatus(variables.userAddress, variables.traderAddress),
+      });
+      // Also invalidate any simulation data that might be affected
+      queryClient.invalidateQueries({
+        queryKey: ['simulation'],
+      });
+    },
+  });
+}
+
+/**
+ * Mutation to refresh simulation/copy trading data
+ * Use this after placing a simulated trade
+ */
+export function useRefreshSimulation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      // Just trigger a refresh - no API call needed
+      return true;
+    },
+    onSuccess: () => {
+      // Invalidate all simulation-related queries
+      queryClient.invalidateQueries({ queryKey: ['simulation'] });
+      queryClient.invalidateQueries({ queryKey: ['copy-trading'] });
+    },
+  });
+}
+
+/**
+ * Mutation to invalidate market data
+ * Use after market resolution or when user requests refresh
+ */
+export function useRefreshMarkets() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (platform?: string) => {
+      if (platform) {
+        // Refetch specific platform
+        await queryClient.refetchQueries({
+          queryKey: queryKeys.platformMarkets(platform),
+        });
+      }
+      return true;
+    },
+    onSuccess: (_, platform) => {
+      if (platform) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.platformMarkets(platform),
+        });
+      } else {
+        // Invalidate all market queries
+        queryClient.invalidateQueries({ queryKey: ['markets'] });
+        queryClient.invalidateQueries({ queryKey: ['platform-markets'] });
+      }
+    },
+  });
+}
+
+/**
+ * Invalidate all simulation-related caches
+ * Call this when simulation state changes externally
+ */
+export function useInvalidateSimulation() {
+  const queryClient = useQueryClient();
+
+  return () => {
+    queryClient.invalidateQueries({ queryKey: ['simulation'] });
+    queryClient.invalidateQueries({ queryKey: ['copy-trading'] });
+  };
+}
+
+/**
+ * Invalidate trader search cache
+ * Call this when trader data might have changed
+ */
+export function useInvalidateTraderSearch() {
+  const queryClient = useQueryClient();
+
+  return (address?: string) => {
+    if (address) {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.traderSearch(address),
+      });
+    } else {
+      queryClient.invalidateQueries({ queryKey: ['trader-search'] });
+    }
   };
 }

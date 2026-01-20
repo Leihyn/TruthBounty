@@ -40,23 +40,14 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { PlatformLogo, PLATFORMS } from '@/components/PlatformLogo';
+import { shortenAddress, formatNumber, TIER_STYLES, getTierFromScore } from '@/components/ui/design-tokens';
 
 // Types now imported from queries.ts
 
-const formatNumber = (num: number) => {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num?.toLocaleString() || '0';
-};
-
-const shortenAddress = (addr: string) => `${addr?.slice(0, 6)}...${addr?.slice(-4)}`;
-
 const getTierInfo = (score: number) => {
-  if (score >= 900) return { name: 'Diamond', color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' };
-  if (score >= 650) return { name: 'Platinum', color: 'text-slate-300', bg: 'bg-slate-300/10', border: 'border-slate-300/20' };
-  if (score >= 400) return { name: 'Gold', color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' };
-  if (score >= 200) return { name: 'Silver', color: 'text-gray-400', bg: 'bg-gray-400/10', border: 'border-gray-400/20' };
-  return { name: 'Bronze', color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20' };
+  const tier = getTierFromScore(score);
+  const styles = TIER_STYLES[tier];
+  return { name: styles.name, color: styles.color, bg: styles.bg, border: styles.border };
 };
 
 export default function HomePage() {
@@ -513,7 +504,7 @@ export default function HomePage() {
 
             {/* CTAs */}
             <div className="flex justify-center gap-3 mt-8">
-              <Link href="/story">
+              <Link href="/case-study">
                 <Button variant="outline" size="lg" className="h-11">
                   Read case study
                 </Button>

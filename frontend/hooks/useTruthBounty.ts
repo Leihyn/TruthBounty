@@ -1,7 +1,7 @@
 'use client';
 
 import { useAccount, useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   CONTRACTS,
   TRUTH_BOUNTY_CORE_ABI,
@@ -17,59 +17,94 @@ import { Address } from 'viem';
 
 export function useTruthBounty() {
   const { address, chainId } = useAccount();
-  
+
   // Get contract addresses based on chain
   const contracts = chainId === 97 ? CONTRACTS.bscTestnet : CONTRACTS.bsc;
 
-  // Check if user is registered
-  const { data: hasRegistered, refetch: refetchRegistration } = useReadContract({
-    address: contracts.TruthBountyCore,
-    abi: TRUTH_BOUNTY_CORE_ABI,
-    functionName: 'hasRegistered',
-    args: address ? [address] : undefined,
+  // OPTIMIZATION: Batch initial reads with multicall
+  // This reduces 3 sequential RPC calls to 1 batched call
+  const initialContracts = useMemo(() => {
+    if (!address) return [];
+    return [
+      {
+        address: contracts.TruthBountyCore,
+        abi: TRUTH_BOUNTY_CORE_ABI,
+        functionName: 'hasRegistered',
+        args: [address],
+      },
+      {
+        address: contracts.TruthBountyCore,
+        abi: TRUTH_BOUNTY_CORE_ABI,
+        functionName: 'getUserProfile',
+        args: [address],
+      },
+      {
+        address: contracts.PlatformRegistry,
+        abi: PLATFORM_REGISTRY_ABI,
+        functionName: 'getPlatformCount',
+      },
+    ] as const;
+  }, [address, contracts.TruthBountyCore, contracts.PlatformRegistry]);
+
+  const {
+    data: initialData,
+    refetch: refetchInitial,
+    isLoading: isLoadingInitial,
+  } = useReadContracts({
+    contracts: initialContracts,
     query: {
       enabled: !!address,
+      staleTime: 30 * 1000, // Cache for 30 seconds
     },
   });
 
-  // Get user profile
-  const { data: userProfile, refetch: refetchProfile } = useReadContract({
-    address: contracts.TruthBountyCore,
-    abi: TRUTH_BOUNTY_CORE_ABI,
-    functionName: 'getUserProfile',
-    args: address ? [address] : undefined,
-    query: {
-      enabled: !!address && !!hasRegistered,
-    },
-  }) as { data: UserProfile | undefined; refetch: () => void };
+  // Extract data from multicall result
+  const hasRegistered = initialData?.[0]?.result as boolean | undefined;
+  const userProfile = initialData?.[1]?.result as UserProfile | undefined;
+  const platformCount = initialData?.[2]?.result as bigint | undefined;
 
-  // Get NFT token URI and metadata
-  const { data: tokenURI, refetch: refetchTokenURI } = useReadContract({
-    address: contracts.ReputationNFT,
-    abi: REPUTATION_NFT_ABI,
-    functionName: 'tokenURI',
-    args: userProfile ? [userProfile.reputationNFTId] : undefined,
+  // Refetch helpers that work with multicall
+  const refetchRegistration = refetchInitial;
+  const refetchProfile = refetchInitial;
+
+  // OPTIMIZATION: Batch NFT reads with multicall (only when we have userProfile)
+  const nftContracts = useMemo(() => {
+    if (!userProfile?.reputationNFTId) return [];
+    return [
+      {
+        address: contracts.ReputationNFT,
+        abi: REPUTATION_NFT_ABI,
+        functionName: 'tokenURI',
+        args: [userProfile.reputationNFTId],
+      },
+      {
+        address: contracts.ReputationNFT,
+        abi: REPUTATION_NFT_ABI,
+        functionName: 'getMetadata',
+        args: [userProfile.reputationNFTId],
+      },
+    ] as const;
+  }, [userProfile?.reputationNFTId, contracts.ReputationNFT]);
+
+  const {
+    data: nftData,
+    refetch: refetchNFT,
+    isLoading: isLoadingNFT,
+  } = useReadContracts({
+    contracts: nftContracts,
     query: {
-      enabled: !!userProfile,
+      enabled: !!userProfile?.reputationNFTId,
+      staleTime: 30 * 1000,
     },
   });
 
-  const { data: nftMetadata, refetch: refetchNFTMetadata } = useReadContract({
-    address: contracts.ReputationNFT,
-    abi: REPUTATION_NFT_ABI,
-    functionName: 'getMetadata',
-    args: userProfile ? [userProfile.reputationNFTId] : undefined,
-    query: {
-      enabled: !!userProfile,
-    },
-  }) as { data: NFTMetadata | undefined; refetch: () => void };
+  // Extract NFT data
+  const tokenURI = nftData?.[0]?.result as string | undefined;
+  const nftMetadata = nftData?.[1]?.result as NFTMetadata | undefined;
 
-  // Get platform count
-  const { data: platformCount } = useReadContract({
-    address: contracts.PlatformRegistry,
-    abi: PLATFORM_REGISTRY_ABI,
-    functionName: 'getPlatformCount',
-  });
+  // Refetch helpers for NFT
+  const refetchTokenURI = refetchNFT;
+  const refetchNFTMetadata = refetchNFT;
 
   // Get all platforms
   const [platforms, setPlatforms] = useState<Platform[]>([]);
@@ -211,60 +246,77 @@ export function useTruthBounty() {
 }
 
 // Helper hook: Fetch specific user profile (for viewing other users)
+// OPTIMIZED: Uses multicall to batch RPC requests
 export function useUserProfile(userAddress?: Address) {
   const { chainId } = useAccount();
   const contracts = chainId === 97 ? CONTRACTS.bscTestnet : CONTRACTS.bsc;
 
-  // Check if user is registered
-  const { data: hasRegistered } = useReadContract({
-    address: contracts.TruthBountyCore,
-    abi: TRUTH_BOUNTY_CORE_ABI,
-    functionName: 'hasRegistered',
-    args: userAddress ? [userAddress] : undefined,
+  // OPTIMIZATION: Batch initial reads with multicall
+  const initialContracts = useMemo(() => {
+    if (!userAddress) return [];
+    return [
+      {
+        address: contracts.TruthBountyCore,
+        abi: TRUTH_BOUNTY_CORE_ABI,
+        functionName: 'hasRegistered',
+        args: [userAddress],
+      },
+      {
+        address: contracts.TruthBountyCore,
+        abi: TRUTH_BOUNTY_CORE_ABI,
+        functionName: 'getUserProfile',
+        args: [userAddress],
+      },
+    ] as const;
+  }, [userAddress, contracts.TruthBountyCore]);
+
+  const { data: initialData, isLoading: isLoadingInitial } = useReadContracts({
+    contracts: initialContracts,
     query: {
       enabled: !!userAddress,
+      staleTime: 30 * 1000,
     },
   });
 
-  // Get user profile
-  const { data: userProfile, isLoading: isLoadingProfile } = useReadContract({
-    address: contracts.TruthBountyCore,
-    abi: TRUTH_BOUNTY_CORE_ABI,
-    functionName: 'getUserProfile',
-    args: userAddress ? [userAddress] : undefined,
-    query: {
-      enabled: !!userAddress && !!hasRegistered,
-    },
-  }) as { data: UserProfile | undefined; isLoading: boolean };
+  const hasRegistered = initialData?.[0]?.result as boolean | undefined;
+  const userProfile = initialData?.[1]?.result as UserProfile | undefined;
 
-  // Get NFT metadata
-  const { data: nftMetadata, isLoading: isLoadingMetadata } = useReadContract({
-    address: contracts.ReputationNFT,
-    abi: REPUTATION_NFT_ABI,
-    functionName: 'getMetadata',
-    args: userProfile ? [userProfile.reputationNFTId] : undefined,
-    query: {
-      enabled: !!userProfile,
-    },
-  }) as { data: NFTMetadata | undefined; isLoading: boolean };
+  // OPTIMIZATION: Batch NFT reads with multicall
+  const nftContracts = useMemo(() => {
+    if (!userProfile?.reputationNFTId) return [];
+    return [
+      {
+        address: contracts.ReputationNFT,
+        abi: REPUTATION_NFT_ABI,
+        functionName: 'getMetadata',
+        args: [userProfile.reputationNFTId],
+      },
+      {
+        address: contracts.ReputationNFT,
+        abi: REPUTATION_NFT_ABI,
+        functionName: 'tokenURI',
+        args: [userProfile.reputationNFTId],
+      },
+    ] as const;
+  }, [userProfile?.reputationNFTId, contracts.ReputationNFT]);
 
-  // Get token URI
-  const { data: tokenURI } = useReadContract({
-    address: contracts.ReputationNFT,
-    abi: REPUTATION_NFT_ABI,
-    functionName: 'tokenURI',
-    args: userProfile ? [userProfile.reputationNFTId] : undefined,
+  const { data: nftData, isLoading: isLoadingNFT } = useReadContracts({
+    contracts: nftContracts,
     query: {
-      enabled: !!userProfile,
+      enabled: !!userProfile?.reputationNFTId,
+      staleTime: 30 * 1000,
     },
   });
+
+  const nftMetadata = nftData?.[0]?.result as NFTMetadata | undefined;
+  const tokenURI = nftData?.[1]?.result as string | undefined;
 
   return {
     isRegistered: !!hasRegistered,
     userProfile,
     nftMetadata,
     tokenURI,
-    isLoading: isLoadingProfile || isLoadingMetadata,
+    isLoading: isLoadingInitial || isLoadingNFT,
   };
 }
 

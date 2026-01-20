@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { TIER_NAMES, TIER_COLORS, TIER_THRESHOLDS, ReputationTier } from '@/lib/contracts';
+import { PATTERNS, PLATFORM_COLORS, getPlatformKey, shortenAddress } from '@/components/ui/design-tokens';
 import {
   Award,
   TrendingUp,
@@ -362,7 +363,7 @@ export default function ProfilePage() {
 
 function ProfileSkeleton() {
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className={`space-y-6 ${PATTERNS.maxWidthMd}`}>
       <div className="flex items-center gap-4">
         <Skeleton className="h-16 w-16 rounded-full" />
         <div className="space-y-2">
@@ -399,48 +400,32 @@ function ProfileContent({ address, copied, setCopied, isDemo, demoTier }: { addr
       }
 
       try {
-        // Fetch from all platform leaderboard APIs in parallel
-        const [polyRes, pancakeRes, overtimeRes, speedRes, limitlessRes] = await Promise.all([
-          fetch(`/api/polymarket-leaderboard?limit=500`).catch(() => null),
-          fetch(`/api/pancakeswap-leaderboard?limit=500`).catch(() => null),
-          fetch(`/api/overtime-leaderboard?limit=500`).catch(() => null),
-          fetch(`/api/speedmarkets-leaderboard?limit=500`).catch(() => null),
-          fetch(`/api/limitless-leaderboard?limit=500`).catch(() => null),
-        ]);
+        // Use unified leaderboard with address lookup - uses cached data, instant response
+        const res = await fetch(`/api/unified-leaderboard?address=${address}`);
 
-        const results = await Promise.all([
-          polyRes?.ok ? polyRes.json() : { data: [] },
-          pancakeRes?.ok ? pancakeRes.json() : { data: [] },
-          overtimeRes?.ok ? overtimeRes.json() : { data: [] },
-          speedRes?.ok ? speedRes.json() : { data: [] },
-          limitlessRes?.ok ? limitlessRes.json() : { data: [] },
-        ]);
-
-        const normalizedAddress = address.toLowerCase();
-        const platformNames = ['Polymarket', 'PancakeSwap Prediction', 'Overtime', 'Speed Markets', 'Limitless'];
-        const foundPlatforms: PlatformData[] = [];
-
-        // Search for user across all platforms
-        results.forEach((result, idx) => {
-          const platformName = platformNames[idx];
-          const userData = (result.data || []).find((entry: any) =>
-            entry.address?.toLowerCase() === normalizedAddress
-          );
-
-          if (userData) {
-            foundPlatforms.push({
-              platform: platformName,
-              truthScore: userData.truthScore || 0,
-              winRate: userData.winRate || 0,
-              totalBets: userData.totalBets || userData.totalPredictions || 0,
-              wins: userData.wins || 0,
-              losses: userData.losses || 0,
-              volume: userData.totalVolume || '0',
-              pnl: userData.pnl,
-              rank: userData.rank,
-            });
+        if (!res.ok) {
+          if (res.status === 404) {
+            setProfile(null);
+            setLoading(false);
+            return;
           }
-        });
+          throw new Error('Failed to fetch profile');
+        }
+
+        const { data: traderData } = await res.json();
+
+        // Transform platform breakdown data
+        const foundPlatforms: PlatformData[] = (traderData.platformBreakdown || []).map((p: any) => ({
+          platform: p.platform,
+          truthScore: p.score || 0,
+          winRate: p.winRate || 0,
+          totalBets: p.bets || 0,
+          wins: Math.round((p.bets || 0) * (p.winRate || 0) / 100),
+          losses: Math.round((p.bets || 0) * (1 - (p.winRate || 0) / 100)),
+          volume: p.volume || '0',
+          pnl: p.pnl,
+          rank: undefined,
+        }));
 
         if (foundPlatforms.length === 0) {
           setProfile(null);
@@ -448,58 +433,31 @@ function ProfileContent({ address, copied, setCopied, isDemo, demoTier }: { addr
           return;
         }
 
-        // Aggregate data across platforms
+        // Aggregate volume by currency
         const totalVolume: Record<string, number> = {};
         const totalPnl: Record<string, number> = {};
-        let totalBets = 0;
-        let totalWins = 0;
-        let totalLosses = 0;
-        let highestScore = 0;
-        let username: string | undefined;
 
         foundPlatforms.forEach((p) => {
-          totalBets += p.totalBets;
-          totalWins += p.wins;
-          totalLosses += p.losses;
-          if (p.truthScore > highestScore) highestScore = p.truthScore;
-
-          // Aggregate volume by currency
           const currency = PLATFORM_CONFIG[p.platform]?.volumeCurrency || 'USD';
           const vol = parseFloat(p.volume) || 0;
           totalVolume[currency] = (totalVolume[currency] || 0) + vol;
-
-          // Aggregate PnL by currency
           if (p.pnl !== undefined) {
             totalPnl[currency] = (totalPnl[currency] || 0) + p.pnl;
           }
         });
 
-        const aggregatedWinRate = totalBets > 0 ? (totalWins / totalBets) * 100 : 0;
-
-        // Calculate global rank (find rank among all users)
-        const allUsers = results.flatMap((r, idx) =>
-          (r.data || []).map((u: any) => ({
-            ...u,
-            platform: platformNames[idx],
-          }))
-        );
-        allUsers.sort((a: any, b: any) => (b.truthScore || 0) - (a.truthScore || 0));
-        const globalRank = allUsers.findIndex((u: any) =>
-          u.address?.toLowerCase() === normalizedAddress
-        ) + 1;
-
         setProfile({
           address,
-          username,
-          truthScore: highestScore,
-          winRate: aggregatedWinRate,
-          totalBets,
-          wins: totalWins,
-          losses: totalLosses,
+          username: traderData.username,
+          truthScore: traderData.truthScore || 0,
+          winRate: traderData.winRate || 0,
+          totalBets: traderData.totalBets || traderData.totalPredictions || 0,
+          wins: traderData.wins || 0,
+          losses: traderData.losses || 0,
           totalVolume,
           totalPnl,
           platforms: foundPlatforms,
-          globalRank: globalRank || undefined,
+          globalRank: traderData.rank || undefined,
         });
       } catch (err: any) {
         console.error('Error fetching profile:', err);
@@ -550,15 +508,13 @@ function ProfileContent({ address, copied, setCopied, isDemo, demoTier }: { addr
     return `${prefix}${symbol}${amount.toFixed(2)}${suffix}`;
   };
 
-  const shortenAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-
   if (loading) {
     return <ProfileSkeleton />;
   }
 
   if (error) {
     return (
-      <div className="container px-4 py-12 text-center max-w-4xl mx-auto">
+      <div className={`container px-4 py-12 text-center ${PATTERNS.maxWidthMd}`}>
         <Card className="border-destructive/50">
           <CardContent className="py-12">
             <Activity className="w-12 h-12 mx-auto mb-4 text-destructive opacity-50" />
@@ -572,7 +528,7 @@ function ProfileContent({ address, copied, setCopied, isDemo, demoTier }: { addr
 
   if (!profile) {
     return (
-      <div className="container px-4 py-12 text-center max-w-4xl mx-auto">
+      <div className={`container px-4 py-12 text-center ${PATTERNS.maxWidthMd}`}>
         <Card className="border-border/50">
           <CardContent className="py-12">
             <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30" />
@@ -605,9 +561,9 @@ function ProfileContent({ address, copied, setCopied, isDemo, demoTier }: { addr
   const netPositive = Object.values(profile.totalPnl).reduce((a, b) => a + b, 0) >= 0;
 
   return (
-    <div className="container px-4 py-6 md:py-12 space-y-6 max-w-4xl mx-auto">
-      {/* Header Card */}
-      <Card className="border-border/50 overflow-hidden">
+    <div className={`container px-4 py-6 md:py-12 space-y-6 ${PATTERNS.maxWidthMd}`}>
+      {/* Header Card - Diamond/Platinum get verification glow for premium feel */}
+      <Card className={`border-border/50 overflow-hidden ${tier >= ReputationTier.PLATINUM ? 'verification-glow' : ''}`}>
         <div className={`relative p-6 ${TIER_COLORS[tier]} bg-opacity-10`} style={{
           background: `linear-gradient(135deg, hsl(var(--${tier === ReputationTier.DIAMOND ? 'primary' : tier === ReputationTier.GOLD ? 'secondary' : 'muted'})) 0%, transparent 100%)`
         }}>

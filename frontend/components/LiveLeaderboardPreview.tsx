@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { shortenAddress, formatNumber, TIER_STYLES, getTierFromScore } from '@/components/ui/design-tokens';
 
 interface TraderData {
   address: string;
@@ -38,14 +39,6 @@ const PLATFORMS: PlatformConfig[] = [
   { id: 'sxbet', name: 'SX Bet', icon: '🎰', gradient: 'from-green-500 to-emerald-500' },
   { id: 'speedmarkets', name: 'Speed Markets', icon: '⚡', gradient: 'from-yellow-500 to-amber-500' },
 ];
-
-const formatNumber = (num: number) => {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num?.toLocaleString() || '0';
-};
-
-const shortenAddress = (addr: string) => `${addr?.slice(0, 6)}...${addr?.slice(-4)}`;
 
 const getTierInfo = (score: number) => {
   if (score >= 900) return { name: 'Diamond', bg: 'bg-cyan-500', gradient: 'from-cyan-400 to-blue-500' };

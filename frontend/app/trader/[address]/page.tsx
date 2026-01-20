@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { TrendingUp, TrendingDown, Trophy, Target, DollarSign, Activity, Users } from 'lucide-react';
 import { CopyTradeButton } from '@/components/CopyTradeButton';
+import { shortenAddress, PATTERNS } from '@/components/ui/design-tokens';
 
 interface Platform {
   name: string;
@@ -86,10 +87,6 @@ export default function TraderProfilePage() {
 
   function formatBNB(wei: string): string {
     return (Number(wei) / 1e18).toFixed(4);
-  }
-
-  function shortenAddress(addr: string): string {
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   }
 
   if (loading) {
