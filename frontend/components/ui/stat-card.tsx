@@ -29,8 +29,8 @@ interface StatCardProps {
 }
 
 const sizeMap = {
-  sm: { padding: 'p-2', value: 'text-base sm:text-lg', label: 'text-[10px]' },
-  md: { padding: 'p-3', value: 'text-lg sm:text-xl', label: 'text-xs' },
+  sm: { padding: 'p-1.5 sm:p-2', value: 'text-sm sm:text-lg', label: 'text-[9px] sm:text-[10px]' },
+  md: { padding: 'p-2 sm:p-3', value: 'text-base sm:text-xl', label: 'text-[10px] sm:text-xs' },
   lg: { padding: 'p-3 sm:p-4', value: 'text-xl sm:text-2xl', label: 'text-xs' },
 };
 

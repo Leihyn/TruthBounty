@@ -466,12 +466,12 @@ export default function LeaderboardPage() {
       ) : (
         <>
           {/* Podium - Top 3 - Using TraderCard component */}
-          {/* pt-6 provides space for rank badges that extend above cards */}
+          {/* Mobile: single column with 1st on top. Desktop: traditional podium 2nd|1st|3rd */}
           {top3.length > 0 && currentPage === 1 && tierFilter === 'all' && !searchQuery && (
-            <div className={`grid gap-4 mb-6 pt-6 ${
-              top3.length === 1 ? 'grid-cols-1 max-w-md mx-auto items-end' :
-              top3.length === 2 ? 'grid-cols-2 max-w-3xl mx-auto items-start' :
-              'grid-cols-3 items-end'
+            <div className={`grid gap-3 sm:gap-4 mb-6 pt-6 ${
+              top3.length === 1 ? 'grid-cols-1 max-w-md mx-auto' :
+              top3.length === 2 ? 'grid-cols-1 sm:grid-cols-2 max-w-3xl mx-auto' :
+              'grid-cols-1 sm:grid-cols-3 sm:items-end'
             }`}>
               {/* For 3 traders: 2nd | 1st | 3rd (podium order) - items-end for staggered heights */}
               {/* For 2 traders: 1st | 2nd (side by side, equal) - items-start for top alignment */}
@@ -479,22 +479,7 @@ export default function LeaderboardPage() {
 
               {top3.length >= 3 ? (
                 <>
-                  {/* 2nd Place - Left */}
-                  <TraderCard
-                    key={top3[1].address}
-                    address={top3[1].address}
-                    username={top3[1].username}
-                    rank={2}
-                    truthScore={top3[1].truthScore}
-                    winRate={top3[1].winRate}
-                    totalPredictions={top3[1].totalPredictions}
-                    totalVolume={top3[1].totalVolume}
-                    platforms={top3[1].platforms}
-                    variant="podium"
-                    onClick={() => { setSelectedUser(top3[1]); setIsModalOpen(true); }}
-                    customFormatVolume={formatVolume}
-                  />
-                  {/* 1st Place - Center */}
+                  {/* 1st Place - Mobile: first, Desktop: center */}
                   <TraderCard
                     key={top3[0].address}
                     address={top3[0].address}
@@ -509,8 +494,25 @@ export default function LeaderboardPage() {
                     featured
                     onClick={() => { setSelectedUser(top3[0]); setIsModalOpen(true); }}
                     customFormatVolume={formatVolume}
+                    className="order-1 sm:order-2"
                   />
-                  {/* 3rd Place - Right */}
+                  {/* 2nd Place - Mobile: second, Desktop: left */}
+                  <TraderCard
+                    key={top3[1].address}
+                    address={top3[1].address}
+                    username={top3[1].username}
+                    rank={2}
+                    truthScore={top3[1].truthScore}
+                    winRate={top3[1].winRate}
+                    totalPredictions={top3[1].totalPredictions}
+                    totalVolume={top3[1].totalVolume}
+                    platforms={top3[1].platforms}
+                    variant="podium"
+                    onClick={() => { setSelectedUser(top3[1]); setIsModalOpen(true); }}
+                    customFormatVolume={formatVolume}
+                    className="order-2 sm:order-1"
+                  />
+                  {/* 3rd Place - Mobile: third, Desktop: right */}
                   <TraderCard
                     key={top3[2].address}
                     address={top3[2].address}
@@ -524,6 +526,7 @@ export default function LeaderboardPage() {
                     variant="podium"
                     onClick={() => { setSelectedUser(top3[2]); setIsModalOpen(true); }}
                     customFormatVolume={formatVolume}
+                    className="order-3"
                   />
                 </>
               ) : top3.length === 2 ? (
