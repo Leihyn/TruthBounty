@@ -738,14 +738,18 @@ export function usePlatformSimulationStats(
       if (!res.ok) return null;
 
       const data = await res.json();
-      const followerStats = data.stats;
-      if (!followerStats) return null;
+      // Handle both response formats: { stats: {...} } and direct stats
+      const followerStats = data.stats || data;
 
-      const winRateNum = followerStats.winRate || followerStats.win_rate ||
-        (followerStats.totalTrades > 0 ? (followerStats.wins / followerStats.totalTrades) * 100 : 0);
+      // Check if we have any trades - return null if no data
+      const totalTrades = followerStats.totalTrades || followerStats.total_trades || 0;
+      if (totalTrades === 0) return null;
+
+      const winRateNum = parseFloat(followerStats.winRate || followerStats.win_rate || '0') ||
+        (totalTrades > 0 ? ((followerStats.wins || 0) / totalTrades) * 100 : 0);
 
       return {
-        totalTrades: followerStats.totalTrades || followerStats.total_trades || 0,
+        totalTrades,
         wins: followerStats.wins || 0,
         losses: followerStats.losses || 0,
         pending: followerStats.pending || 0,
