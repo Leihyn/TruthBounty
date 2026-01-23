@@ -341,16 +341,29 @@ function DashboardContent() {
   } = useTruthBounty();
 
 
+  const { toast } = useToast();
+
   const handleRegister = async () => {
     setRegisterError(null);
     setRegisterSuccess(false);
     try {
       await registerUser?.();
       setRegisterSuccess(true);
+      toast({
+        title: "NFT Minted Successfully! 🎉",
+        description: "Your Reputation NFT has been minted. Refreshing your dashboard...",
+        variant: "default",
+      });
       setTimeout(() => window.location.reload(), 2000);
     } catch (err: any) {
       console.error('Registration error:', err);
-      setRegisterError(err?.message || err?.shortMessage || 'Transaction failed. Please try again.');
+      const errorMsg = err?.message || err?.shortMessage || 'Transaction failed. Please try again.';
+      setRegisterError(errorMsg);
+      toast({
+        title: "Minting Failed",
+        description: errorMsg,
+        variant: "destructive",
+      });
     }
   };
 
@@ -360,10 +373,19 @@ function DashboardContent() {
   const address = account.address || (isDemo ? '0x7a3f...8c2d' : undefined);
   const demoAddress = '0x7a3f1234567890abcdef1234567890abcdef8c2d';
 
-  // Combined stats
-  const totalPending = (pancakeStats?.pending || 0) + (polymarketStats?.pending || 0);
-  const totalWins = (pancakeStats?.wins || 0) + (polymarketStats?.wins || 0);
-  const totalLosses = (pancakeStats?.losses || 0) + (polymarketStats?.losses || 0);
+  // Combined stats - aggregate from ALL platforms
+  const totalPending = isDemo
+    ? (pancakeStats?.pending || 0) + (polymarketStats?.pending || 0)
+    : platformsWithStats.reduce((sum, p) => sum + (p.stats?.pending || 0), 0);
+
+  const totalWins = isDemo
+    ? (pancakeStats?.wins || 0) + (polymarketStats?.wins || 0)
+    : platformsWithStats.reduce((sum, p) => sum + (p.stats?.wins || 0), 0);
+
+  const totalLosses = isDemo
+    ? (pancakeStats?.losses || 0) + (polymarketStats?.losses || 0)
+    : platformsWithStats.reduce((sum, p) => sum + (p.stats?.losses || 0), 0);
+
   const combinedWinRate = totalWins + totalLosses > 0
     ? (totalWins / (totalWins + totalLosses)) * 100
     : 0;
