@@ -14,15 +14,27 @@ interface MarketCardProps {
 }
 
 function getPolymarketUrl(market: PolymarketMarket): string {
+  // Try event slug first (most reliable for multi-outcome events)
   if (market.events && market.events.length > 0 && market.events[0].slug) {
     return `https://polymarket.com/event/${market.events[0].slug}`;
   }
+
+  // Try conditionId for individual markets
+  if (market.conditionId) {
+    return `https://polymarket.com/market/${market.conditionId}`;
+  }
+
+  // Fallback to marketSlug
   if (market.marketSlug) {
     return `https://polymarket.com/event/${market.marketSlug}`;
   }
+
+  // Last resort: use questionID (might be unreliable)
   if (market.questionID) {
     return `https://polymarket.com/event/${market.questionID}`;
   }
+
+  // Ultimate fallback
   return 'https://polymarket.com';
 }
 
