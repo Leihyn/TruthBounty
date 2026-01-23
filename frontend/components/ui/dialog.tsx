@@ -45,7 +45,7 @@ const DialogContent = React.forwardRef<
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:scale-95 data-[state=open]:scale-100",
           "transition-all duration-200 ease-out",
-          "mx-4",
+          "mx-4 max-h-[90vh] overflow-y-auto",
           className
         )}
         {...props}
