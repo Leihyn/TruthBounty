@@ -225,6 +225,8 @@ export function useLeaderboard(limit = 500) {
     retry: 3, // Retry up to 3 times
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
     refetchOnWindowFocus: true, // Refetch when user returns to tab
+    refetchInterval: 30 * 1000, // Real-time updates every 30 seconds
+    refetchIntervalInBackground: false, // Only poll when tab is active
   });
 }
 
@@ -321,7 +323,9 @@ export function useMarkets(platform: string, limit = 50) {
   return useQuery({
     queryKey: queryKeys.markets(platform),
     queryFn: () => fetchJson<{ data: MarketData[] }>(`${endpoint}?limit=${limit}`),
-    staleTime: 2 * 60 * 1000, // Markets change less frequently
+    staleTime: 60 * 1000, // 1 minute
+    refetchInterval: 60 * 1000, // Real-time market updates every 60 seconds
+    refetchIntervalInBackground: false,
     enabled: !!endpoint,
   });
 }
@@ -358,7 +362,9 @@ export function useAllMarkets() {
         )
         .map(r => r.value);
     },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 60 * 1000, // 1 minute
+    refetchInterval: 60 * 1000, // Real-time updates across all markets every 60 seconds
+    refetchIntervalInBackground: false,
   });
 }
 
