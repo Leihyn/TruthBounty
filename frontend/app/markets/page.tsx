@@ -215,9 +215,9 @@ export default function MarketsPage() {
 
       {/* Platform Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        {/* Scrollable tab container */}
-        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-          <TabsList className="inline-flex w-max sm:w-full h-auto min-h-[48px] p-1.5 bg-surface/50 border border-border/50 rounded-xl gap-1">
+        {/* Scrollable tab container with visible scrollbar */}
+        <div className="overflow-x-auto overflow-y-hidden pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-border/70">
+          <TabsList className="inline-flex w-max h-auto min-h-[48px] p-1.5 bg-surface/50 border border-border/50 rounded-xl gap-1">
               {/* Crypto Section */}
               <div className="flex items-center gap-1">
                 <TabsTrigger
