@@ -722,6 +722,84 @@ export function usePolymarketSimulationStats(address: string | undefined) {
 }
 
 /**
+ * Generic hook to fetch simulation stats for any platform
+ */
+export function usePlatformSimulationStats(
+  platform: string,
+  address: string | undefined,
+  apiEndpoint: string,
+  currencyLabel: string = 'USD'
+) {
+  return useQuery({
+    queryKey: queryKeys.simulation.stats(platform, address),
+    queryFn: async () => {
+      if (!address) return null;
+      const res = await fetch(`${apiEndpoint}?stats=true&follower=${address}`);
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      const followerStats = data.stats;
+      if (!followerStats) return null;
+
+      const winRateNum = followerStats.winRate || followerStats.win_rate ||
+        (followerStats.totalTrades > 0 ? (followerStats.wins / followerStats.totalTrades) * 100 : 0);
+
+      return {
+        totalTrades: followerStats.totalTrades || followerStats.total_trades || 0,
+        wins: followerStats.wins || 0,
+        losses: followerStats.losses || 0,
+        pending: followerStats.pending || 0,
+        winRate: winRateNum,
+        totalPnl: parseFloat(followerStats.totalPnlUsd || followerStats.totalPnlUSD || followerStats.totalPnlBNB || followerStats.totalPnlBnb || followerStats.total_pnl || '0'),
+        totalVolume: parseFloat(followerStats.totalVolumeUsd || followerStats.totalVolumeUSD || followerStats.totalVolumeBNB || followerStats.totalVolumeBnb || followerStats.total_volume || '0'),
+        currencyLabel,
+      } as SimulationStats & { currencyLabel: string };
+    },
+    staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000,
+    refetchIntervalInBackground: false,
+    enabled: !!address,
+  });
+}
+
+/**
+ * Fetch stats for all platforms
+ */
+export function useAllPlatformStats(address: string | undefined) {
+  const platforms = [
+    { key: 'pancakeswap', name: 'PancakeSwap', endpoint: '/api/copy-trading/simulation', currency: 'BNB' },
+    { key: 'polymarket', name: 'Polymarket', endpoint: '/api/polymarket/simulate', currency: 'USD' },
+    { key: 'speedmarkets', name: 'Speed Markets', endpoint: '/api/speedmarkets/simulate', currency: 'USD' },
+    { key: 'overtime', name: 'Overtime', endpoint: '/api/overtime/simulate', currency: 'USD' },
+    { key: 'azuro', name: 'Azuro', endpoint: '/api/azuro/simulate', currency: 'USD' },
+    { key: 'sxbet', name: 'SX Bet', endpoint: '/api/sxbet/simulate', currency: 'USD' },
+    { key: 'limitless', name: 'Limitless', endpoint: '/api/limitless/simulate', currency: 'USD' },
+    { key: 'drift', name: 'Drift', endpoint: '/api/drift/simulate', currency: 'USD' },
+    { key: 'gnosis', name: 'Omen', endpoint: '/api/gnosis/simulate', currency: 'USD' },
+    { key: 'kalshi', name: 'Kalshi', endpoint: '/api/kalshi/simulate', currency: 'USD' },
+    { key: 'manifold', name: 'Manifold', endpoint: '/api/manifold/simulate', currency: 'M$' },
+    { key: 'metaculus', name: 'Metaculus', endpoint: '/api/metaculus/simulate', currency: 'points' },
+  ];
+
+  const statsQueries = platforms.map(platform =>
+    usePlatformSimulationStats(platform.key, address, platform.endpoint, platform.currency)
+  );
+
+  return {
+    platforms,
+    statsQueries,
+    isLoading: statsQueries.some(q => q.isLoading),
+    // Return platforms with stats (has trades)
+    platformsWithStats: platforms
+      .map((platform, index) => ({
+        ...platform,
+        stats: statsQueries[index].data,
+      }))
+      .filter(p => p.stats && p.stats.totalTrades > 0),
+  };
+}
+
+/**
  * Fetch pending bets and recent trades for a user
  * With automatic 30-second polling
  */

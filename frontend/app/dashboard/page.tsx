@@ -20,8 +20,10 @@ import {
   usePancakeSimulationStats,
   usePolymarketSimulationStats,
   useDashboardTrades,
+  useAllPlatformStats,
   SimulationStats as QuerySimulationStats,
 } from '@/lib/queries';
+import { PlatformStatsCard } from '@/components/dashboard/PlatformStatsCard';
 
 // Demo mode mock data for all tiers
 const DEMO_DATA = {
@@ -287,8 +289,13 @@ function DashboardContent() {
   const demoData = isDemo && demoMode ? DEMO_DATA[demoMode] : null;
 
   // React Query hooks for simulation data - automatic 30s polling
-  const { data: queryPancakeStats, isLoading: isLoadingPancake, refetch: refetchPancake } = usePancakeSimulationStats(
+  const { platformsWithStats, isLoading: isLoadingAllStats, statsQueries } = useAllPlatformStats(
     isDemo ? undefined : account.address // Disable queries in demo mode
+  );
+
+  // Keep legacy hooks for backward compatibility (for now)
+  const { data: queryPancakeStats, isLoading: isLoadingPancake, refetch: refetchPancake } = usePancakeSimulationStats(
+    isDemo ? undefined : account.address
   );
   const { data: queryPolymarketStats, isLoading: isLoadingPolymarket, refetch: refetchPolymarket } = usePolymarketSimulationStats(
     isDemo ? undefined : account.address
@@ -450,97 +457,131 @@ function DashboardContent() {
         </Card>
       </div>
 
-      {/* Platform Stats */}
-      <div className="grid md:grid-cols-2 gap-4">
-        {/* PancakeSwap Stats */}
-        <Card className="border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <PlatformBadge platform="PancakeSwap" size="md" />
-              Simulation
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {loadingStats ? (
-              <Skeleton className="h-20" />
-            ) : pancakeStats ? (
-              <>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="p-2 rounded-lg bg-surface/50">
-                    <p className="text-lg font-bold">{pancakeStats.totalTrades}</p>
-                    <p className="text-[10px] text-muted-foreground">Trades</p>
+      {/* Platform Stats - Dynamic rendering for all platforms */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {isDemo ? (
+          // Demo mode: show PancakeSwap and Polymarket
+          <>
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <PlatformBadge platform="PancakeSwap" size="md" />
+                  Simulation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {loadingStats ? (
+                  <Skeleton className="h-20" />
+                ) : pancakeStats ? (
+                  <>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="p-2 rounded-lg bg-surface/50">
+                        <p className="text-lg font-bold">{pancakeStats.totalTrades}</p>
+                        <p className="text-[10px] text-muted-foreground">Trades</p>
+                      </div>
+                      <div className="p-2 rounded-lg bg-surface/50">
+                        <p className="text-lg font-bold text-success">{pancakeStats.winRate.toFixed(0)}%</p>
+                        <p className="text-[10px] text-muted-foreground">Win Rate</p>
+                      </div>
+                      <div className="p-2 rounded-lg bg-surface/50">
+                        <p className={`text-lg font-bold ${pancakeStats.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+                          {pancakeStats.totalPnl >= 0 ? '+' : ''}{pancakeStats.totalPnl.toFixed(4)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">PnL (BNB)</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
+                      <span>{pancakeStats.pending} pending</span>
+                      <span>{pancakeStats.totalVolume.toFixed(2)} BNB volume</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <p className="text-sm">No PancakeSwap trades yet</p>
+                    <Button variant="link" size="sm" onClick={() => router.push('/copy-trading')}>
+                      Start simulating →
+                    </Button>
                   </div>
-                  <div className="p-2 rounded-lg bg-surface/50">
-                    <p className="text-lg font-bold text-success">{pancakeStats.winRate.toFixed(0)}%</p>
-                    <p className="text-[10px] text-muted-foreground">Win Rate</p>
-                  </div>
-                  <div className="p-2 rounded-lg bg-surface/50">
-                    <p className={`text-lg font-bold ${pancakeStats.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-                      {pancakeStats.totalPnl >= 0 ? '+' : ''}{pancakeStats.totalPnl.toFixed(4)}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">PnL (BNB)</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
-                  <span>{pancakeStats.pending} pending</span>
-                  <span>{pancakeStats.totalVolume.toFixed(2)} BNB volume</span>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-4 text-muted-foreground">
-                <p className="text-sm">No PancakeSwap trades yet</p>
-                <Button variant="link" size="sm" onClick={() => router.push('/copy-trading')}>
-                  Start simulating →
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
 
-        {/* Polymarket Stats */}
-        <Card className="border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <PlatformBadge platform="Polymarket" size="md" />
-              Simulation
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {loadingStats ? (
-              <Skeleton className="h-20" />
-            ) : polymarketStats ? (
-              <>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="p-2 rounded-lg bg-surface/50">
-                    <p className="text-lg font-bold">{polymarketStats.totalTrades}</p>
-                    <p className="text-[10px] text-muted-foreground">Positions</p>
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <PlatformBadge platform="Polymarket" size="md" />
+                  Simulation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {loadingStats ? (
+                  <Skeleton className="h-20" />
+                ) : polymarketStats ? (
+                  <>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="p-2 rounded-lg bg-surface/50">
+                        <p className="text-lg font-bold">{polymarketStats.totalTrades}</p>
+                        <p className="text-[10px] text-muted-foreground">Positions</p>
+                      </div>
+                      <div className="p-2 rounded-lg bg-surface/50">
+                        <p className="text-lg font-bold text-success">{polymarketStats.winRate.toFixed(0)}%</p>
+                        <p className="text-[10px] text-muted-foreground">Win Rate</p>
+                      </div>
+                      <div className="p-2 rounded-lg bg-surface/50">
+                        <p className={`text-lg font-bold ${polymarketStats.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+                          {polymarketStats.totalPnl >= 0 ? '+' : ''}${polymarketStats.totalPnl.toFixed(2)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">PnL (USD)</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
+                      <span>{polymarketStats.pending} pending</span>
+                      <span>${polymarketStats.totalVolume.toFixed(2)} volume</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <p className="text-sm">No Polymarket trades yet</p>
+                    <Button variant="link" size="sm" onClick={() => router.push('/markets')}>
+                      Browse markets →
+                    </Button>
                   </div>
-                  <div className="p-2 rounded-lg bg-surface/50">
-                    <p className="text-lg font-bold text-success">{polymarketStats.winRate.toFixed(0)}%</p>
-                    <p className="text-[10px] text-muted-foreground">Win Rate</p>
-                  </div>
-                  <div className="p-2 rounded-lg bg-surface/50">
-                    <p className={`text-lg font-bold ${polymarketStats.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-                      {polymarketStats.totalPnl >= 0 ? '+' : ''}${polymarketStats.totalPnl.toFixed(2)}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">PnL (USD)</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
-                  <span>{polymarketStats.pending} pending</span>
-                  <span>${polymarketStats.totalVolume.toFixed(2)} volume</span>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-4 text-muted-foreground">
-                <p className="text-sm">No Polymarket trades yet</p>
-                <Button variant="link" size="sm" onClick={() => router.push('/markets')}>
-                  Browse markets →
+                )}
+              </CardContent>
+            </Card>
+          </>
+        ) : platformsWithStats.length > 0 ? (
+          // Real mode: dynamically show all platforms with bets
+          platformsWithStats.map((platform) => (
+            <PlatformStatsCard
+              key={platform.key}
+              platformName={platform.name}
+              stats={platform.stats}
+              isLoading={isLoadingAllStats}
+            />
+          ))
+        ) : (
+          // No platforms with bets yet - show empty state
+          <Card className="border-border/50 md:col-span-2 lg:col-span-3">
+            <CardContent className="py-12 text-center">
+              <Target className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
+              <p className="text-sm text-muted-foreground mb-2">No simulated trades yet</p>
+              <p className="text-xs text-muted-foreground mb-4">
+                Start placing simulated bets on Markets or try Copy Trading
+              </p>
+              <div className="flex justify-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => router.push('/markets')}>
+                  <Target className="h-4 w-4 mr-2" />
+                  Browse Markets
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => router.push('/copy-trading')}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Trading
                 </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Pending Bets Section */}
