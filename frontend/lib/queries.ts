@@ -631,12 +631,14 @@ export interface SimulationStats {
 
 export interface PendingBet {
   id: number;
-  platform: 'pancakeswap' | 'polymarket';
+  platform: 'pancakeswap' | 'polymarket' | 'speedmarkets' | 'overtime' | 'azuro' | 'sxbet' | 'limitless' | 'drift' | 'gnosis' | 'kalshi' | 'manifold' | 'metaculus';
   market: string;
   position: string;
   amount: number;
   entryPrice?: number;
   timestamp: string;
+  maturity?: string;
+  asset?: string;
 }
 
 /**
@@ -804,7 +806,7 @@ export function useAllPlatformStats(address: string | undefined) {
 }
 
 /**
- * Fetch pending bets and recent trades for a user
+ * Fetch pending bets and recent trades for a user from ALL platforms
  * With automatic 30-second polling
  */
 export function useDashboardTrades(address: string | undefined) {
@@ -813,60 +815,131 @@ export function useDashboardTrades(address: string | undefined) {
     queryFn: async () => {
       if (!address) return { pendingBets: [], recentTrades: [] };
 
-      // Fetch PancakeSwap trades
-      const pancakeBetsRes = await fetch(`/api/copy-trading/simulation?follower=${address}&limit=50`);
-      let pancakePending: PendingBet[] = [];
-      let pancakeTrades: any[] = [];
+      const allPending: PendingBet[] = [];
+      const allResolved: any[] = [];
 
-      if (pancakeBetsRes.ok) {
-        const data = await pancakeBetsRes.json();
-        pancakeTrades = data.trades || [];
-        pancakePending = pancakeTrades
-          .filter((t: any) => t.outcome === 'pending')
-          .map((t: any) => ({
-            id: t.id,
-            platform: 'pancakeswap' as const,
-            market: `Epoch ${t.epoch}`,
-            position: t.isBull ? 'Bull' : 'Bear',
-            amount: parseFloat(t.amountBNB || t.simulated_amount || '0'),
-            timestamp: t.simulatedAt || t.simulated_at,
-          }));
-      }
+      // All 12 platforms with their endpoints
+      const platforms = [
+        { key: 'pancakeswap', endpoint: '/api/copy-trading/simulation' },
+        { key: 'polymarket', endpoint: '/api/polymarket/simulate' },
+        { key: 'speedmarkets', endpoint: '/api/speedmarkets/simulate' },
+        { key: 'overtime', endpoint: '/api/overtime/simulate' },
+        { key: 'azuro', endpoint: '/api/azuro/simulate' },
+        { key: 'sxbet', endpoint: '/api/sxbet/simulate' },
+        { key: 'limitless', endpoint: '/api/limitless/simulate' },
+        { key: 'drift', endpoint: '/api/drift/simulate' },
+        { key: 'gnosis', endpoint: '/api/gnosis/simulate' },
+        { key: 'kalshi', endpoint: '/api/kalshi/simulate' },
+        { key: 'manifold', endpoint: '/api/manifold/simulate' },
+        { key: 'metaculus', endpoint: '/api/metaculus/simulate' },
+      ];
 
-      // Fetch Polymarket trades
-      const polyBetsRes = await fetch(`/api/polymarket/simulate?follower=${address}&limit=50`);
-      let polyPending: PendingBet[] = [];
-      let polyTrades: any[] = [];
+      // Fetch all platforms in parallel
+      await Promise.all(
+        platforms.map(async ({ key, endpoint }) => {
+          try {
+            const res = await fetch(`${endpoint}?follower=${address.toLowerCase()}&limit=50`);
+            if (!res.ok) return;
 
-      if (polyBetsRes.ok) {
-        const polyData = await polyBetsRes.json();
-        polyTrades = polyData.trades || [];
-        polyPending = polyTrades
-          .filter((t: any) => t.outcome === 'pending')
-          .map((t: any) => ({
-            id: t.id,
-            platform: 'polymarket' as const,
-            market: t.marketQuestion || t.market_question || `Market ${(t.marketId || t.market_id)?.slice(0, 8)}...`,
-            position: t.outcomeSelected || t.outcome_selected || 'Unknown',
-            amount: parseFloat(t.amountUsd || t.amount_usd || '0'),
-            entryPrice: t.priceAtEntry || t.price_at_entry ? parseFloat(t.priceAtEntry || t.price_at_entry) : undefined,
-            timestamp: t.simulatedAt || t.simulated_at,
-          }));
-      }
+            const data = await res.json();
+            const trades = data.trades || [];
 
-      const pendingBets = [...pancakePending, ...polyPending].sort((a, b) =>
+            // Map pending bets based on platform
+            const pending = trades
+              .filter((t: any) => t.outcome === 'pending')
+              .map((t: any) => {
+                // Base fields
+                const bet: PendingBet = {
+                  id: t.id,
+                  platform: key as any,
+                  market: '',
+                  position: '',
+                  amount: 0,
+                  timestamp: t.simulatedAt || t.simulated_at,
+                };
+
+                // Platform-specific mapping
+                switch (key) {
+                  case 'pancakeswap':
+                    bet.market = `Epoch ${t.epoch}`;
+                    bet.position = t.isBull || t.is_bull ? 'Bull' : 'Bear';
+                    bet.amount = parseFloat(t.amountBNB || t.amount_bnb || t.simulated_amount || '0');
+                    break;
+
+                  case 'polymarket':
+                    bet.market = t.marketQuestion || t.market_question || `Market ${(t.marketId || t.market_id)?.slice(0, 8)}...`;
+                    bet.position = t.outcomeSelected || t.outcome_selected || 'Unknown';
+                    bet.amount = parseFloat(t.amountUsd || t.amount_usd || '0');
+                    bet.entryPrice = t.priceAtEntry || t.price_at_entry ? parseFloat(t.priceAtEntry || t.price_at_entry) : undefined;
+                    break;
+
+                  case 'speedmarkets':
+                    bet.market = `${t.asset} ${t.direction}`;
+                    bet.position = t.direction;
+                    bet.amount = parseFloat(t.amountUsd || t.amount_usd || '0');
+                    bet.maturity = t.maturity;
+                    bet.asset = t.asset;
+                    bet.entryPrice = parseFloat(t.strikePrice || t.strike_price || '0');
+                    break;
+
+                  case 'overtime':
+                    bet.market = `${t.homeTeam || t.home_team || ''} vs ${t.awayTeam || t.away_team || ''}`;
+                    bet.position = t.outcomeLabel || t.outcome_label || 'Unknown';
+                    bet.amount = parseFloat(t.amountUsd || t.amount_usd || '0');
+                    bet.maturity = t.maturity;
+                    break;
+
+                  case 'azuro':
+                  case 'sxbet':
+                    bet.market = t.marketName || t.market_name || `Game ${t.gameId || t.game_id || ''}`;
+                    bet.position = t.outcomeLabel || t.outcome_label || t.position || 'Unknown';
+                    bet.amount = parseFloat(t.amountUsd || t.amount_usd || '0');
+                    bet.maturity = t.maturity;
+                    break;
+
+                  case 'limitless':
+                  case 'drift':
+                  case 'gnosis':
+                  case 'kalshi':
+                  case 'manifold':
+                  case 'metaculus':
+                    bet.market = t.marketQuestion || t.market_question || t.question || `Market ${t.marketId || t.market_id || ''}`;
+                    bet.position = t.outcomeSelected || t.outcome_selected || t.position || 'Unknown';
+                    bet.amount = parseFloat(t.amountUsd || t.amount_usd || t.amount || '0');
+                    bet.maturity = t.maturity || t.closeTime || t.close_time;
+                    break;
+                }
+
+                return bet;
+              });
+
+            allPending.push(...pending);
+
+            // Add resolved trades
+            const resolved = trades
+              .filter((t: any) => t.outcome !== 'pending')
+              .slice(0, 5)
+              .map((t: any) => ({ ...t, _platform: key }));
+            allResolved.push(...resolved);
+          } catch (error) {
+            console.error(`Error fetching ${key} trades:`, error);
+          }
+        })
+      );
+
+      // Sort by timestamp (most recent first)
+      const pendingBets = allPending.sort((a, b) =>
         new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
       );
 
-      const recentResolved = [
-        ...pancakeTrades.filter((t: any) => t.outcome !== 'pending').slice(0, 5).map((t: any) => ({ ...t, _platform: 'pancakeswap' })),
-        ...polyTrades.filter((t: any) => t.outcome !== 'pending').slice(0, 5).map((t: any) => ({ ...t, _platform: 'polymarket' })),
-      ].sort((a, b) =>
-        new Date(b.resolvedAt || b.resolved_at || b.simulatedAt || b.simulated_at || 0).getTime() -
-        new Date(a.resolvedAt || a.resolved_at || a.simulatedAt || a.simulated_at || 0).getTime()
-      ).slice(0, 10);
+      const recentTrades = allResolved
+        .sort((a, b) =>
+          new Date(b.resolvedAt || b.resolved_at || b.simulatedAt || b.simulated_at || 0).getTime() -
+          new Date(a.resolvedAt || a.resolved_at || a.simulatedAt || a.simulated_at || 0).getTime()
+        )
+        .slice(0, 10);
 
-      return { pendingBets, recentTrades: recentResolved };
+      return { pendingBets, recentTrades };
     },
     staleTime: 30 * 1000,
     refetchInterval: 30 * 1000,

@@ -267,12 +267,14 @@ interface SimulationStats {
 
 interface PendingBet {
   id: number;
-  platform: 'pancakeswap' | 'polymarket';
+  platform: 'pancakeswap' | 'polymarket' | 'speedmarkets' | 'overtime' | 'azuro' | 'sxbet' | 'limitless' | 'drift' | 'gnosis' | 'kalshi' | 'manifold' | 'metaculus';
   market: string;
   position: string;
   amount: number;
   entryPrice?: number;
   timestamp: string;
+  maturity?: string;
+  asset?: string;
 }
 
 function DashboardContent() {
