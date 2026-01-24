@@ -3,13 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Home, LayoutDashboard, Trophy, TrendingUp, Users, Copy, Zap } from 'lucide-react';
+import { Menu, X, Home, LayoutDashboard, Trophy, TrendingUp, Users, Copy } from 'lucide-react';
 
 const navLinks = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/markets', label: 'Markets', icon: TrendingUp },
-  { href: '/speed-markets', label: 'Speed Markets', icon: Zap },
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
   { href: '/traders', label: 'Traders', icon: Users },
   { href: '/copy-trading', label: 'Copy Trading', icon: Copy },

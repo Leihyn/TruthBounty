@@ -748,11 +748,70 @@ function DashboardContent() {
           <CardContent>
             <div className="space-y-2">
               {recentTrades.slice(0, 5).map((trade, i) => {
-                const isPancake = trade._platform === 'pancakeswap' || trade.epoch !== undefined;
+                const platform = trade._platform || 'polymarket';
                 const isWin = trade.outcome === 'win';
-                const pnl = isPancake
-                  ? parseFloat(trade.pnlBNB || trade.pnl_bnb || '0')
-                  : parseFloat(trade.pnlUsd || trade.pnl_usd || '0');
+
+                // Get market name based on platform
+                let marketName = 'Unknown market';
+                let position = 'Unknown';
+                let pnl = 0;
+                let currency = 'USD';
+
+                switch (platform) {
+                  case 'pancakeswap':
+                    marketName = `Epoch ${trade.epoch}`;
+                    position = (trade.isBull || trade.is_bull) ? 'Bull' : 'Bear';
+                    pnl = parseFloat(trade.pnlBNB || trade.pnl_bnb || '0');
+                    currency = 'BNB';
+                    break;
+
+                  case 'polymarket':
+                    marketName = (trade.marketQuestion || trade.market_question || 'Market')?.slice(0, 40);
+                    position = trade.outcomeSelected || trade.outcome_selected || trade.position || 'Unknown';
+                    pnl = parseFloat(trade.pnlUsd || trade.pnl_usd || '0');
+                    break;
+
+                  case 'speedmarkets':
+                    marketName = `${trade.asset || 'BTC'} ${trade.direction || 'UP'}`;
+                    position = trade.direction || 'Unknown';
+                    pnl = parseFloat(trade.pnlUsd || trade.pnl_usd || '0');
+                    break;
+
+                  case 'overtime':
+                  case 'azuro':
+                  case 'sxbet':
+                    marketName = (trade.marketName || trade.market_name || `${trade.homeTeam || trade.home_team || ''} vs ${trade.awayTeam || trade.away_team || ''}`)?.slice(0, 40);
+                    position = trade.outcomeLabel || trade.outcome_label || trade.position || 'Unknown';
+                    pnl = parseFloat(trade.pnlUsd || trade.pnl_usd || '0');
+                    break;
+
+                  case 'limitless':
+                  case 'drift':
+                  case 'gnosis':
+                  case 'kalshi':
+                  case 'manifold':
+                  case 'metaculus':
+                    marketName = (trade.marketQuestion || trade.market_question || trade.question || 'Market')?.slice(0, 40);
+                    position = trade.outcomeSelected || trade.outcome_selected || trade.position || 'Unknown';
+                    pnl = parseFloat(trade.pnlUsd || trade.pnl_usd || trade.amount || '0');
+                    break;
+                }
+
+                // Platform display name mapping
+                const platformNames: Record<string, string> = {
+                  pancakeswap: 'PancakeSwap',
+                  polymarket: 'Polymarket',
+                  speedmarkets: 'Speed Markets',
+                  overtime: 'Overtime',
+                  azuro: 'Azuro',
+                  sxbet: 'SX Bet',
+                  limitless: 'Limitless',
+                  drift: 'Drift',
+                  gnosis: 'Omen',
+                  kalshi: 'Kalshi',
+                  manifold: 'Manifold',
+                  metaculus: 'Metaculus',
+                };
 
                 return (
                   <div
@@ -771,17 +830,17 @@ function DashboardContent() {
                       </div>
                       <div>
                         <p className="text-sm font-medium line-clamp-1">
-                          {isPancake ? `Epoch ${trade.epoch}` : (trade.marketQuestion || trade.market_question || 'Unknown market')?.slice(0, 40)}
+                          {marketName}
                         </p>
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <PlatformBadge platform={isPancake ? 'PancakeSwap' : 'Polymarket'} size="xs" />
-                          <span>• {isPancake ? (trade.isBull ? 'Bull' : 'Bear') : (trade.outcomeSelected || trade.outcome_selected || 'Unknown')}</span>
+                          <PlatformBadge platform={platformNames[platform] || platform} size="xs" />
+                          <span>• {position}</span>
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className={`text-sm font-mono ${isWin ? 'text-success' : 'text-destructive'}`}>
-                        {pnl >= 0 ? '+' : ''}{isPancake ? `${pnl.toFixed(4)} BNB` : `$${pnl.toFixed(2)}`}
+                        {pnl >= 0 ? '+' : ''}{currency === 'BNB' ? `${pnl.toFixed(4)} BNB` : `$${pnl.toFixed(2)}`}
                       </p>
                       <Badge variant={isWin ? 'default' : 'destructive'} className="text-[10px]">
                         {isWin ? 'WON' : 'LOST'}
