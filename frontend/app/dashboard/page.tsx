@@ -244,6 +244,7 @@ import {
   DollarSign,
   Zap,
 } from 'lucide-react';
+import { MintReputationNFT } from '@/components/MintReputationNFT';
 import { PLATFORM_COLORS, getPlatformKey, shortenAddress } from '@/components/ui/design-tokens';
 import { PlatformBadge } from '@/components/ui/platform-badge';
 
@@ -966,36 +967,15 @@ function DashboardContent() {
         </Card>
       )}
 
-      {/* Register CTA (if not registered and not demo mode) - HIDDEN FOR NOW */}
-      {false && !isRegistered && !isDemo && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Trophy className="h-6 w-6 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold mb-1">Mint your reputation NFT</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Create your on-chain identity to track predictions permanently and climb the leaderboard.
-                </p>
-                <Button onClick={handleRegister} disabled={isRegistering}>
-                  {isRegistering ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Minting...</>
-                  ) : (
-                    <>Register for 0.0005 BNB<ArrowRight className="h-4 w-4 ml-2" /></>
-                  )}
-                </Button>
-              </div>
-            </div>
-            {registerError && (
-              <Alert variant="destructive" className="mt-4">
-                <XCircle className="h-4 w-4" />
-                <AlertDescription>{registerError}</AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
+      {/* Professional NFT Minting Component */}
+      {!isRegistered && !isDemo && (
+        <MintReputationNFT
+          onSuccess={() => {
+            refetchProfile();
+            refetchNFTMetadata();
+            refetchTokenURI();
+          }}
+        />
       )}
     </div>
   );
