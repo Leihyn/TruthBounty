@@ -373,9 +373,6 @@ function DashboardContent() {
     isRegistering,
   } = useTruthBounty();
 
-
-  const { toast } = useToast();
-
   const handleRegister = async () => {
     setRegisterError(null);
     setRegisterSuccess(false);
