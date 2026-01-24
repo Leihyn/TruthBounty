@@ -283,6 +283,8 @@ function DashboardContent() {
   const [showNFT, setShowNFT] = useState(false);
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [registerSuccess, setRegisterSuccess] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+  const { toast } = useToast();
 
   // Demo mode
   const demoMode = searchParams.get('demo') as keyof typeof DEMO_DATA | null;
@@ -311,6 +313,36 @@ function DashboardContent() {
     refetchPolymarket();
     refetchTrades();
   }, [refetchPancake, refetchPolymarket, refetchTrades]);
+
+  // Resolve all pending bets
+  const handleResolveBets = useCallback(async () => {
+    setIsResolving(true);
+    try {
+      const response = await fetch('/api/resolve-all');
+      const data = await response.json();
+
+      if (response.ok) {
+        const { totalResolved, totalPending } = data.summary || data;
+        toast({
+          title: "Bets Resolved!",
+          description: `Resolved ${totalResolved} bets. ${totalPending} still pending (not yet matured).`,
+          variant: "default",
+        });
+        // Refresh data to show updated stats
+        handleRefresh();
+      } else {
+        throw new Error(data.error || 'Failed to resolve bets');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Resolution Failed",
+        description: error.message || "Failed to resolve bets. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResolving(false);
+    }
+  }, [toast, handleRefresh]);
 
   // Use demo data in demo mode, otherwise use query data
   const pancakeStats: SimulationStats | null = isDemo && demoData
@@ -444,9 +476,27 @@ function DashboardContent() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="border-border/50">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Timer className="h-4 w-4 text-warning" />
-              <span className="text-xs text-muted-foreground">Pending</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Timer className="h-4 w-4 text-warning" />
+                <span className="text-xs text-muted-foreground">Pending</span>
+              </div>
+              {totalPending > 0 && !isDemo && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-xs"
+                  onClick={handleResolveBets}
+                  disabled={isResolving}
+                  title="Resolve pending bets"
+                >
+                  {isResolving ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3 w-3" />
+                  )}
+                </Button>
+              )}
             </div>
             <p className="text-2xl font-bold">{totalPending}</p>
           </CardContent>
