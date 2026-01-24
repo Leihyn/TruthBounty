@@ -966,8 +966,8 @@ function DashboardContent() {
         </Card>
       )}
 
-      {/* Register CTA (if not registered and not demo mode) */}
-      {!isRegistered && !isDemo && (
+      {/* Register CTA (if not registered and not demo mode) - HIDDEN FOR NOW */}
+      {false && !isRegistered && !isDemo && (
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
