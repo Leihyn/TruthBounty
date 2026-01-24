@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useCopyTradingSimStats, usePancakeSimulationTab } from '@/lib/queries';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -188,6 +189,7 @@ export default function CopyTradingDashboard() {
   const [mounted, setMounted] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const { toast } = useToast();
 
   // React Query hook for simulation stats - automatic 30s polling
   const { data: simStats } = useCopyTradingSimStats();
@@ -328,13 +330,52 @@ export default function CopyTradingDashboard() {
   const { isLoading: isCancelConfirming, isSuccess: cancelSuccess } = useWaitForTransactionReceipt({ hash: cancelHash });
 
   useEffect(() => {
-    if (depositSuccess || withdrawSuccess || executeSuccess || cancelSuccess) {
+    if (depositSuccess) {
       refetchBalance();
       refetchStats();
-      refetchPending();
-      refetchLeaders();
+      setDepositAmount('');
+      toast({
+        title: "Deposit Successful!",
+        description: `Successfully deposited ${depositAmount} BNB to your copy trading vault.`,
+        variant: "default",
+      });
     }
-  }, [depositSuccess, withdrawSuccess, executeSuccess, cancelSuccess]);
+  }, [depositSuccess]);
+
+  useEffect(() => {
+    if (withdrawSuccess) {
+      refetchPending();
+      setWithdrawAmount('');
+      toast({
+        title: "Withdrawal Requested",
+        description: `Withdrawal of ${withdrawAmount} BNB initiated. Wait ${delayHours} hour(s) to execute.`,
+        variant: "default",
+      });
+    }
+  }, [withdrawSuccess]);
+
+  useEffect(() => {
+    if (executeSuccess) {
+      refetchBalance();
+      refetchPending();
+      toast({
+        title: "Withdrawal Executed!",
+        description: `Successfully withdrawn ${pendingAmount} BNB to your wallet.`,
+        variant: "default",
+      });
+    }
+  }, [executeSuccess]);
+
+  useEffect(() => {
+    if (cancelSuccess) {
+      refetchPending();
+      toast({
+        title: "Withdrawal Cancelled",
+        description: "Your pending withdrawal has been cancelled.",
+        variant: "default",
+      });
+    }
+  }, [cancelSuccess]);
 
   const tvl = vaultStats ? formatEther(vaultStats[0]) : '0';
   const totalCopyTrades = vaultStats ? Number(vaultStats[1]) : 0;
@@ -357,39 +398,133 @@ export default function CopyTradingDashboard() {
   const leadersCount = followedLeaders?.length || 0;
 
   const handleDeposit = () => {
-    if (!depositAmount || Number(depositAmount) <= 0) return;
-    deposit({
-      address: COPY_VAULT_ADDRESS,
-      abi: COPY_TRADING_VAULT_ABI,
-      functionName: 'deposit',
-      value: parseEther(depositAmount),
-    });
+    try {
+      if (!depositAmount || Number(depositAmount) <= 0) {
+        toast({
+          title: "Invalid Amount",
+          description: "Please enter a valid deposit amount greater than 0.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (Number(depositAmount) < Number(minDepositBNB)) {
+        toast({
+          title: "Amount Too Low",
+          description: `Minimum deposit is ${minDepositBNB} BNB.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      deposit({
+        address: COPY_VAULT_ADDRESS,
+        abi: COPY_TRADING_VAULT_ABI,
+        functionName: 'deposit',
+        value: parseEther(depositAmount),
+      });
+    } catch (error: any) {
+      toast({
+        title: "Deposit Failed",
+        description: error?.message || "Failed to initiate deposit. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleRequestWithdraw = () => {
-    if (!withdrawAmount || Number(withdrawAmount) <= 0) return;
-    requestWithdraw({
-      address: COPY_VAULT_ADDRESS,
-      abi: COPY_TRADING_VAULT_ABI,
-      functionName: 'requestWithdrawal',
-      args: [parseEther(withdrawAmount)],
-    });
+    try {
+      if (!withdrawAmount || Number(withdrawAmount) <= 0) {
+        toast({
+          title: "Invalid Amount",
+          description: "Please enter a valid withdrawal amount greater than 0.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (Number(withdrawAmount) > Number(balance)) {
+        toast({
+          title: "Insufficient Balance",
+          description: `You only have ${balance} BNB available. Cannot withdraw ${withdrawAmount} BNB.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (hasPendingWithdrawal) {
+        toast({
+          title: "Pending Withdrawal Exists",
+          description: "You already have a pending withdrawal. Execute or cancel it first.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      requestWithdraw({
+        address: COPY_VAULT_ADDRESS,
+        abi: COPY_TRADING_VAULT_ABI,
+        functionName: 'requestWithdrawal',
+        args: [parseEther(withdrawAmount)],
+      });
+    } catch (error: any) {
+      toast({
+        title: "Withdrawal Request Failed",
+        description: error?.message || "Failed to request withdrawal. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleExecuteWithdraw = () => {
-    executeWithdraw({
-      address: COPY_VAULT_ADDRESS,
-      abi: COPY_TRADING_VAULT_ABI,
-      functionName: 'executeWithdrawal',
-    });
+    try {
+      if (!canExecuteWithdrawal) {
+        const remaining = formatTimeRemaining(unlockTime);
+        toast({
+          title: "Cannot Execute Yet",
+          description: `Withdrawal is time-locked. ${remaining}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      executeWithdraw({
+        address: COPY_VAULT_ADDRESS,
+        abi: COPY_TRADING_VAULT_ABI,
+        functionName: 'executeWithdrawal',
+      });
+    } catch (error: any) {
+      toast({
+        title: "Execution Failed",
+        description: error?.message || "Failed to execute withdrawal. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCancelWithdraw = () => {
-    cancelWithdraw({
-      address: COPY_VAULT_ADDRESS,
-      abi: COPY_TRADING_VAULT_ABI,
-      functionName: 'cancelWithdrawal',
-    });
+    try {
+      if (!hasPendingWithdrawal) {
+        toast({
+          title: "No Pending Withdrawal",
+          description: "You don't have any pending withdrawals to cancel.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      cancelWithdraw({
+        address: COPY_VAULT_ADDRESS,
+        abi: COPY_TRADING_VAULT_ABI,
+        functionName: 'cancelWithdrawal',
+      });
+    } catch (error: any) {
+      toast({
+        title: "Cancellation Failed",
+        description: error?.message || "Failed to cancel withdrawal. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   function formatTimeRemaining(unlockTimestamp: number): string {

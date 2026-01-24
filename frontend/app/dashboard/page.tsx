@@ -24,6 +24,7 @@ import {
   SimulationStats as QuerySimulationStats,
 } from '@/lib/queries';
 import { PlatformStatsCard } from '@/components/dashboard/PlatformStatsCard';
+import { useToast } from '@/hooks/use-toast';
 
 // Demo mode mock data for all tiers
 const DEMO_DATA = {
@@ -351,10 +352,10 @@ function DashboardContent() {
       setRegisterSuccess(true);
       toast({
         title: "NFT Minted Successfully! 🎉",
-        description: "Your Reputation NFT has been minted. Refreshing your dashboard...",
+        description: "Your Reputation NFT has been minted. Your dashboard will update automatically.",
         variant: "default",
       });
-      setTimeout(() => window.location.reload(), 2000);
+      // No page reload - wagmi will refetch automatically after transaction confirmation
     } catch (err: any) {
       console.error('Registration error:', err);
       const errorMsg = err?.message || err?.shortMessage || 'Transaction failed. Please try again.';

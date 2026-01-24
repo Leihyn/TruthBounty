@@ -54,7 +54,8 @@ export function useTruthBounty() {
     contracts: initialContracts,
     query: {
       enabled: !!address,
-      staleTime: 30 * 1000, // Cache for 30 seconds
+      staleTime: 10 * 1000, // Cache for 10 seconds (shorter to catch new registrations)
+      refetchOnMount: true, // Always refetch on mount to ensure fresh registration state
     },
   });
 
@@ -194,8 +195,11 @@ export function useTruthBounty() {
   // Refetch data after transactions
   useEffect(() => {
     if (registerHash && !isRegisterConfirming) {
-      refetchRegistration();
-      refetchProfile();
+      // Wait 3 seconds for blockchain to index the transaction
+      setTimeout(() => {
+        refetchRegistration();
+        refetchProfile();
+      }, 3000);
     }
   }, [registerHash, isRegisterConfirming]);
 
