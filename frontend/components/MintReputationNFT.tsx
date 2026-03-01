@@ -77,7 +77,7 @@ export function MintReputationNFT({ onSuccess }: MintReputationNFTProps) {
   }, []);
 
   // Wait for transaction confirmation
-  const { isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
+  const { isSuccess: isTxSuccess, isError: isTxError } = useWaitForTransactionReceipt({
     hash: txHash,
   });
 
@@ -105,30 +105,75 @@ export function MintReputationNFT({ onSuccess }: MintReputationNFTProps) {
     }
   }, [isTxSuccess, mintStep, refetchProfile, onSuccess, toast]);
 
+  // Handle transaction errors
+  useEffect(() => {
+    if (isTxError && mintStep === 'confirming') {
+      setError('Transaction failed on the blockchain. Please try again.');
+      setMintStep('error');
+      toast({
+        title: "Transaction Failed",
+        description: "The transaction was rejected by the network. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [isTxError, mintStep, toast]);
+
+  // Add timeout for stuck transactions
+  useEffect(() => {
+    if (mintStep === 'confirming') {
+      const timeout = setTimeout(() => {
+        setError('Transaction is taking too long. It may have failed. Please check BscScan or try again.');
+        setMintStep('error');
+      }, 60000); // 60 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [mintStep]);
+
   const handleMint = async () => {
     setError(null);
     setMintStep('signing');
 
     try {
+      console.log('🎯 Starting mint process...');
+      console.log('registerUser function exists?', !!registerUser);
+
       const hash = await registerUser?.();
+
+      console.log('📝 Transaction hash received:', hash);
+
+      if (!hash) {
+        throw new Error('No transaction hash returned. Transaction may have been rejected.');
+      }
+
       setTxHash(hash);
       setMintStep('confirming');
 
       toast({
         title: "Transaction Submitted",
-        description: "Waiting for blockchain confirmation...",
+        description: `Hash: ${hash.slice(0, 10)}...${hash.slice(-8)}`,
       });
     } catch (err: any) {
-      console.error('Minting error:', err);
+      console.error('❌ Minting error:', err);
+      console.error('Error details:', {
+        message: err.message,
+        shortMessage: err.shortMessage,
+        code: err.code,
+        details: err.details,
+      });
 
       let errorMsg = 'Transaction failed. Please try again.';
 
-      if (err.message?.includes('User rejected')) {
+      if (err.message?.includes('User rejected') || err.message?.includes('user rejected')) {
         errorMsg = 'Transaction was rejected. Please approve in your wallet to mint.';
       } else if (err.message?.includes('insufficient funds')) {
         errorMsg = 'Insufficient BNB. You need at least 0.001 BNB (0.0005 fee + gas).';
+      } else if (err.message?.includes('No transaction hash')) {
+        errorMsg = 'No transaction was created. Please check MetaMask and try again.';
       } else if (err.shortMessage) {
         errorMsg = err.shortMessage;
+      } else if (err.message) {
+        errorMsg = err.message;
       }
 
       setError(errorMsg);
@@ -156,6 +201,16 @@ export function MintReputationNFT({ onSuccess }: MintReputationNFTProps) {
     toast({
       title: "Reminder Hidden",
       description: `We'll remind you ${duration === 'session' ? 'next session' : `in ${days} day${days > 1 ? 's' : ''}`}.`,
+    });
+  };
+
+  const handleReset = () => {
+    setMintStep('idle');
+    setError(null);
+    setTxHash(undefined);
+    toast({
+      title: "Reset Complete",
+      description: "Ready to try minting again.",
     });
   };
 
@@ -299,19 +354,44 @@ export function MintReputationNFT({ onSuccess }: MintReputationNFTProps) {
             {(mintStep === 'signing' || mintStep === 'confirming') && (
               <div className="space-y-2">
                 <Progress value={mintStep === 'signing' ? 33 : 66} className="h-2" />
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span>
-                    {mintStep === 'signing' ? 'Waiting for wallet signature...' : 'Confirming transaction...'}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>
+                      {mintStep === 'signing' ? 'Waiting for wallet signature...' : 'Confirming transaction...'}
+                    </span>
+                  </div>
+                  {mintStep === 'confirming' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleReset}
+                      className="h-6 text-xs"
+                    >
+                      Reset
+                    </Button>
+                  )}
                 </div>
+                {txHash && mintStep === 'confirming' && (
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <span>TX: {txHash.slice(0, 10)}...{txHash.slice(-8)}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => window.open(`https://testnet.bscscan.com/tx/${txHash}`, '_blank')}
+                      className="h-5 text-[10px] px-2"
+                    >
+                      View
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Actions */}
             <div className="flex items-center gap-2">
               <Button
-                onClick={handleMint}
+                onClick={mintStep === 'error' ? handleReset : handleMint}
                 disabled={isRegistering || !isCorrectNetwork || mintStep === 'signing' || mintStep === 'confirming'}
                 className="flex-1"
               >
@@ -319,6 +399,11 @@ export function MintReputationNFT({ onSuccess }: MintReputationNFTProps) {
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     {mintStep === 'signing' ? 'Sign Transaction' : 'Confirming'}
+                  </>
+                ) : mintStep === 'error' ? (
+                  <>
+                    Try Again
+                    <ArrowRight className="h-4 w-4 ml-2" />
                   </>
                 ) : (
                   <>

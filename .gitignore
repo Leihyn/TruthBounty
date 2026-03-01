@@ -36,12 +36,8 @@ Thumbs.db
 # Foundry
 lcov.info
 
-# Exclude all .md files EXCEPT README.md
-*.md
-!README.md
-
-# Exclude all .sql files
-*.sql
+# Logs
+*.log
 
 # Next.js build output
 .next/
@@ -58,6 +54,3 @@ frontend/.claude/
 .claude/
 
 .vercel
-
- 
-s

@@ -138,7 +138,7 @@ export function useTruthBounty() {
   }, [platformCount]);
 
   // Write functions
-  const { writeContract: writeRegister, data: registerHash, isPending: isRegistering } = useWriteContract();
+  const { writeContractAsync: writeRegister, data: registerHash, isPending: isRegistering } = useWriteContract();
   const { writeContract: writeConnect, data: connectHash, isPending: isConnecting } = useWriteContract();
   const { writeContract: writeImport, data: importHash, isPending: isImporting } = useWriteContract();
   const { writeContract: writeUpdate, data: updateHash, isPending: isUpdating } = useWriteContract();

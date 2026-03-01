@@ -967,7 +967,7 @@ function DashboardContent() {
         </Card>
       )}
 
-      {/* Professional NFT Minting Component */}
+      {/* Professional NFT Minting Component - NOW WORKING! */}
       {!isRegistered && !isDemo && (
         <MintReputationNFT
           onSuccess={() => {
