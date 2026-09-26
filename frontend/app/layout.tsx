@@ -26,6 +26,11 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "TruthBounty - On-Chain Reputation for Prediction Markets",
   description: "Verify your prediction market performance and build your on-chain reputation",
+  verification: {
+    other: {
+      "ory-verify": "PASTE_TRUTHBOUNTY_TOKEN_HERE",
+    },
+  },
 };
 
 export default function RootLayout({
@@ -47,7 +52,7 @@ export default function RootLayout({
                   {/* Logo */}
                   <Link
                     href="/"
-                    className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+                    className="flex items-center gap-2 shrink-0 mr-6 hover:opacity-90 transition-opacity"
                   >
                     <Image
                       src="/logo.png"
@@ -139,6 +144,15 @@ export default function RootLayout({
                         className="hover:text-foreground transition-colors"
                       >
                         GitHub
+                      </a>
+                      <a
+                        href="https://x.com/faruukku"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="TruthBounty creator on X"
+                        className="hover:text-foreground transition-colors"
+                      >
+                        @faruukku
                       </a>
                     </div>
                   </div>
